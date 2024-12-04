@@ -1,30 +1,27 @@
 export interface Player {
   id: string;
   name: string;
-  avatar: string;
   health: number;
   mana: number;
-  hand: Card[];
+  cards: Card[];
 }
 
 export interface Card {
   id: string;
   name: string;
   manaCost: number;
-  description: string;
   effect: CardEffect;
-  imageUrl: string;
 }
 
 export interface CardEffect {
-  type: 'damage' | 'heal' | 'buff' | 'debuff';
+  type: 'damage' | 'heal';
   value: number;
-  target: 'opponent' | 'self' | 'all';
 }
 
-export interface GameState {
+export interface Party {
+  id: string;
+  code: string;
   players: Player[];
-  currentPlayerIndex: number;
-  gameStatus: 'setup' | 'playing' | 'finished';
-  winner?: Player;
+  currentTurn: string; // player id
+  status: 'waiting' | 'playing' | 'finished';
 }
