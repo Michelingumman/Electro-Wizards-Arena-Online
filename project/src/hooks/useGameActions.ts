@@ -27,8 +27,8 @@ export function useGameActions(partyId: string) {
       const player = { ...updatedPlayers[playerIndex] };
       const target = { ...updatedPlayers[targetIndex] };
       
-      // Check if player is dead or it's not their turn
-      if (player.health <= 0 || currentParty.currentTurn !== playerId) return;
+      // Check if player is dead
+      if (player.health <= 0) return;
       
       // Check if target is dead for damage effects
       if (card.effect.type === 'damage' && target.health <= 0) return;
@@ -45,9 +45,9 @@ export function useGameActions(partyId: string) {
           target.health = Math.max(0, target.health - card.effect.value);
           break;
         case 'heal':
-          player.health = Math.min(
+          target.health = Math.min(
             party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH,
-            player.health + card.effect.value
+            target.health + card.effect.value
           );
           break;
         case 'manaDrain':
@@ -74,25 +74,12 @@ export function useGameActions(partyId: string) {
       updatedPlayers[playerIndex] = player;
       updatedPlayers[targetIndex] = target;
       
-      // Update next turn
-      const nextPlayerIndex = (playerIndex + 1) % currentParty.players.length;
-      let nextTurn = updatedPlayers[nextPlayerIndex].id;
-      
-      // Skip dead players for next turn
-      let attempts = updatedPlayers.length;
-      while (attempts > 0 && updatedPlayers[updatedPlayers.findIndex(p => p.id === nextTurn)].health <= 0) {
-        const currentIndex = updatedPlayers.findIndex(p => p.id === nextTurn);
-        nextTurn = updatedPlayers[(currentIndex + 1) % updatedPlayers.length].id;
-        attempts--;
-      }
-      
       // Check if game is over (only one player alive)
       const alivePlayers = updatedPlayers.filter(p => p.health > 0);
       const status = alivePlayers.length <= 1 ? 'finished' : 'playing';
       
       transaction.update(partyRef, {
         players: updatedPlayers,
-        currentTurn: nextTurn,
         status,
         winner: status === 'finished' ? alivePlayers[0]?.id : undefined
       });
@@ -120,7 +107,7 @@ export function useGameActions(partyId: string) {
       // Check if player is dead
       if (player.health <= 0) return;
       
-      // Restore mana (can be done at any time, doesn't count as a turn)
+      // Restore mana (can be done at any time)
       player.mana = Math.min(
         party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
         player.mana + (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT)
@@ -133,5 +120,32 @@ export function useGameActions(partyId: string) {
     });
   }, [partyId]);
 
-  return { applyCardEffect, drinkMana };
+  const endTurn = useCallback(async (
+    party: Party,
+    playerId: string
+  ) => {
+    const partyRef = doc(db, 'parties', partyId);
+    
+    await runTransaction(db, async (transaction) => {
+      const partyDoc = await transaction.get(partyRef);
+      if (!partyDoc.exists()) return;
+      
+      const currentParty = partyDoc.data() as Party;
+      const playerIndex = currentParty.players.findIndex(p => p.id === playerId);
+      
+      if (playerIndex === -1 || currentParty.currentTurn !== playerId) return;
+      
+      // Find next alive player
+      let nextPlayerIndex = (playerIndex + 1) % currentParty.players.length;
+      while (currentParty.players[nextPlayerIndex].health <= 0 && nextPlayerIndex !== playerIndex) {
+        nextPlayerIndex = (nextPlayerIndex + 1) % currentParty.players.length;
+      }
+      
+      transaction.update(partyRef, {
+        currentTurn: currentParty.players[nextPlayerIndex].id
+      });
+    });
+  }, [partyId]);
+
+  return { applyCardEffect, drinkMana, endTurn };
 }

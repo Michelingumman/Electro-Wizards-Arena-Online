@@ -16,7 +16,7 @@ export function Game() {
   const navigate = useNavigate();
   const { party, currentPlayer, loading, error } = useGameStore();
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const { applyCardEffect, drinkMana } = useGameActions(partyId!);
+  const { applyCardEffect, drinkMana, endTurn } = useGameActions(partyId!);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
   
   // Set up game state subscription
@@ -25,6 +25,7 @@ export function Game() {
   const isCurrentTurn = party?.currentTurn === currentPlayer?.id;
   const isLeader = currentPlayer?.isLeader;
   const canStart = party?.status === 'waiting' && isLeader && (party?.players.length ?? 0) >= 2;
+  const canDrink = currentPlayer?.health > 0 && currentPlayer?.mana < (party?.settings?.maxMana ?? 10);
 
   const handlePlayCard = async (card: Card) => {
     if (!party || !currentPlayer || (!selectedTarget && card.requiresTarget)) return;
@@ -43,11 +44,20 @@ export function Game() {
   };
 
   const handleDrink = async () => {
-    if (!party || !currentPlayer) return;
+    if (!party || !currentPlayer || !canDrink) return;
     try {
       await drinkMana(party, currentPlayer.id);
     } catch (error) {
       console.error('Error drinking mana:', error);
+    }
+  };
+
+  const handleEndTurn = async () => {
+    if (!party || !currentPlayer || !isCurrentTurn) return;
+    try {
+      await endTurn(party, currentPlayer.id);
+    } catch (error) {
+      console.error('Error ending turn:', error);
     }
   };
 
@@ -104,6 +114,16 @@ export function Game() {
                 onSave={(settings) => updateGameSettings(party.id, currentPlayer.id, settings)}
                 isLeader={isLeader}
               />
+              {canDrink && (
+                <Button
+                  variant="secondary"
+                  onClick={handleDrink}
+                  className="flex items-center group hover:bg-blue-900/20"
+                >
+                  <Droplet className="mr-2 group-hover:text-blue-400" />
+                  Drink (+{party.settings?.manaDrinkAmount ?? 3})
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 onClick={handleLeaveParty}
@@ -157,18 +177,10 @@ export function Game() {
           <div className="text-center p-8 bg-red-900/30 backdrop-blur-sm rounded-lg border border-red-500/20">
             <p className="text-xl text-red-200">You have been defeated!</p>
           </div>
-        ) : isCurrentTurn ? (
+        ) : (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-purple-100">Your Cards</h2>
-              <Button
-                variant="secondary"
-                onClick={handleDrink}
-                className="flex items-center group hover:bg-blue-900/20"
-              >
-                <Droplet className="mr-2 group-hover:text-blue-400" />
-                Drink Mana (+{party.settings?.manaDrinkAmount ?? 3})
-              </Button>
             </div>
             {selectedTarget && (
               <div className="bg-purple-900/30 border border-purple-500/30 p-4 rounded-lg">
@@ -178,15 +190,11 @@ export function Game() {
             <CardList
               cards={currentPlayer.cards}
               onPlayCard={handlePlayCard}
-              disabled={false}
+              disabled={!isCurrentTurn}
               currentMana={currentPlayer.mana}
+              showEndTurn={isCurrentTurn}
+              onEndTurn={handleEndTurn}
             />
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-purple-500/20">
-            <p className="text-xl text-purple-200">
-              Waiting for {party.players.find(p => p.id === party.currentTurn)?.name}'s turn...
-            </p>
           </div>
         )}
       </div>
