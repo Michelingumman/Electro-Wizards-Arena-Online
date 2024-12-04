@@ -9,7 +9,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={clsx(
-          'w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-purple-600 focus:outline-none',
+          'w-full px-4 py-2 rounded-lg bg-gray-800 border-2 border-gray-700',
+          'text-white placeholder-gray-400',
+          'focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20',
+          'transition-all duration-200',
           className
         )}
         {...props}
