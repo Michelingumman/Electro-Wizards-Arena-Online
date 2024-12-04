@@ -13,19 +13,18 @@ interface GameState {
   reset: () => void;
 }
 
-export const useGameStore = create<GameState>((set) => ({
+const initialState = {
   party: null,
   currentPlayer: null,
   loading: true,
-  error: null,
+  error: null
+};
+
+export const useGameStore = create<GameState>((set) => ({
+  ...initialState,
   setParty: (party) => set({ party }),
   setCurrentPlayer: (player) => set({ currentPlayer: player }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  reset: () => set({ 
-    party: null, 
-    currentPlayer: null, 
-    loading: true, 
-    error: null 
-  })
+  reset: () => set(initialState)
 }));
