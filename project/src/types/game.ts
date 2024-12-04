@@ -4,6 +4,7 @@ export interface Player {
   health: number;
   mana: number;
   cards: Card[];
+  isLeader?: boolean;
 }
 
 export interface Card {
@@ -11,6 +12,7 @@ export interface Card {
   name: string;
   manaCost: number;
   effect: CardEffect;
+  requiresTarget: boolean;
 }
 
 export interface CardEffect {
@@ -24,4 +26,5 @@ export interface Party {
   players: Player[];
   currentTurn: string; // player id
   status: 'waiting' | 'playing' | 'finished';
+  leaderId: string;
 }
