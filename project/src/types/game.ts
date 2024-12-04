@@ -5,18 +5,28 @@ export interface Player {
   mana: number;
   cards: Card[];
   isLeader?: boolean;
+  effects?: PlayerEffect[];
+}
+
+export interface PlayerEffect {
+  type: string;
+  value: number;
+  duration: number;
 }
 
 export interface Card {
   id: string;
   name: string;
   manaCost: number;
+  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff';
   effect: CardEffect;
   requiresTarget: boolean;
+  description: string;
+  color: string;
 }
 
 export interface CardEffect {
-  type: 'damage' | 'heal';
+  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn';
   value: number;
 }
 

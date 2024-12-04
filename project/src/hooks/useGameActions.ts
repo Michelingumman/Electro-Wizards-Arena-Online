@@ -27,23 +27,48 @@ export function useGameActions(partyId: string) {
       const player = { ...updatedPlayers[playerIndex] };
       const target = { ...updatedPlayers[targetIndex] };
       
-      // Check if player is dead
-      if (player.health <= 0) return;
+      // Check if player is dead or it's not their turn
+      if (player.health <= 0 || currentParty.currentTurn !== playerId) return;
+      
+      // Check if target is dead for damage effects
+      if (card.effect.type === 'damage' && target.health <= 0) return;
+      
+      // Check mana cost
+      if (player.mana < card.manaCost) return;
       
       // Deduct mana cost
-      player.mana -= card.manaCost;
-      
-      // Update player's cards
-      const cardIndex = player.cards.findIndex(c => c.id === card.id);
-      if (cardIndex !== -1) {
-        player.cards[cardIndex] = { ...card }; // Keep the same card but create a new reference
-      }
+      player.mana = Math.max(0, player.mana - card.manaCost);
       
       // Apply card effect
-      if (card.effect.type === 'damage') {
-        target.health = Math.max(0, target.health - card.effect.value);
-      } else if (card.effect.type === 'heal') {
-        player.health = Math.min(GAME_CONFIG.MAX_HEALTH, player.health + card.effect.value);
+      switch (card.effect.type) {
+        case 'damage':
+          target.health = Math.max(0, target.health - card.effect.value);
+          break;
+        case 'heal':
+          player.health = Math.min(
+            party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH,
+            player.health + card.effect.value
+          );
+          break;
+        case 'manaDrain':
+          const drainAmount = Math.min(target.mana, card.effect.value);
+          target.mana -= drainAmount;
+          player.mana = Math.min(
+            party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+            player.mana + drainAmount
+          );
+          break;
+        case 'forceDrink':
+          target.mana = Math.min(
+            party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+            target.mana + (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT)
+          );
+          break;
+        case 'manaBurn':
+          const damage = target.mana;
+          target.health = Math.max(0, target.health - damage);
+          target.mana = 0;
+          break;
       }
       
       updatedPlayers[playerIndex] = player;
@@ -69,7 +94,7 @@ export function useGameActions(partyId: string) {
         players: updatedPlayers,
         currentTurn: nextTurn,
         status,
-        winner: status === 'finished' ? alivePlayers[0]?.id : null
+        winner: status === 'finished' ? alivePlayers[0]?.id : undefined
       });
     });
   }, [partyId]);
@@ -95,8 +120,11 @@ export function useGameActions(partyId: string) {
       // Check if player is dead
       if (player.health <= 0) return;
       
-      // Restore mana
-      player.mana = Math.min(GAME_CONFIG.MAX_MANA, player.mana + GAME_CONFIG.MANA_DRINK_AMOUNT);
+      // Restore mana (can be done at any time, doesn't count as a turn)
+      player.mana = Math.min(
+        party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+        player.mana + (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT)
+      );
       updatedPlayers[playerIndex] = player;
       
       transaction.update(partyRef, {
