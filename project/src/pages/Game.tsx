@@ -9,19 +9,22 @@ import { PlayerStats } from '../components/game/PlayerStats';
 import { CardList } from '../components/game/CardList';
 import { Button } from '../components/ui/Button';
 import { useGameActions } from '../hooks/useGameActions';
-import { auth } from '../lib/firebase';
+import { useAuth } from '../hooks/useAuth';
 
 export function Game() {
   const { partyId } = useParams<{ partyId: string }>();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { party, setParty, currentPlayer, setCurrentPlayer } = useGameStore();
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { applyCardEffect, drinkMana } = useGameActions(partyId!);
 
   useEffect(() => {
-    if (!partyId) {
-      navigate('/');
+    if (!partyId || !user) {
+      if (!authLoading) {
+        navigate('/');
+      }
       return;
     }
 
@@ -30,13 +33,9 @@ export function Game() {
         const partyData = { ...doc.data(), id: doc.id } as Party;
         setParty(partyData);
         
-        // Set current player based on auth
-        const userId = auth.currentUser?.uid;
-        if (userId) {
-          const player = partyData.players.find(p => p.id === userId);
-          if (player) {
-            setCurrentPlayer(player);
-          }
+        const player = partyData.players.find(p => p.id === user.uid);
+        if (player) {
+          setCurrentPlayer(player);
         }
         setLoading(false);
       } else {
@@ -45,7 +44,7 @@ export function Game() {
     });
 
     return () => unsubscribe();
-  }, [partyId, setParty, setCurrentPlayer, navigate]);
+  }, [partyId, user, authLoading, setParty, setCurrentPlayer, navigate]);
 
   const isCurrentTurn = party?.currentTurn === currentPlayer?.id;
 
@@ -60,7 +59,7 @@ export function Game() {
     await drinkMana(party, currentPlayer.id);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
@@ -71,7 +70,7 @@ export function Game() {
     );
   }
 
-  if (!party || !currentPlayer) {
+  if (!party || !currentPlayer || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
