@@ -1,6 +1,6 @@
 export const GAME_CONFIG = {
   // Party settings
-  MAX_PLAYERS: 10,
+  MAX_PLAYERS: 100, // Increased to allow more players
   MIN_PLAYERS_TO_START: 2,
   PARTY_CODE_LENGTH: 4,
 

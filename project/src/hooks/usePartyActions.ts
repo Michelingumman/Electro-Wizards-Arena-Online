@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { collection, addDoc, doc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Party, Player, GameSettings } from '../types/game';
 import { generateInitialCards } from '../utils/cards';
@@ -7,7 +7,7 @@ import { generatePartyCode } from '../utils/party';
 import { GAME_CONFIG } from '../config/gameConfig';
 
 export function usePartyActions() {
-  const createParty = useCallback(async (player: Omit<Player, 'cards' | 'isLeader'>) => {
+  const createParty = useCallback(async (player: Pick<Player, 'id' | 'name'>) => {
     const code = generatePartyCode();
     
     const partyData: Omit<Party, 'id'> = {
@@ -40,7 +40,7 @@ export function usePartyActions() {
     }
   }, []);
 
-  const joinParty = useCallback(async (partyId: string, player: Omit<Player, 'cards' | 'isLeader'>) => {
+  const joinParty = useCallback(async (partyId: string, player: Pick<Player, 'id' | 'name'>) => {
     const partyRef = doc(db, 'parties', partyId);
     
     try {
@@ -55,10 +55,6 @@ export function usePartyActions() {
         
         if (party.status !== 'waiting') {
           throw new Error('Game has already started');
-        }
-
-        if (party.players.length >= GAME_CONFIG.MAX_PLAYERS) {
-          throw new Error('Party is full');
         }
 
         if (party.players.some(p => p.id === player.id)) {

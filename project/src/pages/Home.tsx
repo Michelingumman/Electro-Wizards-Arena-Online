@@ -46,27 +46,28 @@ export function Home() {
       
       const partyQuery = query(
         collection(db, 'parties'),
-        where('code', '==', partyCode),
+        where('code', '==', partyCode.toUpperCase()),
         where('status', '==', 'waiting')
       );
 
       const querySnapshot = await getDocs(partyQuery);
       
       if (querySnapshot.empty) {
-        setError('Party not found or already started');
-        return;
+        throw new Error('Party not found or already started');
       }
 
       const partyDoc = querySnapshot.docs[0];
-      await joinParty(partyDoc.id, {
+      const partyId = partyDoc.id;
+
+      await joinParty(partyId, {
         id: userCredential.user.uid,
         name
       });
 
-      navigate(`/game/${partyDoc.id}`);
-    } catch (err) {
-      setError('Failed to join party. Please try again.');
-      console.error('Error joining party:', err);
+      navigate(`/game/${partyId}`);
+    } catch (error: any) {
+      setError(error.message || 'Failed to join party. Please try again.');
+      console.error('Error joining party:', error);
     } finally {
       setLoading(false);
     }
@@ -106,6 +107,7 @@ export function Home() {
               onChange={(e) => setName(e.target.value)}
               className="text-lg"
               maxLength={20}
+              disabled={loading}
             />
 
             <div className="space-y-4">
@@ -135,8 +137,9 @@ export function Home() {
                   type="text"
                   placeholder="Enter party code"
                   value={partyCode}
-                  onChange={(e) => setPartyCode(e.target.value)}
+                  onChange={(e) => setPartyCode(e.target.value.toUpperCase())}
                   maxLength={4}
+                  disabled={loading}
                 />
                 <Button
                   variant="secondary"

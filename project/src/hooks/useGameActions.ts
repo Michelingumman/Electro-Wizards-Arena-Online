@@ -3,6 +3,7 @@ import { doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Card, Party, Player } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
+import { drawNewCard } from '../utils/cards';
 
 export function useGameActions(partyId: string) {
   const applyCardEffect = useCallback(async (
@@ -27,8 +28,8 @@ export function useGameActions(partyId: string) {
       const player = { ...updatedPlayers[playerIndex] };
       const target = { ...updatedPlayers[targetIndex] };
       
-      // Check if player is dead
-      if (player.health <= 0) return;
+      // Check if player is dead or it's not their turn
+      if (player.health <= 0 || currentParty.currentTurn !== playerId) return;
       
       // Check if target is dead for damage effects
       if (card.effect.type === 'damage' && target.health <= 0) return;
@@ -38,6 +39,16 @@ export function useGameActions(partyId: string) {
       
       // Deduct mana cost
       player.mana = Math.max(0, player.mana - card.manaCost);
+      
+      // Replace the used card with a new one
+      const cardIndex = player.cards.findIndex(c => c.id === card.id);
+      if (cardIndex !== -1) {
+        player.cards = [
+          ...player.cards.slice(0, cardIndex),
+          drawNewCard(),
+          ...player.cards.slice(cardIndex + 1)
+        ];
+      }
       
       // Apply card effect
       switch (card.effect.type) {
@@ -65,8 +76,8 @@ export function useGameActions(partyId: string) {
           );
           break;
         case 'manaBurn':
-          const damage = target.mana;
-          target.health = Math.max(0, target.health - damage);
+          const burnDamage = target.mana;
+          target.health = Math.max(0, target.health - burnDamage);
           target.mana = 0;
           break;
       }
@@ -104,7 +115,7 @@ export function useGameActions(partyId: string) {
       const updatedPlayers = [...currentParty.players];
       const player = { ...updatedPlayers[playerIndex] };
       
-      // Check if player is dead
+      // Only check if player is alive
       if (player.health <= 0) return;
       
       // Restore mana (can be done at any time)
@@ -112,6 +123,7 @@ export function useGameActions(partyId: string) {
         party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
         player.mana + (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT)
       );
+      
       updatedPlayers[playerIndex] = player;
       
       transaction.update(partyRef, {
@@ -134,7 +146,7 @@ export function useGameActions(partyId: string) {
       const playerIndex = currentParty.players.findIndex(p => p.id === playerId);
       
       if (playerIndex === -1 || currentParty.currentTurn !== playerId) return;
-      
+
       // Find next alive player
       let nextPlayerIndex = (playerIndex + 1) % currentParty.players.length;
       while (currentParty.players[nextPlayerIndex].health <= 0 && nextPlayerIndex !== playerIndex) {

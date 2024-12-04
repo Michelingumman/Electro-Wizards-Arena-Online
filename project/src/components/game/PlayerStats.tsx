@@ -1,18 +1,27 @@
 import { Player } from '../../types/game';
-import { Heart, Droplet, Crown, Skull, Swords } from 'lucide-react';
+import { Heart, Droplet, Crown, Skull } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface PlayerStatsProps {
   player: Player;
   isCurrentPlayer: boolean;
   isCurrentTurn: boolean;
+  isTargetable: boolean;
+  onSelect?: () => void;
 }
 
-export function PlayerStats({ player, isCurrentPlayer, isCurrentTurn }: PlayerStatsProps) {
+export function PlayerStats({ 
+  player, 
+  isCurrentPlayer, 
+  isCurrentTurn,
+  isTargetable,
+  onSelect 
+}: PlayerStatsProps) {
   const isDead = player.health <= 0;
 
   return (
     <div
+      onClick={isTargetable && onSelect ? onSelect : undefined}
       className={clsx(
         'p-4 rounded-lg transition-all duration-200',
         {
@@ -20,6 +29,8 @@ export function PlayerStats({ player, isCurrentPlayer, isCurrentTurn }: PlayerSt
           'bg-purple-900/50 ring-2 ring-purple-500/50': isCurrentTurn && !isDead,
           'bg-gray-800/50': !isCurrentTurn && !isDead,
           'transform scale-105': isCurrentTurn && !isDead,
+          'cursor-pointer hover:ring-2 hover:ring-purple-400/50': isTargetable,
+          'hover:scale-105': isTargetable
         }
       )}
     >
@@ -31,8 +42,7 @@ export function PlayerStats({ player, isCurrentPlayer, isCurrentTurn }: PlayerSt
         </div>
         {isCurrentTurn && !isDead && (
           <div className="flex items-center space-x-2">
-            <Swords className="w-4 h-4 text-purple-400 animate-pulse" />
-            <span className="text-xs bg-purple-500 px-2 py-1 rounded">
+            <span className="text-xs bg-purple-500 px-2 py-1 rounded animate-pulse">
               Current Turn
             </span>
           </div>
@@ -55,6 +65,12 @@ export function PlayerStats({ player, isCurrentPlayer, isCurrentTurn }: PlayerSt
           <span>{player.mana}</span>
         </div>
       </div>
+
+      {isTargetable && (
+        <div className="mt-2 text-sm text-purple-300 animate-pulse">
+          Click to target
+        </div>
+      )}
     </div>
   );
 }
