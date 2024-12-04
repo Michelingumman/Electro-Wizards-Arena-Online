@@ -27,4 +27,14 @@ export interface Party {
   currentTurn: string; // player id
   status: 'waiting' | 'playing' | 'finished';
   leaderId: string;
+  winner?: string;
+  settings?: GameSettings;
+}
+
+export interface GameSettings {
+  maxHealth: number;
+  maxMana: number;
+  manaDrinkAmount: number;
+  initialHealth: number;
+  initialMana: number;
 }

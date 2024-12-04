@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { collection, addDoc, doc, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Party, Player } from '../types/game';
+import { Party, Player, GameSettings } from '../types/game';
 import { generateInitialCards } from '../utils/cards';
 import { generatePartyCode } from '../utils/party';
 import { GAME_CONFIG } from '../config/gameConfig';
@@ -21,7 +21,14 @@ export function usePartyActions() {
         isLeader: true
       }],
       currentTurn: player.id,
-      leaderId: player.id
+      leaderId: player.id,
+      settings: {
+        maxHealth: GAME_CONFIG.MAX_HEALTH,
+        maxMana: GAME_CONFIG.MAX_MANA,
+        manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,
+        initialHealth: GAME_CONFIG.INITIAL_HEALTH,
+        initialMana: GAME_CONFIG.INITIAL_MANA,
+      }
     };
 
     try {
@@ -37,7 +44,7 @@ export function usePartyActions() {
     const partyRef = doc(db, 'parties', partyId);
     
     try {
-      const result = await runTransaction(db, async (transaction) => {
+      await runTransaction(db, async (transaction) => {
         const partyDoc = await transaction.get(partyRef);
         
         if (!partyDoc.exists()) {
@@ -46,45 +53,39 @@ export function usePartyActions() {
 
         const party = partyDoc.data() as Party;
         
-        // Check if player is already in the party
-        const existingPlayer = party.players.find(p => p.id === player.id);
-        if (existingPlayer) {
-          return { partyId, rejoined: true };
+        if (party.status !== 'waiting') {
+          throw new Error('Game has already started');
         }
 
         if (party.players.length >= GAME_CONFIG.MAX_PLAYERS) {
           throw new Error('Party is full');
         }
 
-        if (party.status !== 'waiting') {
-          throw new Error('Game has already started');
+        if (party.players.some(p => p.id === player.id)) {
+          throw new Error('Player already in party');
         }
 
         const newPlayer = {
           ...player,
-          health: GAME_CONFIG.INITIAL_HEALTH,
-          mana: GAME_CONFIG.INITIAL_MANA,
+          health: party.settings?.initialHealth ?? GAME_CONFIG.INITIAL_HEALTH,
+          mana: party.settings?.initialMana ?? GAME_CONFIG.INITIAL_MANA,
           cards: generateInitialCards(),
           isLeader: false
         };
 
-        const updatedPlayers = [...party.players, newPlayer];
-
         transaction.update(partyRef, {
-          players: updatedPlayers
+          players: [...party.players, newPlayer]
         });
-
-        return { partyId, rejoined: false };
       });
 
-      return result.partyId;
+      return partyId;
     } catch (error) {
       console.error('Error joining party:', error);
       throw error;
     }
   }, []);
 
-  const startGame = useCallback(async (partyId: string, playerId: string) => {
+  const startGame = useCallback(async (partyId: string) => {
     const partyRef = doc(db, 'parties', partyId);
     
     try {
@@ -97,21 +98,20 @@ export function usePartyActions() {
 
         const party = partyDoc.data() as Party;
         
-        if (party.leaderId !== playerId) {
-          throw new Error('Only the party leader can start the game');
-        }
-
-        if (party.players.length < GAME_CONFIG.MIN_PLAYERS_TO_START) {
-          throw new Error(`Need at least ${GAME_CONFIG.MIN_PLAYERS_TO_START} players to start`);
-        }
-
         if (party.status !== 'waiting') {
           throw new Error('Game has already started');
         }
 
+        if (party.players.length < GAME_CONFIG.MIN_PLAYERS_TO_START) {
+          throw new Error('Not enough players to start');
+        }
+
+        // Randomize first turn
+        const firstPlayer = party.players[Math.floor(Math.random() * party.players.length)];
+
         transaction.update(partyRef, {
           status: 'playing',
-          currentTurn: party.players[0].id // Start with the first player
+          currentTurn: firstPlayer.id
         });
       });
     } catch (error) {
@@ -130,32 +130,74 @@ export function usePartyActions() {
         if (!partyDoc.exists()) return;
 
         const party = partyDoc.data() as Party;
+        const isLeader = party.leaderId === playerId;
         
-        // If leader leaves, end the game
-        if (party.leaderId === playerId) {
-          await transaction.delete(partyRef);
+        if (isLeader) {
+          // If leader leaves, delete the party
+          transaction.delete(partyRef);
         } else {
+          // Remove player from party
           const updatedPlayers = party.players.filter(p => p.id !== playerId);
           
-          // If no players left, delete the party
-          if (updatedPlayers.length === 0) {
-            await transaction.delete(partyRef);
-          } else {
-            await transaction.update(partyRef, {
+          // If it's the leaving player's turn, move to next player
+          if (party.currentTurn === playerId) {
+            const currentIndex = party.players.findIndex(p => p.id === playerId);
+            const nextPlayer = party.players[(currentIndex + 1) % party.players.length];
+            transaction.update(partyRef, {
               players: updatedPlayers,
-              // If it was this player's turn, move to the next player
-              currentTurn: party.currentTurn === playerId 
-                ? updatedPlayers[0].id 
-                : party.currentTurn
+              currentTurn: nextPlayer.id
+            });
+          } else {
+            transaction.update(partyRef, {
+              players: updatedPlayers
             });
           }
         }
       });
     } catch (error) {
       console.error('Error leaving party:', error);
-      // Don't throw here to ensure cleanup always happens
+      throw error;
     }
   }, []);
 
-  return { createParty, joinParty, startGame, leaveParty };
+  const updateGameSettings = useCallback(async (
+    partyId: string,
+    playerId: string,
+    settings: GameSettings
+  ) => {
+    const partyRef = doc(db, 'parties', partyId);
+    
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        
+        if (!partyDoc.exists()) {
+          throw new Error('Party not found');
+        }
+
+        const party = partyDoc.data() as Party;
+        
+        if (party.leaderId !== playerId) {
+          throw new Error('Only the party leader can update settings');
+        }
+
+        if (party.status !== 'waiting') {
+          throw new Error('Cannot update settings after game has started');
+        }
+
+        transaction.update(partyRef, { settings });
+      });
+    } catch (error) {
+      console.error('Error updating game settings:', error);
+      throw error;
+    }
+  }, []);
+
+  return {
+    createParty,
+    joinParty,
+    startGame,
+    leaveParty,
+    updateGameSettings
+  };
 }
