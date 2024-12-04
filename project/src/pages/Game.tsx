@@ -1,50 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { Droplet } from 'lucide-react';
-import { db } from '../lib/firebase';
 import { useGameStore } from '../store/gameStore';
-import { Card, Party } from '../types/game';
+import { Card } from '../types/game';
 import { PlayerStats } from '../components/game/PlayerStats';
 import { CardList } from '../components/game/CardList';
 import { Button } from '../components/ui/Button';
 import { useGameActions } from '../hooks/useGameActions';
-import { useAuth } from '../hooks/useAuth';
+import { useGameState } from '../hooks/useGameState';
 
 export function Game() {
   const { partyId } = useParams<{ partyId: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { party, setParty, currentPlayer, setCurrentPlayer } = useGameStore();
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { party, currentPlayer, loading, error } = useGameStore();
   const { applyCardEffect, drinkMana } = useGameActions(partyId!);
 
-  useEffect(() => {
-    if (!partyId || !user) {
-      if (!authLoading) {
-        navigate('/');
-      }
-      return;
-    }
-
-    const unsubscribe = onSnapshot(doc(db, 'parties', partyId), (doc) => {
-      if (doc.exists()) {
-        const partyData = { ...doc.data(), id: doc.id } as Party;
-        setParty(partyData);
-        
-        const player = partyData.players.find(p => p.id === user.uid);
-        if (player) {
-          setCurrentPlayer(player);
-        }
-        setLoading(false);
-      } else {
-        navigate('/');
-      }
-    });
-
-    return () => unsubscribe();
-  }, [partyId, user, authLoading, setParty, setCurrentPlayer, navigate]);
+  // Initialize game state
+  useGameState(partyId!);
 
   const isCurrentTurn = party?.currentTurn === currentPlayer?.id;
 
@@ -59,7 +32,7 @@ export function Game() {
     await drinkMana(party, currentPlayer.id);
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
@@ -70,11 +43,11 @@ export function Game() {
     );
   }
 
-  if (!party || !currentPlayer || !user) {
+  if (error || !party || !currentPlayer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
-          <p className="text-xl text-red-400 mb-4">Game not found</p>
+          <p className="text-xl text-red-400 mb-4">{error || 'Game not found'}</p>
           <Button onClick={() => navigate('/')}>Return Home</Button>
         </div>
       </div>
