@@ -1,3 +1,5 @@
+import { CardBase, CardRarity, CardStats, PlayerHand } from './cards';
+
 export interface Player {
   id: string;
   name: string;
@@ -26,24 +28,7 @@ export interface PlayerEffect {
   duration: number;
 }
 
-export interface Card {
-  id: string;
-  name: string;
-  manaCost: number;
-  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge' | 'legendary';
-  effect: CardEffect;
-  requiresTarget: boolean;
-  description: string;
-  color: string;
-  isChallenge?: boolean;
-  isLegendary?: boolean;
-  flavorText?: string;
-}
-
-export interface CardEffect {
-  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill' | 'titan' | 'infiniteVoid' | 'onePiece' | 'timeTravel';
-  value: number;
-}
+export type Card = CardBase;
 
 export interface Party {
   id: string;
@@ -79,3 +64,5 @@ export interface GameSettings {
   partyId?: string;
   playerId?: string;
 }
+
+export { CardRarity, type CardStats, type PlayerHand };
