@@ -1,7 +1,6 @@
-import { Card, CardRarity, PlayerHand } from '../types/game';
-import { CARD_POOL } from './cards';
+import { Card, PlayerHand } from '../types/game';
+import { CARD_POOL } from '../config/cards/index';
 
-const NON_LEGENDARY_CARDS = CARD_POOL.filter(card => !card.isLegendary);
 const LEGENDARY_CARDS = CARD_POOL.filter(card => card.isLegendary);
 
 export function generateInitialHand(): PlayerHand {
@@ -15,7 +14,7 @@ export function generateInitialHand(): PlayerHand {
   };
 
   while (hand.length < 4) {
-    const card = drawCard(false);
+    const card = drawCard();
     hand.push(card);
     if (card.rarity) {
       stats[card.rarity.toLowerCase() as keyof typeof stats]++;
@@ -26,8 +25,8 @@ export function generateInitialHand(): PlayerHand {
   return { cards: hand, stats };
 }
 
-export function drawCard(includeLegendary: boolean = false): Card {
-  const pool = includeLegendary ? CARD_POOL : NON_LEGENDARY_CARDS;
+export function drawCard(): Card {
+  const pool = CARD_POOL;
   const card = pool[Math.floor(Math.random() * pool.length)];
   
   return {

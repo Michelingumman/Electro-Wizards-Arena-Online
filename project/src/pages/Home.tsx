@@ -30,7 +30,7 @@ export function Home() {
       navigate(`/game/${partyId}`);
     } catch (err) {
       setError('Failed to create party. Please try again.');
-      console.error('Error creating party:', err);
+      console.error('Home.tsx --> Error creating party:', err);
     } finally {
       setLoading(false);
     }

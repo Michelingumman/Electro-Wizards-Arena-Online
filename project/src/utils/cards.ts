@@ -1,19 +1,22 @@
 import { CardBase } from '../types/cards';
-import { CARD_POOL, NON_LEGENDARY_CARDS, LEGENDARY_CARDS } from '../config/cards';
-import { CARDS_PER_HAND } from '../config/cards/rarities';
+import { NON_LEGENDARY_CARDS, LEGENDARY_CARDS } from '../config/cards';
+import { GAME_CONFIG } from '../config/gameConfig';
+import { CARD_POOL } from '../config/cards/index';
 
 export function generateInitialCards(): CardBase[] {
-  const cards: CardBase[] = [];
-  const availableCards = [...NON_LEGENDARY_CARDS];
+const cards: CardBase[] = [];
+const availableCards = [...NON_LEGENDARY_CARDS];
 
-  for (let i = 0; i < CARDS_PER_HAND; i++) {
-    const randomIndex = Math.floor(Math.random() * availableCards.length);
-    const card = {
-      ...availableCards[randomIndex],
-      id: `${availableCards[randomIndex].id}-${Math.random().toString(36).substr(2, 9)}`
-    };
-    cards.push(card);
-    availableCards.splice(randomIndex, 1);
+for (let i = 0; i < GAME_CONFIG.CARDS_PER_HAND; i++) {
+  const randomIndex = Math.floor(Math.random() * availableCards.length);
+  const card = {
+    ...availableCards[randomIndex],
+    id: `${availableCards[randomIndex].id}-${Math.random().toString(36).substr(2, 9)}`
+  };
+  cards.push(card);
+  availableCards.splice(randomIndex, 1);
+    
+  console.log('generateInitalCards in cards.ts worked', cards);
   }
 
   return cards;

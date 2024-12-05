@@ -176,8 +176,6 @@ export function useGameActions(partyId: string) {
 
 
 
-
-
   
   const resolveChallengeCard = useCallback(async (
     playerId: string,
@@ -201,7 +199,7 @@ export function useGameActions(partyId: string) {
         
         if (!winner || !loser) throw new Error('Players not found');
         
-        
+
         // Apply challenge effects
         if (card.id === 'beer-havf') {
           winner.health = Math.min(
