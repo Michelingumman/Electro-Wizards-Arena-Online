@@ -1,5 +1,5 @@
 import { Card as CardType } from '../../types/game';
-import { Sword, Heart, Droplet, Zap } from 'lucide-react';
+import { Sword, Heart, Droplet, Zap, Crown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,6 +21,8 @@ export function CardList({
   selectedCard
 }: CardListProps) {
   const getCardIcon = (card: CardType) => {
+    if (card.isLegendary) return <Crown className="w-4 h-4 text-yellow-400" />;
+    
     switch (card.type) {
       case 'damage':
         return <Sword className="w-4 h-4 text-red-400" />;
@@ -62,7 +64,8 @@ export function CardList({
                 'transform scale-102 border-purple-400 shadow-lg shadow-purple-500/20': isSelected,
                 'border-gray-700 hover:border-gray-600': !isSelected && canPlay,
                 'bg-gradient-to-br': true,
-                [card.color]: true
+                [card.color]: true,
+                'ring-2 ring-yellow-500/50': card.isLegendary
               }
             )}
           >
@@ -78,7 +81,14 @@ export function CardList({
 
             <div className="relative">
               <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-base">{card.name}</h4>
+                <div className="flex items-center space-x-2">
+                  <h4 className="font-semibold text-base">{card.name}</h4>
+                  {card.isLegendary && (
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
+                      Legendary
+                    </span>
+                  )}
+                </div>
                 <span className="flex items-center text-blue-400 bg-blue-950/50 px-2 py-1 rounded text-sm">
                   {formatNumber(card.manaCost)} <Droplet className="w-3 h-3 ml-1" />
                 </span>
@@ -86,9 +96,16 @@ export function CardList({
 
               <p className="text-xs text-gray-300 mb-2">{card.description}</p>
 
+              {card.flavorText && (
+                <p className="text-xs italic text-gray-400 mb-2 border-l-2 border-gray-700 pl-2">
+                  {card.flavorText}
+                </p>
+              )}
+
               <div className="flex items-center space-x-2 text-xs">
                 {getCardIcon(card)}
                 <span className={clsx({
+                  'text-yellow-400': card.isLegendary,
                   'text-red-400': card.type === 'damage',
                   'text-green-400': card.type === 'heal',
                   'text-purple-400': card.type === 'utility' || card.type === 'curse'

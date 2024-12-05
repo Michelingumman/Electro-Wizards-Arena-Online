@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 import { Card } from '../types/game';
-import { GameLayout } from '../components/game/GameLayout';
+import { PlayerStats } from '../components/game/PlayerStats';
+import { CardList } from '../components/game/CardList';
 import { GameHeader } from '../components/game/GameHeader';
 import { GameControls } from '../components/game/GameControls';
 import { GameStatus } from '../components/game/GameStatus';
@@ -11,14 +12,12 @@ import { ChallengeModal } from '../components/game/ChallengeModal';
 import { useGameActions } from '../hooks/useGameActions';
 import { useGameState } from '../hooks/useGameState';
 import { usePartyActions } from '../hooks/usePartyActions';
-import { useCardTargeting } from '../hooks/useCardTargeting';
 
 export function Game() {
   const { partyId = '' } = useParams<{ partyId: string }>();
   const navigate = useNavigate();
   const { party, currentPlayer, loading, error } = useGameStore();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const { applyCardEffect, drinkMana, resolveChallengeCard } = useGameActions(partyId);
   const { applyCardEffect, drinkMana, resolveChallengeCard } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
   
@@ -31,8 +30,6 @@ export function Game() {
     isLeader && 
     (party?.players.length ?? 0) >= 2
   );
-
-  const activePlayer = party?.players.find(p => p.id === party.currentTurn);
 
   const handlePlayCard = async (card: Card) => {
     if (!currentPlayer || !isCurrentTurn || currentPlayer.health <= 0) {
@@ -55,7 +52,9 @@ export function Game() {
   };
 
   const handleTargetSelect = async (targetId: string) => {
-    if (!currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) return;
+    if (!currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) {
+      return;
+    }
 
     try {
       console.log('Applying card effect to target:', targetId);
@@ -99,15 +98,6 @@ export function Game() {
     }
   };
 
-  const handleStartGame = async () => {
-    if (!canStart) return;
-    try {
-      await startGame(partyId);
-    } catch (error) {
-      console.error('Error starting game:', error);
-    }
-  };
-
   const handleLeaveParty = async () => {
     if (!party || !currentPlayer) return;
     try {
@@ -119,11 +109,27 @@ export function Game() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-xl text-purple-100">Loading game...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error || !party || !currentPlayer || !activePlayer) {
-    return <ErrorScreen error={error} onReturnHome={() => navigate('/')} />;
+  if (error || !party || !currentPlayer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
+        <div className="text-center">
+          <p className="text-xl text-red-400 mb-4">{error || 'Game not found'}</p>
+          <button onClick={() => navigate('/')} className="text-purple-400 hover:text-purple-300">
+            Return Home
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

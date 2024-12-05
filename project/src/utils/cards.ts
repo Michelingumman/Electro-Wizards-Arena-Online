@@ -6,7 +6,8 @@ const CARD_TYPES = {
   UTILITY: 'utility',
   CURSE: 'curse',
   BUFF: 'buff',
-  CHALLENGE: 'challenge'
+  CHALLENGE: 'challenge',
+  LEGENDARY: 'legendary'
 } as const;
 
 const CARD_POOL: Card[] = [
@@ -118,28 +119,6 @@ const CARD_POOL: Card[] = [
     color: 'from-amber-950 to-red-950'
   },
   
-  // New Utility Cards
-  {
-    id: 'simple-mushroom',
-    name: 'Simple Mushroom',
-    manaCost: 3.0,
-    type: CARD_TYPES.BUFF,
-    effect: { type: 'potionBuff', value: 2.5 },
-    requiresTarget: false,
-    description: 'Mana potions fill you up to 2.5x more for the next 3 turns',
-    color: 'from-emerald-950 to-green-950'
-  },
-  {
-    id: 'full-refill',
-    name: 'Full Refill',
-    manaCost: 0.0,
-    type: CARD_TYPES.UTILITY,
-    effect: { type: 'manaRefill', value: 0.0 },
-    requiresTarget: false,
-    description: 'Gain full mana instantly',
-    color: 'from-blue-950 to-indigo-950'
-  },
-  
   // Challenge Cards
   {
     id: 'beer-havf',
@@ -162,12 +141,64 @@ const CARD_POOL: Card[] = [
     description: 'Challenge: Push-up contest. Loser loses all mana, winner gets full mana.',
     color: 'from-yellow-900 to-amber-900',
     isChallenge: true
+  },
+  
+  // Legendary Cards
+  {
+    id: 'infinite-void',
+    name: "Gojo's: Infinite Void",
+    manaCost: 5.0,
+    type: CARD_TYPES.LEGENDARY,
+    effect: { type: 'infiniteVoid', value: 1.0 },
+    requiresTarget: false,
+    description: "For the next turn, all opponents' mana costs are doubled, and their card effects are reduced by half.",
+    color: 'from-indigo-950 to-violet-950',
+    isLegendary: true,
+    flavorText: 'Throughout Heaven and Earth, I alone am the honored one.'
+  },
+  {
+    id: 'titan-form',
+    name: "Eren Jaeger's: Titan",
+    manaCost: 6.0,
+    type: CARD_TYPES.LEGENDARY,
+    effect: { type: 'titan', value: 3.0 },
+    requiresTarget: false,
+    description: 'Transform into a Titan for 3 turns. Gain +10 HP, deal +3 damage with all cards, and become immune to single-target effects.',
+    color: 'from-amber-950 to-red-950',
+    isLegendary: true,
+    flavorText: "If you win, you live. If you lose, you die. If you don\\'t fight, you can\\'t win!"
+  },
+  {
+    id: 'one-piece',
+    name: 'One Piece',
+    manaCost: 4.0,
+    type: CARD_TYPES.LEGENDARY,
+    effect: { type: 'onePiece', value: 3.0 },
+    requiresTarget: false,
+    description: "Choose: Gain 3 Mana immediately (Gold Rush) or gain a random Legendary card (Pirate's Treasure).",
+    color: 'from-yellow-950 to-orange-950',
+    isLegendary: true,
+    flavorText: 'Wealth, fame, power... the one who had everything in this world.'
+  },
+  {
+    id: 'time-travel',
+    name: 'Time Travel',
+    manaCost: 7.0,
+    type: CARD_TYPES.LEGENDARY,
+    effect: { type: 'timeTravel', value: 1.0 },
+    requiresTarget: false,
+    description: "Reset the game state to 1 turn ago. All players' health, mana, and cards return to their previous state.",
+    color: 'from-cyan-950 to-blue-950',
+    isLegendary: true,
+    flavorText: 'The power to change fate itself.'
   }
 ];
 
+const LEGENDARY_CARDS = CARD_POOL.filter(card => card.isLegendary);
+
 export const generateInitialCards = (): Card[] => {
   const cards: Card[] = [];
-  const availableCards = [...CARD_POOL];
+  const availableCards = [...CARD_POOL].filter(card => !card.isLegendary);
 
   // Draw 4 random cards
   for (let i = 0; i < 4; i++) {
@@ -183,8 +214,17 @@ export const generateInitialCards = (): Card[] => {
   return cards;
 };
 
-export const drawNewCard = (): Card => {
-  const card = CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)];
+export const drawNewCard = (includeLegendary: boolean = false): Card => {
+  const availableCards = includeLegendary ? CARD_POOL : CARD_POOL.filter(card => !card.isLegendary);
+  const card = availableCards[Math.floor(Math.random() * availableCards.length)];
+  return {
+    ...card,
+    id: `${card.id}-${Math.random().toString(36).substr(2, 9)}`
+  };
+};
+
+export const drawLegendaryCard = (): Card => {
+  const card = LEGENDARY_CARDS[Math.floor(Math.random() * LEGENDARY_CARDS.length)];
   return {
     ...card,
     id: `${card.id}-${Math.random().toString(36).substr(2, 9)}`

@@ -23,20 +23,11 @@ export function PlayerStats({
     return Number(num.toFixed(1));
   };
 
-  const formatNumber = (num: number) => {
-    return Number(num.toFixed(1));
-  };
-
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={isTargetable ? { scale: 1.02 } : undefined}
+    <div
       onClick={isTargetable && onSelect ? onSelect : undefined}
       className={clsx(
-        'relative p-3 rounded-lg transition-all duration-200',
-        'backdrop-blur-sm shadow-lg',
+        'p-3 rounded-lg transition-all duration-200',
         {
           'bg-red-900/20': isDead,
           'bg-purple-900/20 ring-1 ring-purple-500/50': isCurrentTurn && !isDead,
@@ -48,7 +39,6 @@ export function PlayerStats({
         }
       )}
     >
-      <div className="flex items-center justify-between">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <h3 className="text-sm font-medium">{player.name}</h3>
@@ -111,8 +101,8 @@ export function PlayerStats({
       {isTargetable && (
         <div className="mt-1.5 text-[10px] text-purple-300 animate-pulse uppercase tracking-wider">
           Click to target
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 }

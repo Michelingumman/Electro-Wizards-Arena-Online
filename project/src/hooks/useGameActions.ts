@@ -4,13 +4,6 @@ import { db } from '../lib/firebase';
 import { Card, Party } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { drawNewCard } from '../utils/cards';
-import {
-  applyHealingEffect,
-  applyBuffEffect,
-  updateBuffDurations,
-  removeCard,
-  validateCardAction
-} from '../utils/cardEffects';
 
 export function useGameActions(partyId: string) {
   const applyCardEffect = useCallback(async (
@@ -18,6 +11,7 @@ export function useGameActions(partyId: string) {
     targetId: string,
     card: Card
   ) => {
+    console.log('Applying card effect:', { playerId, targetId, card });
     const partyRef = doc(db, 'parties', partyId);
     
     try {
@@ -26,6 +20,8 @@ export function useGameActions(partyId: string) {
         if (!partyDoc.exists()) throw new Error('Party not found');
         
         const party = partyDoc.data() as Party;
+        console.log('Current party state:', party);
+
         const playerIndex = party.players.findIndex(p => p.id === playerId);
         const targetIndex = party.players.findIndex(p => p.id === targetId);
         
@@ -34,27 +30,43 @@ export function useGameActions(partyId: string) {
         }
         
         const updatedPlayers = [...party.players];
-        let player = { ...updatedPlayers[playerIndex] };
-        let target = { ...updatedPlayers[targetIndex] };
+        const player = { ...updatedPlayers[playerIndex] };
+        const target = { ...updatedPlayers[targetIndex] };
         
+        console.log('Before effect - Player:', player, 'Target:', target);
+
         // Validate action
-        if (!validateCardAction(player, card, party.settings)) {
-          throw new Error('Invalid card action');
-        }
+        if (player.health <= 0) throw new Error('Player is dead');
+        if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
+        if (player.mana < card.manaCost) throw new Error('Not enough mana');
+        if (card.effect.type === 'damage' && target.health <= 0) throw new Error('Target is dead');
         
         // Deduct mana cost
         player.mana = Math.max(0, player.mana - card.manaCost);
         
+        // Replace used card with new one
+        const cardIndex = player.cards.findIndex(c => c.id === card.id);
+        if (cardIndex !== -1) {
+          const newCard = drawNewCard();
+          player.cards = [
+            ...player.cards.slice(0, cardIndex),
+            newCard,
+            ...player.cards.slice(cardIndex + 1)
+          ];
+        }
+        
         // Apply card effect
         switch (card.effect.type) {
-          case 'heal':
-            target = applyHealingEffect(target, card.effect.value, party.settings);
-            break;
           case 'damage':
             target.health = Math.max(0, target.health - card.effect.value);
             break;
-          case 'manaDrain': {
-            const maxMana = target.maxMana ?? party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+          case 'heal':
+            target.health = Math.min(
+              party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH,
+              target.health + card.effect.value
+            );
+            break;
+          case 'manaDrain':
             const drainAmount = Math.min(target.mana, card.effect.value);
             target.mana = Math.max(0, target.mana - drainAmount);
             player.mana = Math.min(
@@ -84,26 +96,23 @@ export function useGameActions(partyId: string) {
             break;
         }
         
-        // Remove used card and draw new one
-        player = removeCard(player, card.id);
-        player.cards.push(drawNewCard());
-        
-        // Update players array
+        console.log('After effect - Player:', player, 'Target:', target);
+
+        // Update players
         updatedPlayers[playerIndex] = player;
         updatedPlayers[targetIndex] = target;
         
-        // Update buff durations for all players
-        const playersWithUpdatedBuffs = updatedPlayers.map(p => updateBuffDurations(p));
-        
         // Check for game over
-        const alivePlayers = playersWithUpdatedBuffs.filter(p => p.health > 0);
+        const alivePlayers = updatedPlayers.filter(p => p.health > 0);
+        console.log('Alive players:', alivePlayers);
+
         const status = alivePlayers.length <= 1 ? 'finished' : 'playing';
         const winner = status === 'finished' ? (alivePlayers[0]?.id || null) : null;
         
         // Find next alive player
-        let nextPlayerIndex = (playerIndex + 1) % playersWithUpdatedBuffs.length;
-        while (playersWithUpdatedBuffs[nextPlayerIndex].health <= 0 && nextPlayerIndex !== playerIndex) {
-          nextPlayerIndex = (nextPlayerIndex + 1) % playersWithUpdatedBuffs.length;
+        let nextPlayerIndex = (playerIndex + 1) % updatedPlayers.length;
+        while (updatedPlayers[nextPlayerIndex].health <= 0 && nextPlayerIndex !== playerIndex) {
+          nextPlayerIndex = (nextPlayerIndex + 1) % updatedPlayers.length;
         }
 
         // Update potion multiplier durations
@@ -125,15 +134,11 @@ export function useGameActions(partyId: string) {
             playerId,
             targetId,
             value: card.effect.value,
-            timestamp: Date.now(),
-            cardId: card.id
+            timestamp: Date.now()
           }
         };
 
         if (winner !== null) {
-          transaction.update(partyRef, { ...updateData, winner });
-        } else {
-          transaction.update(partyRef, updateData);
           transaction.update(partyRef, { ...updateData, winner });
         } else {
           transaction.update(partyRef, updateData);

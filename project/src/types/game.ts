@@ -10,6 +10,14 @@ export interface Player {
     value: number;
     turnsLeft: number;
   };
+  titanForm?: {
+    turnsLeft: number;
+    bonusHealth: number;
+    bonusDamage: number;
+  };
+  infiniteVoid?: {
+    turnsLeft: number;
+  };
 }
 
 export interface PlayerEffect {
@@ -22,19 +30,18 @@ export interface Card {
   id: string;
   name: string;
   manaCost: number;
-  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge';
-  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge';
+  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge' | 'legendary';
   effect: CardEffect;
   requiresTarget: boolean;
   description: string;
   color: string;
   isChallenge?: boolean;
-  isChallenge?: boolean;
+  isLegendary?: boolean;
+  flavorText?: string;
 }
 
 export interface CardEffect {
-  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill';
-  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill';
+  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill' | 'titan' | 'infiniteVoid' | 'onePiece' | 'timeTravel';
   value: number;
 }
 
@@ -48,6 +55,11 @@ export interface Party {
   winner?: string | null;
   settings?: GameSettings;
   lastAction?: GameAction;
+  previousState?: {
+    players: Player[];
+    currentTurn: string;
+    timestamp: number;
+  };
 }
 
 export interface GameAction {
@@ -56,7 +68,6 @@ export interface GameAction {
   targetId?: string;
   value: number;
   timestamp: number;
-  cardId?: string;
 }
 
 export interface GameSettings {
