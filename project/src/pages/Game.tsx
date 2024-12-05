@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
-import { Card, GameSettings as GameSettingsType } from '../types/game';
+import { Card } from '../types/game';
 import { PlayerStats } from '../components/game/PlayerStats';
 import { CardList } from '../components/game/CardList';
 import { GameHeader } from '../components/game/GameHeader';
 import { GameControls } from '../components/game/GameControls';
 import { GameStatus } from '../components/game/GameStatus';
+import { ActionLog } from '../components/game/ActionLog';
 import { useGameActions } from '../hooks/useGameActions';
 import { useGameState } from '../hooks/useGameState';
 import { usePartyActions } from '../hooks/usePartyActions';
@@ -16,7 +17,7 @@ export function Game() {
   const navigate = useNavigate();
   const { party, currentPlayer, loading, error } = useGameStore();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const { applyCardEffect, drinkMana, endTurn } = useGameActions(partyId);
+  const { applyCardEffect, drinkMana } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
   
   useGameState(partyId);
@@ -28,28 +29,31 @@ export function Game() {
     isLeader && 
     (party?.players.length ?? 0) >= 2
   );
-  const canDrink = Boolean(currentPlayer?.health && currentPlayer.health > 0);
 
   const handlePlayCard = async (card: Card) => {
-    if (!party || !currentPlayer || !isCurrentTurn || currentPlayer.health <= 0) return;
+    if (!currentPlayer || !isCurrentTurn || currentPlayer.health <= 0) {
+      return;
+    }
     
-    if (!card.requiresTarget) {
+    if (card.requiresTarget) {
+      setSelectedCard(card);
+    } else {
       try {
-        await applyCardEffect(party, currentPlayer.id, currentPlayer.id, card);
+        await applyCardEffect(currentPlayer.id, currentPlayer.id, card);
         setSelectedCard(null);
       } catch (error) {
         console.error('Error playing card:', error);
       }
-    } else {
-      setSelectedCard(card);
     }
   };
 
-  const handlePlayerClick = async (targetId: string) => {
-    if (!party || !currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) return;
-    
+  const handleTargetSelect = async (targetId: string) => {
+    if (!currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) {
+      return;
+    }
+
     try {
-      await applyCardEffect(party, currentPlayer.id, targetId, selectedCard);
+      await applyCardEffect(currentPlayer.id, targetId, selectedCard);
       setSelectedCard(null);
     } catch (error) {
       console.error('Error applying card effect:', error);
@@ -57,21 +61,11 @@ export function Game() {
   };
 
   const handleDrink = async () => {
-    if (!party || !currentPlayer || !canDrink) return;
+    if (!currentPlayer || currentPlayer.health <= 0) return;
     try {
-      await drinkMana(party, currentPlayer.id);
+      await drinkMana(currentPlayer.id);
     } catch (error) {
       console.error('Error drinking mana:', error);
-    }
-  };
-
-  const handleEndTurn = async () => {
-    if (!party || !currentPlayer || !isCurrentTurn || currentPlayer.health <= 0) return;
-    try {
-      await endTurn(party, currentPlayer.id);
-      setSelectedCard(null);
-    } catch (error) {
-      console.error('Error ending turn:', error);
     }
   };
 
@@ -94,10 +88,14 @@ export function Game() {
     }
   };
 
-  const handleUpdateSettings = async (settings: GameSettingsType) => {
+  const handleUpdateSettings = async (settings: any) => {
     if (!party || !currentPlayer) return;
     try {
-      await updateGameSettings(party.id, currentPlayer.id, settings);
+      await updateGameSettings({
+        ...settings,
+        partyId: party.id,
+        playerId: currentPlayer.id
+      });
     } catch (error) {
       console.error('Error updating settings:', error);
     }
@@ -128,8 +126,8 @@ export function Game() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-b from-gray-900 to-purple-900">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-purple-900 overflow-auto">
+      <div className="max-w-lg mx-auto p-4 space-y-4">
         <GameHeader
           party={party}
           isLeader={isLeader}
@@ -139,33 +137,26 @@ export function Game() {
           onUpdateSettings={handleUpdateSettings}
         />
 
-        <GameControls
-          isCurrentTurn={isCurrentTurn}
-          gameStatus={party.status}
-          manaDrinkAmount={party.settings?.manaDrinkAmount ?? 3}
-          onDrink={handleDrink}
-          onEndTurn={handleEndTurn}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3">
           {party.players.map((player) => (
             <PlayerStats
               key={player.id}
               player={player}
               isCurrentPlayer={player.id === currentPlayer.id}
               isCurrentTurn={player.id === party.currentTurn}
-              isTargetable={
-                Boolean(
-                  selectedCard?.requiresTarget &&
-                  player.id !== currentPlayer.id &&
-                  player.health > 0 &&
-                  isCurrentTurn
-                )
-              }
-              onSelect={() => handlePlayerClick(player.id)}
+              isTargetable={Boolean(
+                selectedCard?.requiresTarget && 
+                player.health > 0 && 
+                (selectedCard.effect.type === 'heal' ? true : player.id !== currentPlayer.id)
+              )}
+              onSelect={selectedCard ? () => handleTargetSelect(player.id) : undefined}
             />
           ))}
         </div>
+
+        {party.lastAction && (
+          <ActionLog lastAction={party.lastAction} players={party.players} />
+        )}
 
         <GameStatus
           status={party.status}
@@ -176,14 +167,25 @@ export function Game() {
 
         {party.status === 'playing' && currentPlayer.health > 0 && (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold text-purple-100">Your Cards</h3>
-            <CardList
-              cards={currentPlayer.cards}
-              onPlayCard={handlePlayCard}
-              disabled={!isCurrentTurn}
-              currentMana={currentPlayer.mana}
-              selectedCard={selectedCard}
-            />
+            <div className="sticky top-0 z-10 bg-gradient-to-b from-gray-900 to-gray-900/95 p-4 -mx-4">
+              <GameControls
+                gameStatus={party.status}
+                manaDrinkAmount={party.settings?.manaDrinkAmount ?? 3}
+                onDrink={handleDrink}
+              />
+            </div>
+
+            <div className="space-y-3 pb-4">
+              <h3 className="text-lg font-bold text-purple-100">Your Cards</h3>
+              <CardList
+                cards={currentPlayer.cards}
+                onPlayCard={handlePlayCard}
+                onDoubleClickCard={handlePlayCard}
+                disabled={!isCurrentTurn}
+                currentMana={currentPlayer.mana}
+                selectedCard={selectedCard}
+              />
+            </div>
           </div>
         )}
       </div>

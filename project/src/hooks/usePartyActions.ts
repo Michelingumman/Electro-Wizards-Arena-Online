@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { collection, addDoc, doc, runTransaction, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Party, Player, GameSettings } from '../types/game';
 import { generateInitialCards } from '../utils/cards';
@@ -98,7 +98,7 @@ export function usePartyActions() {
           throw new Error('Game has already started');
         }
 
-        if (party.players.length < GAME_CONFIG.MIN_PLAYERS_TO_START) {
+        if (party.players.length < 2) {
           throw new Error('Not enough players to start');
         }
 
@@ -156,14 +156,9 @@ export function usePartyActions() {
     }
   }, []);
 
-  const updateGameSettings = useCallback(async (
-    partyId: string,
-    playerId: string,
-    settings: GameSettings
-  ) => {
-    const partyRef = doc(db, 'parties', partyId);
-    
+  const updateGameSettings = useCallback(async (settings: GameSettings) => {
     try {
+      const partyRef = doc(db, 'parties', settings.partyId);
       await runTransaction(db, async (transaction) => {
         const partyDoc = await transaction.get(partyRef);
         
@@ -173,7 +168,7 @@ export function usePartyActions() {
 
         const party = partyDoc.data() as Party;
         
-        if (party.leaderId !== playerId) {
+        if (party.leaderId !== settings.playerId) {
           throw new Error('Only the party leader can update settings');
         }
 

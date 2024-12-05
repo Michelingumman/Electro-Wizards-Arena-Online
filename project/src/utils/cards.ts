@@ -81,7 +81,7 @@ const CARD_POOL: Card[] = [
     type: CARD_TYPES.CURSE,
     effect: { type: 'forceDrink', value: 0 },
     requiresTarget: true,
-    description: 'Force target to drink a potion without gaining mana',
+    description: 'Force target to drink a potion',
     color: 'from-violet-950 to-purple-950'
   },
   {
@@ -91,7 +91,7 @@ const CARD_POOL: Card[] = [
     type: CARD_TYPES.DAMAGE,
     effect: { type: 'manaBurn', value: 0 },
     requiresTarget: true,
-    description: "Deal damage equal to target's current mana",
+    description: "Deal damage equal to half target's mana",
     color: 'from-amber-950 to-red-950'
   }
 ];

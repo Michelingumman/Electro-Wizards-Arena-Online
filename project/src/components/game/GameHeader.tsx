@@ -9,7 +9,7 @@ interface GameHeaderProps {
   canStart: boolean;
   onStartGame: () => void;
   onLeaveParty: () => void;
-  onUpdateSettings: (settings: any) => void;
+  onUpdateSettings: (settings: GameSettings) => void;
 }
 
 export function GameHeader({

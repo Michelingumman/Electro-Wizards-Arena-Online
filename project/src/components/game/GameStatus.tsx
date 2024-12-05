@@ -2,7 +2,7 @@ import { Party } from '../../types/game';
 
 interface GameStatusProps {
   status: Party['status'];
-  winner?: string;
+  winner: string | null | undefined;
   players: Party['players'];
   isLeader: boolean;
 }

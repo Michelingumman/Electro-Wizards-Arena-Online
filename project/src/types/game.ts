@@ -34,11 +34,20 @@ export interface Party {
   id: string;
   code: string;
   players: Player[];
-  currentTurn: string; // player id
+  currentTurn: string;
   status: 'waiting' | 'playing' | 'finished';
   leaderId: string;
-  winner?: string;
+  winner?: string | null;
   settings?: GameSettings;
+  lastAction?: GameAction;
+}
+
+export interface GameAction {
+  type: string;
+  playerId: string;
+  targetId?: string;
+  value: number;
+  timestamp: number;
 }
 
 export interface GameSettings {
@@ -47,4 +56,6 @@ export interface GameSettings {
   manaDrinkAmount: number;
   initialHealth: number;
   initialMana: number;
+  partyId?: string;
+  playerId?: string;
 }
