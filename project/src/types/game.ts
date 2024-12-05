@@ -23,14 +23,17 @@ export interface Card {
   name: string;
   manaCost: number;
   type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge';
+  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge';
   effect: CardEffect;
   requiresTarget: boolean;
   description: string;
   color: string;
   isChallenge?: boolean;
+  isChallenge?: boolean;
 }
 
 export interface CardEffect {
+  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill';
   type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill';
   value: number;
 }
@@ -53,6 +56,7 @@ export interface GameAction {
   targetId?: string;
   value: number;
   timestamp: number;
+  cardId?: string;
 }
 
 export interface GameSettings {

@@ -6,12 +6,14 @@ interface GameControlsProps {
   gameStatus: string;
   manaDrinkAmount: number;
   onDrink: () => void;
+  disabled?: boolean;
 }
 
 export function GameControls({
   gameStatus,
   manaDrinkAmount,
-  onDrink
+  onDrink,
+  disabled
 }: GameControlsProps) {
   if (gameStatus !== 'playing') return null;
 
