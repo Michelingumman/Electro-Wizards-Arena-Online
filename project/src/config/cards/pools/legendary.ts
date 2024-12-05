@@ -38,7 +38,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
     effect: { type: 'damage', value: 3.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.LEGENDARY],
-    isChallenge: true,
+    isChallenge: false,
     isLegendary: true,
     flavorText: "... testa mig inte"
   }

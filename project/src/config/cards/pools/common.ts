@@ -17,7 +17,7 @@ export const COMMON_CARDS: CardBase[] = [
     id: 'ice-chard',
     name: 'Ice Chard',
     description: 'A sharp shard of ice that deals 1 damage',
-    manaCost: 1.0,
+    manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'damage', value: 1.0 },
