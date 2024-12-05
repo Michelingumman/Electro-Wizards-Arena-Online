@@ -85,6 +85,15 @@ export function useGameActions(partyId: string) {
             target.health = Math.max(0, target.health - burnDamage);
             target.mana = 0;
             break;
+          case 'potionBuff':
+            player.potionMultiplier = {
+              value: card.effect.value,
+              turnsLeft: 3
+            };
+            break;
+          case 'manaRefill':
+            player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+            break;
         }
         
         console.log('After effect - Player:', player, 'Target:', target);
@@ -106,11 +115,21 @@ export function useGameActions(partyId: string) {
           nextPlayerIndex = (nextPlayerIndex + 1) % updatedPlayers.length;
         }
 
-        const updateData: Record<string, any> = {
-          'players': updatedPlayers,
-          'status': status,
-          'currentTurn': updatedPlayers[nextPlayerIndex].id,
-          'lastAction': {
+        // Update potion multiplier durations
+        updatedPlayers.forEach(p => {
+          if (p.potionMultiplier && p.potionMultiplier.turnsLeft > 0) {
+            p.potionMultiplier.turnsLeft--;
+            if (p.potionMultiplier.turnsLeft === 0) {
+              delete p.potionMultiplier;
+            }
+          }
+        });
+
+        const updateData = {
+          players: updatedPlayers,
+          status,
+          currentTurn: updatedPlayers[nextPlayerIndex].id,
+          lastAction: {
             type: card.effect.type,
             playerId,
             targetId,
@@ -120,17 +139,94 @@ export function useGameActions(partyId: string) {
         };
 
         if (winner !== null) {
-          updateData.winner = winner;
+          transaction.update(partyRef, { ...updateData, winner });
+        } else {
+          transaction.update(partyRef, updateData);
         }
 
-        console.log('Updating party with:', updateData);
-        
-        transaction.update(partyRef, updateData);
+        console.log('Card effect applied successfully');
       });
-
-      console.log('Card effect applied successfully');
     } catch (error) {
       console.error('Error applying card effect:', error);
+      throw error;
+    }
+  }, [partyId]);
+
+  const resolveChallengeCard = useCallback(async (
+    playerId: string,
+    card: Card,
+    winnerId: string,
+    loserId: string
+  ) => {
+    console.log('Resolving challenge card:', { playerId, card, winnerId, loserId });
+    const partyRef = doc(db, 'parties', partyId);
+    
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        if (!partyDoc.exists()) throw new Error('Party not found');
+        
+        const party = partyDoc.data() as Party;
+        const updatedPlayers = [...party.players];
+        
+        const winner = updatedPlayers.find(p => p.id === winnerId);
+        const loser = updatedPlayers.find(p => p.id === loserId);
+        
+        if (!winner || !loser) throw new Error('Players not found');
+        
+        // Apply challenge effects
+        if (card.id === 'beer-havf') {
+          winner.health = Math.min(
+            party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH,
+            winner.health + 5
+          );
+          loser.health = Math.max(0, loser.health - 5);
+        } else if (card.id === 'big-muscles') {
+          winner.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+          loser.mana = 0;
+        }
+        
+        // Replace used card
+        const playerIndex = updatedPlayers.findIndex(p => p.id === playerId);
+        const cardIndex = updatedPlayers[playerIndex].cards.findIndex(c => c.id === card.id);
+        if (cardIndex !== -1) {
+          updatedPlayers[playerIndex].cards[cardIndex] = drawNewCard();
+        }
+        
+        // Find next player
+        let nextPlayerIndex = (playerIndex + 1) % updatedPlayers.length;
+        while (updatedPlayers[nextPlayerIndex].health <= 0 && nextPlayerIndex !== playerIndex) {
+          nextPlayerIndex = (nextPlayerIndex + 1) % updatedPlayers.length;
+        }
+        
+        // Check for game over
+        const alivePlayers = updatedPlayers.filter(p => p.health > 0);
+        const status = alivePlayers.length <= 1 ? 'finished' : 'playing';
+        const gameWinner = status === 'finished' ? (alivePlayers[0]?.id || null) : null;
+
+        const updateData = {
+          players: updatedPlayers,
+          status,
+          currentTurn: updatedPlayers[nextPlayerIndex].id,
+          lastAction: {
+            type: 'challenge',
+            playerId,
+            targetId: loserId,
+            value: card.effect.value,
+            timestamp: Date.now()
+          }
+        };
+
+        if (gameWinner !== null) {
+          transaction.update(partyRef, { ...updateData, winner: gameWinner });
+        } else {
+          transaction.update(partyRef, updateData);
+        }
+
+        console.log('Challenge resolved successfully');
+      });
+    } catch (error) {
+      console.error('Error resolving challenge:', error);
       throw error;
     }
   }, [partyId]);
@@ -155,10 +251,15 @@ export function useGameActions(partyId: string) {
         
         console.log('Before drinking - Player:', player);
 
+        // Calculate mana gain with multiplier if active
+        const baseAmount = party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT;
+        const multiplier = player.potionMultiplier?.value ?? 1;
+        const manaGain = baseAmount * multiplier;
+
         // Add mana from drinking
         player.mana = Math.min(
           party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
-          player.mana + (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT)
+          player.mana + manaGain
         );
         
         updatedPlayers[playerIndex] = player;
@@ -166,11 +267,11 @@ export function useGameActions(partyId: string) {
         console.log('After drinking - Player:', player);
 
         transaction.update(partyRef, {
-          'players': updatedPlayers,
-          'lastAction': {
+          players: updatedPlayers,
+          lastAction: {
             type: 'drink',
             playerId,
-            value: party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT,
+            value: manaGain,
             timestamp: Date.now()
           }
         });
@@ -183,5 +284,5 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId]);
 
-  return { applyCardEffect, drinkMana };
+  return { applyCardEffect, drinkMana, resolveChallengeCard };
 }
