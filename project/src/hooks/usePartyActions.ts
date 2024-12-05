@@ -52,6 +52,7 @@ export function usePartyActions() {
 
         const party = partyDoc.data() as Party;
         
+        
         if (party.status !== 'waiting') {
           throw new Error('Game has already started');
         }
@@ -156,6 +157,7 @@ export function usePartyActions() {
   }, []);
 
   const updateGameSettings = useCallback(async (settings: GameSettings) => {
+    console.log('debug1');
     try {
       const partyRef = doc(db, 'parties', settings.partyId);
       await runTransaction(db, async (transaction) => {
@@ -170,11 +172,11 @@ export function usePartyActions() {
         if (party.leaderId !== settings.playerId) {
           throw new Error('Only the party leader can update settings');
         }
-
+        
         if (party.status !== 'waiting') {
           throw new Error('Cannot update settings after game has started');
         }
-
+        
         transaction.update(partyRef, { settings });
       });
     } catch (error) {
