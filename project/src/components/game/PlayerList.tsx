@@ -1,5 +1,6 @@
 import { Player } from '../../types/game';
 import { PlayerStats } from './PlayerStats';
+import { motion } from 'framer-motion';
 
 interface PlayerListProps {
   players: Player[];
@@ -19,11 +20,15 @@ export function PlayerList({
   const opponents = players.filter(p => p.id !== currentPlayerId);
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="bg-gray-800/10 rounded-lg p-4"
+    >
+      <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider mb-3">
         Opponents ({opponents.length})
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
         {opponents.map((player) => (
           <PlayerStats
             key={player.id}
@@ -35,6 +40,6 @@ export function PlayerList({
           />
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

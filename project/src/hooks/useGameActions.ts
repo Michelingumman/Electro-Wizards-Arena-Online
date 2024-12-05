@@ -18,7 +18,6 @@ export function useGameActions(partyId: string) {
     targetId: string,
     card: Card
   ) => {
-    console.log('Applying card effect:', { playerId, targetId, card });
     const partyRef = doc(db, 'parties', partyId);
     
     try {
@@ -27,8 +26,6 @@ export function useGameActions(partyId: string) {
         if (!partyDoc.exists()) throw new Error('Party not found');
         
         const party = partyDoc.data() as Party;
-        console.log('Current party state:', party);
-
         const playerIndex = party.players.findIndex(p => p.id === playerId);
         const targetIndex = party.players.findIndex(p => p.id === targetId);
         
@@ -56,19 +53,18 @@ export function useGameActions(partyId: string) {
           case 'damage':
             target.health = Math.max(0, target.health - card.effect.value);
             break;
-          case 'manaDrain':
+          case 'manaDrain': {
+            const maxMana = target.maxMana ?? party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
             const drainAmount = Math.min(target.mana, card.effect.value);
             target.mana = Math.max(0, target.mana - drainAmount);
-            player.mana = Math.min(
-              party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
-              player.mana + drainAmount
-            );
+            player.mana = Math.min(maxMana, player.mana + drainAmount);
             break;
+          }
           case 'potionBuff':
             player = applyBuffEffect(player, 'potionBuff', card.effect.value, 3);
             break;
           case 'manaRefill':
-            player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+            player.mana = player.maxMana ?? party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
             break;
         }
         
@@ -113,8 +109,6 @@ export function useGameActions(partyId: string) {
         } else {
           transaction.update(partyRef, updateData);
         }
-
-        console.log('Card effect applied successfully');
       });
     } catch (error) {
       console.error('Error applying card effect:', error);
@@ -122,6 +116,5 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId]);
 
-  // Rest of the hooks implementation remains the same...
   return { applyCardEffect };
 }

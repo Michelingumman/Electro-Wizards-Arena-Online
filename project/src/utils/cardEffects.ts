@@ -6,7 +6,7 @@ export function applyHealingEffect(
   healAmount: number,
   settings?: GameSettings
 ): Player {
-  const maxHealth = settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
+  const maxHealth = target.maxHealth ?? settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
   return {
     ...target,
     health: Math.min(maxHealth, target.health + healAmount)
@@ -52,7 +52,7 @@ export function updateBuffDurations(player: Player): Player {
 
   return {
     ...player,
-    effects: updatedEffects
+    effects: updatedEffects.length > 0 ? updatedEffects : undefined
   };
 }
 
@@ -71,7 +71,7 @@ export function validateCardAction(
   if (player.health <= 0) return false;
   if (player.mana < card.manaCost) return false;
   
-  const maxHealth = settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
+  const maxHealth = player.maxHealth ?? settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
   
   // Validate healing cards
   if (card.effect.type === 'heal' && player.health >= maxHealth) {

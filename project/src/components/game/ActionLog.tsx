@@ -1,6 +1,6 @@
 import { Party, Card } from '../../types/game';
 import { Beaker, Sword, Heart, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 interface ActionLogProps {
@@ -28,6 +28,7 @@ export function ActionLog({ lastAction, players, usedCard }: ActionLogProps) {
   const player = players.find(p => p.id === lastAction.playerId);
   const target = players.find(p => p.id === lastAction.targetId);
   const isSelfTarget = lastAction.playerId === lastAction.targetId;
+  const card = usedCard && lastAction.cardId === usedCard.id ? usedCard : null;
 
   const getEffectDescription = (type: string, value: number) => {
     switch (type) {
@@ -70,22 +71,29 @@ export function ActionLog({ lastAction, players, usedCard }: ActionLogProps) {
         </span>
       </div>
 
-      {usedCard && (
-        <div className={clsx(
-          'p-3 border-t border-gray-700/50',
-          usedCard.color
-        )}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium text-sm">{usedCard.name}</h4>
-              <p className="text-xs text-gray-300 mt-1">{usedCard.description}</p>
+      <AnimatePresence>
+        {card && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className={clsx(
+              'p-3 border-t border-gray-700/50',
+              card.color
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-sm">{card.name}</h4>
+                <p className="text-xs text-gray-300 mt-1">{card.description}</p>
+              </div>
+              <span className="text-xs bg-blue-900/50 px-2 py-1 rounded">
+                {card.manaCost.toFixed(1)} mana
+              </span>
             </div>
-            <span className="text-xs bg-blue-900/50 px-2 py-1 rounded">
-              {usedCard.manaCost.toFixed(1)} mana
-            </span>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
