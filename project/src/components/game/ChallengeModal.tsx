@@ -33,13 +33,20 @@ export function ChallengeModal({
         loseEffect: '-5.0 HP'
       };
     }
-    return {
-      winEffect: 'Full mana',
-      loseEffect: 'Lose all mana'
+    else if (card.id === 'big-muscles'){
+      return {
+        winEffect: 'Full mana',
+        loseEffect: 'Lose all mana'
+      };
+    }
+    else return {
+      winEffect: null, //non existant card
+      loseEffect: null
     };
   };
 
   const effects = getChallengeEffects();
+  if (!effects) console.log('Couldnt get challenge correct card id. Got:', card.id);
 
   return (
     <AnimatePresence>

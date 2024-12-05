@@ -1,5 +1,5 @@
 import { Party, Card } from '../../types/game';
-import { Beaker, Sword, Heart, Zap } from 'lucide-react';
+import { Sword, Heart, Star, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 
@@ -10,82 +10,57 @@ interface ActionLogProps {
 }
 
 export function ActionLog({ lastAction, players, usedCard }: ActionLogProps) {
-  if (!lastAction) return null;
+  if (!lastAction || !usedCard) return null;
 
-  const getActionIcon = (type: string) => {
-    switch (type) {
-      case 'damage':
-        return <Sword className="w-4 h-4 text-red-400" />;
-      case 'heal':
-        return <Heart className="w-4 h-4 text-green-400" />;
-      case 'drink':
-        return <Beaker className="w-4 h-4 text-blue-400" />;
-      default:
-        return <Zap className="w-4 h-4 text-purple-400" />;
-    }
-  };
+  const attacker = players.find(p => p.id === lastAction.playerId);
+  const defender = lastAction.targetId
+    ? players.find(p => p.id === lastAction.targetId)
+    : null;
 
-  const player = players.find(p => p.id === lastAction.playerId);
-  const target = players.find(p => p.id === lastAction.targetId);
+  if (!attacker) return null;
+
   const isSelfTarget = lastAction.playerId === lastAction.targetId;
 
-  const getEffectDescription = (type: string, value: number) => {
-    switch (type) {
+  // Determine icon based on action type
+  const Icon = (() => {
+    switch (lastAction.type) {
       case 'damage':
-        return `dealt ${value.toFixed(1)} damage to`;
+        return Sword;
       case 'heal':
-        return isSelfTarget ? `healed themself for ${value.toFixed(1)}` : `healed ${value.toFixed(1)} health to`;
-      case 'manaDrain':
-        return `drained ${value.toFixed(1)} mana from`;
-      case 'forceDrink':
-        return 'forced a mana potion on';
-      case 'manaBurn':
-        return 'burned all mana from';
-      case 'drink':
-        return `drank a mana potion (+${value.toFixed(1)})`;
+        return Heart;
+      case 'buff':
+        return Star;
+      case 'defend':
+        return Shield;
       default:
-        return 'used an ability on';
+        return Star;
     }
-  };
+  })();
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800/20 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden"
+      className="bg-gray-800/30 backdrop-blur-lg rounded-lg border border-gray-700/50 p-4 flex flex-col space-y-2"
     >
-      <div className="p-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          {getActionIcon(lastAction.type)}
-          <span className="font-medium text-purple-200">{player?.name}</span>
-          <span className="text-gray-400">
-            {getEffectDescription(lastAction.type, lastAction.value)}
-          </span>
-          {!isSelfTarget && lastAction.type !== 'drink' && (
-            <span className="font-medium text-purple-200">{target?.name}</span>
-          )}
-        </div>
-        <span className="text-xs text-gray-500">
-          {new Date(lastAction.timestamp).toLocaleTimeString()}
-        </span>
+      {/* Action Information */}
+      <div className="flex items-center justify-between text-sm text-gray-200">
+        <span className="font-bold text-purple-300">{attacker.name}</span>
+        <Icon className="w-5 h-5 text-red-400 mx-2" />
+        {!isSelfTarget && (
+          <span className="font-bold text-purple-300">{defender?.name || 'Unknown'}</span>
+        )}
       </div>
 
-      {usedCard && (
-        <div className={clsx(
-          'p-3 border-t border-gray-700/50',
+      {/* Card Name */}
+      <div
+        className={clsx(
+          'text-center text-sm font-medium text-gray-300 rounded-md p-1',
           usedCard.color
-        )}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium text-sm">{usedCard.name}</h4>
-              <p className="text-xs text-gray-300 mt-1">{usedCard.description}</p>
-            </div>
-            <span className="text-xs bg-blue-900/50 px-2 py-1 rounded">
-              {usedCard.manaCost.toFixed(1)} mana
-            </span>
-          </div>
-        </div>
-      )}
+        )}
+      >
+        {usedCard.name}
+      </div>
     </motion.div>
   );
 }

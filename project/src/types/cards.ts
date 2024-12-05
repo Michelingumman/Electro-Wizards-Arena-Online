@@ -20,6 +20,7 @@ export interface CardBase {
   effect: CardEffect;
   requiresTarget: boolean;
   color: string;
+  isChallenge?: boolean;
   isLegendary?: boolean;
   flavorText?: string;
 }

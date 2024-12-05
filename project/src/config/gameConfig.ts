@@ -1,8 +1,8 @@
 export const GAME_CONFIG = {
   // Party settings
-  MAX_PLAYERS: 100,
+  MAX_PLAYERS: 10,
   MIN_PLAYERS_TO_START: 2,
-  PARTY_CODE_LENGTH: 4,
+  PARTY_CODE_LENGTH: 3,
 
   // Player stats (now using floating points)
   INITIAL_HEALTH: 10.0,

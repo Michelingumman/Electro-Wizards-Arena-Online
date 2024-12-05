@@ -23,5 +23,28 @@ export const EPIC_CARDS: CardBase[] = [
     effect: { type: 'manaBurn', value: 0.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'beer-havf',
+    name: 'Öl Hävf',
+    description: "Challenge ",
+    manaCost: 3.0,
+    rarity: CardRarity.EPIC,
+    type: 'damage',
+    effect: { type: 'challenge', value: 0.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'big-muscles',
+    name: 'Got big muscles?',
+    description: "Challenge: ",
+    manaCost: 6.0,
+    rarity: CardRarity.EPIC,
+    type: 'damage',
+    effect: { type: 'challenge', value: 0.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.EPIC]
   }
+
 ];

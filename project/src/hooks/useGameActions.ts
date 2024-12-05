@@ -13,13 +13,18 @@ export function useGameActions(partyId: string) {
   ) => {
     console.log('Applying card effect:', { playerId, targetId, card });
     const partyRef = doc(db, 'parties', partyId);
-    
+  
     try {
       await runTransaction(db, async (transaction) => {
         const partyDoc = await transaction.get(partyRef);
         if (!partyDoc.exists()) throw new Error('Party not found');
-        
+  
         const party = partyDoc.data() as Party;
+  
+        if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
+        var player = party.players.find(p => p.id === playerId);
+        if (!player || player.health <= 0) throw new Error('Player is dead');
+          
         console.log('Current party state:', party);
 
         const playerIndex = party.players.findIndex(p => p.id === playerId);
@@ -30,7 +35,7 @@ export function useGameActions(partyId: string) {
         }
         
         const updatedPlayers = [...party.players];
-        const player = { ...updatedPlayers[playerIndex] };
+        player = { ...updatedPlayers[playerIndex] };
         const target = { ...updatedPlayers[targetIndex] };
         
         console.log('Before effect - Player:', player, 'Target:', target);
@@ -144,14 +149,36 @@ export function useGameActions(partyId: string) {
           transaction.update(partyRef, updateData);
         }
 
-        console.log('Card effect applied successfully');
+
+
+      // Update lastAction at the end of the turn
+      transaction.update(partyRef, {
+        players: updatedPlayers,
+        status,
+        currentTurn: updatedPlayers[nextPlayerIndex].id,
+        lastAction: {
+          type: card.effect.type,
+          playerId,
+          targetId,
+          value: card.effect.value,
+          timestamp: Date.now()
+        }
       });
+    });
+
+      console.log('Turn completed, action logged successfully');
     } catch (error) {
       console.error('Error applying card effect:', error);
       throw error;
     }
   }, [partyId]);
 
+
+
+
+
+
+  
   const resolveChallengeCard = useCallback(async (
     playerId: string,
     card: Card,
@@ -173,6 +200,7 @@ export function useGameActions(partyId: string) {
         const loser = updatedPlayers.find(p => p.id === loserId);
         
         if (!winner || !loser) throw new Error('Players not found');
+        
         
         // Apply challenge effects
         if (card.id === 'beer-havf') {
@@ -276,6 +304,8 @@ export function useGameActions(partyId: string) {
           }
         });
       });
+
+
 
       console.log('Mana drink successful');
     } catch (error) {

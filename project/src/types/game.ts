@@ -53,6 +53,7 @@ export interface GameAction {
   targetId?: string;
   value: number;
   timestamp: number;
+  cardName: string;
 }
 
 export interface GameSettings {

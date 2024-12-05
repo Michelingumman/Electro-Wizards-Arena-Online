@@ -38,7 +38,9 @@ export function Game() {
 
     if (card.isChallenge) {
       setSelectedCard(card);
+      console.log("YOU SEEE MEEE, TARGET IS REQUIRED");
     } else if (card.requiresTarget) {
+      console.log("YOU SEEE MEEE, TARGET IS REQUIRED");
       setSelectedCard(card);
     } else {
       try {
@@ -64,6 +66,7 @@ export function Game() {
       console.error('Error applying card effect:', error);
     }
   };
+
 
   const handleChallengeResolve = async (winnerId: string, loserId: string) => {
     if (!currentPlayer || !selectedCard || !isCurrentTurn) {

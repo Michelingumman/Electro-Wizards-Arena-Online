@@ -5,7 +5,7 @@ export const CARD_POOL: CardBase[] = [
   // Common Cards
   {
     id: 'fire-arrow',
-    name: 'Fire Arrow',
+    name: '1',
     description: 'A basic fire arrow that deals 1 damage',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
@@ -16,7 +16,7 @@ export const CARD_POOL: CardBase[] = [
   },
   {
     id: 'ice-chard',
-    name: 'Ice Chard',
+    name: '2',
     description: 'A sharp shard of ice that deals 1 damage',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
@@ -29,7 +29,7 @@ export const CARD_POOL: CardBase[] = [
   // Rare Cards
   {
     id: 'healing-light',
-    name: 'Healing Light',
+    name: '3',
     description: 'Bathe yourself in healing light',
     manaCost: 2.0,
     rarity: CardRarity.RARE,
@@ -40,7 +40,7 @@ export const CARD_POOL: CardBase[] = [
   },
   {
     id: 'mana-drain',
-    name: 'Mana Drain',
+    name: '4',
     description: 'Drain mana from your target',
     manaCost: 2.0,
     rarity: CardRarity.RARE,
@@ -53,18 +53,18 @@ export const CARD_POOL: CardBase[] = [
   // Epic Cards
   {
     id: 'fireball',
-    name: 'Fireball',
+    name: '5',
     description: 'Launch a powerful ball of fire',
     manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'damage',
-    effect: { type: 'damage', value: 4.0 },
+    effect: { type: 'damage', value: 1.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
     id: 'mana-burn',
-    name: 'Mana Burn',
+    name: '6',
     description: "Deal damage equal to half target's mana",
     manaCost: 3.0,
     rarity: CardRarity.EPIC,
@@ -76,7 +76,7 @@ export const CARD_POOL: CardBase[] = [
   
   // Legendary Cards
   {
-    id: 'infinite-void',
+    id: '7',
     name: "Gojo's: Infinite Void",
     description: "For the next turn, all opponents' mana costs are doubled, and their card effects are reduced by half.",
     manaCost: 5.0,
@@ -101,4 +101,3 @@ export const CARD_POOL: CardBase[] = [
     isLegendary: true,
     flavorText: "If you win, you live. If you lose, you die. If you don't fight, you can't win!"
   }
-];

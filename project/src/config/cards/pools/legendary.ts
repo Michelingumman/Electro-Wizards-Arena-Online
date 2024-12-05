@@ -30,7 +30,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'oskar-rage',
-    name: "EYY JAG KOMMER FCKA UR ASSÅ",
+    name: "Oskar: EYY JAG KOMMER FCKA UR ASSÅ",
     description: 'Deal +4 Damage to all players and reduce all their Mana to 0',
     manaCost: 4.0,
     rarity: CardRarity.LEGENDARY,
@@ -38,6 +38,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
     effect: { type: 'damage', value: 3.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: true,
     isLegendary: true,
     flavorText: "... testa mig inte"
   }
