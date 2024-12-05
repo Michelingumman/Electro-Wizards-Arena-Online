@@ -6,6 +6,12 @@ export interface Player {
   cards: Card[];
   isLeader?: boolean;
   effects?: PlayerEffect[];
+  potionMultiplier?: {
+    value: number;
+    turnsLeft: number;
+  };
+  maxHealth?: number;
+  maxMana?: number;
 }
 
 export interface PlayerEffect {
@@ -18,15 +24,16 @@ export interface Card {
   id: string;
   name: string;
   manaCost: number;
-  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff';
+  type: 'damage' | 'heal' | 'utility' | 'curse' | 'buff' | 'challenge';
   effect: CardEffect;
   requiresTarget: boolean;
   description: string;
   color: string;
+  isChallenge?: boolean;
 }
 
 export interface CardEffect {
-  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn';
+  type: 'damage' | 'heal' | 'manaDrain' | 'forceDrink' | 'manaBurn' | 'potionBuff' | 'challenge' | 'manaRefill';
   value: number;
 }
 
@@ -48,6 +55,7 @@ export interface GameAction {
   targetId?: string;
   value: number;
   timestamp: number;
+  cardId?: string;
 }
 
 export interface GameSettings {

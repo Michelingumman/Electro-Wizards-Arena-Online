@@ -1,13 +1,15 @@
-import { Party } from '../../types/game';
+import { Party, Card } from '../../types/game';
 import { Beaker, Sword, Heart, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { clsx } from 'clsx';
 
 interface ActionLogProps {
   lastAction: Party['lastAction'];
   players: Party['players'];
+  usedCard: Card | null;
 }
 
-export function ActionLog({ lastAction, players }: ActionLogProps) {
+export function ActionLog({ lastAction, players, usedCard }: ActionLogProps) {
   if (!lastAction) return null;
 
   const getActionIcon = (type: string) => {
@@ -23,25 +25,26 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
     }
   };
 
-  const getActionText = () => {
-    const player = players.find(p => p.id === lastAction.playerId);
-    const target = players.find(p => p.id === lastAction.targetId);
+  const player = players.find(p => p.id === lastAction.playerId);
+  const target = players.find(p => p.id === lastAction.targetId);
+  const isSelfTarget = lastAction.playerId === lastAction.targetId;
 
-    switch (lastAction.type) {
+  const getEffectDescription = (type: string, value: number) => {
+    switch (type) {
       case 'damage':
-        return `${player?.name} dealt ${lastAction.value} damage to ${target?.name}`;
+        return `dealt ${value.toFixed(1)} damage to`;
       case 'heal':
-        return `${player?.name} healed ${target?.name} for ${lastAction.value}`;
+        return isSelfTarget ? `healed themself for ${value.toFixed(1)}` : `healed ${value.toFixed(1)} health to`;
       case 'manaDrain':
-        return `${player?.name} drained ${lastAction.value} mana from ${target?.name}`;
+        return `drained ${value.toFixed(1)} mana from`;
       case 'forceDrink':
-        return `${player?.name} forced ${target?.name} to drink a mana potion`;
+        return 'forced a mana potion on';
       case 'manaBurn':
-        return `${player?.name} burned ${target?.name}'s mana`;
+        return 'burned all mana from';
       case 'drink':
-        return `${player?.name} drank a mana potion (+${lastAction.value})`;
+        return `drank a mana potion (+${value.toFixed(1)})`;
       default:
-        return '';
+        return 'used an ability on';
     }
   };
 
@@ -49,15 +52,40 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 border border-gray-700/50"
+      className="bg-gray-800/20 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden"
     >
-      <div className="flex items-center space-x-3">
-        {getActionIcon(lastAction.type)}
-        <p className="text-sm text-gray-300">{getActionText()}</p>
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          {getActionIcon(lastAction.type)}
+          <span className="font-medium text-purple-200">{player?.name}</span>
+          <span className="text-gray-400">
+            {getEffectDescription(lastAction.type, lastAction.value)}
+          </span>
+          {!isSelfTarget && lastAction.type !== 'drink' && (
+            <span className="font-medium text-purple-200">{target?.name}</span>
+          )}
+        </div>
         <span className="text-xs text-gray-500">
           {new Date(lastAction.timestamp).toLocaleTimeString()}
         </span>
       </div>
+
+      {usedCard && (
+        <div className={clsx(
+          'p-3 border-t border-gray-700/50',
+          usedCard.color
+        )}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-sm">{usedCard.name}</h4>
+              <p className="text-xs text-gray-300 mt-1">{usedCard.description}</p>
+            </div>
+            <span className="text-xs bg-blue-900/50 px-2 py-1 rounded">
+              {usedCard.manaCost.toFixed(1)} mana
+            </span>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

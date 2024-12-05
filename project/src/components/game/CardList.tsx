@@ -1,6 +1,7 @@
 import { Card as CardType } from '../../types/game';
 import { Sword, Heart, Droplet, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CardListProps {
   cards: CardType[];
@@ -33,6 +34,10 @@ export function CardList({
     }
   };
 
+  const formatNumber = (num: number) => {
+    return Number(num.toFixed(1));
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {cards.map((card) => {
@@ -40,10 +45,14 @@ export function CardList({
         const canPlay = !disabled && card.manaCost <= currentMana;
 
         return (
-          <div
+          <motion.div
             key={card.id}
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
             onClick={() => canPlay && onPlayCard(card)}
-            onDoubleClick={() => canPlay && !card.requiresTarget && onDoubleClickCard(card)}
             className={clsx(
               'relative overflow-hidden transition-all duration-200',
               'rounded-lg border p-3',
@@ -58,14 +67,20 @@ export function CardList({
             )}
           >
             {isSelected && (
-              <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
+              <motion.div 
+                className="absolute inset-0 bg-purple-500/10 animate-pulse"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              />
             )}
 
             <div className="relative">
               <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-base">{card.name}</h4>
                 <span className="flex items-center text-blue-400 bg-blue-950/50 px-2 py-1 rounded text-sm">
-                  {card.manaCost} <Droplet className="w-3 h-3 ml-1" />
+                  {formatNumber(card.manaCost)} <Droplet className="w-3 h-3 ml-1" />
                 </span>
               </div>
 
@@ -78,7 +93,7 @@ export function CardList({
                   'text-green-400': card.type === 'heal',
                   'text-purple-400': card.type === 'utility' || card.type === 'curse'
                 })}>
-                  {card.effect.value > 0 ? `${card.effect.value}` : 'Special'}
+                  {card.effect.value > 0 ? formatNumber(card.effect.value) : 'Special'}
                 </span>
               </div>
 
@@ -88,13 +103,13 @@ export function CardList({
                 </div>
               )}
 
-              {!card.requiresTarget && (
+              {!card.requiresTarget && canPlay && (
                 <div className="mt-2 text-xs text-gray-400">
-                  Double-click to use on yourself
+                  Click to use
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
