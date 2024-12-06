@@ -24,28 +24,30 @@ export function ChallengeModal({
   const [loserId, setLoserId] = useState<string>('');
 
   const alivePlayers = players.filter(p => p.health > 0);
-  const canConfirm = winnerId && loserId && winnerId !== loserId;
 
   const getChallengeEffects = () => {
-    if (card.id === 'beer-havf') {
+    if (card.name === 'Öl Hävf') {
       return {
         winEffect: '+5.0 HP',
         loseEffect: '-5.0 HP'
       };
     }
-    else if (card.id === 'big-muscles'){
+    else if (card.name === 'Got Big Muscles?'){
       return {
         winEffect: 'Full mana',
         loseEffect: 'Lose all mana'
       };
     }
     else return {
-      winEffect: null, //non existant card
-      loseEffect: null
+      winEffect: '???', //non existant card
+      loseEffect: '???'
     };
   };
 
+
+  // const canConfirm = winnerId && loserId && winnerId !== loserId;
   const effects = getChallengeEffects();
+  console.log(effects);
   if (!effects) console.log('Couldnt get challenge correct card id. Got:', card.id);
 
   return (
@@ -121,7 +123,7 @@ export function ChallengeModal({
             </div>
 
             {/* Effects Preview */}
-            {canConfirm && (
+            {(
               <div className="bg-black/20 rounded-lg p-3 space-y-2">
                 <h4 className="text-sm font-medium text-purple-200">Challenge Effects:</h4>
                 <div className="space-y-1 text-sm">
@@ -148,8 +150,8 @@ export function ChallengeModal({
               Cancel
             </Button>
             <Button
-              onClick={() => canConfirm && onConfirm(winnerId, loserId)}
-              disabled={!canConfirm}
+              onClick={() => onConfirm(winnerId, loserId)}
+              // disabled={!canConfirm}
               className="flex items-center space-x-2"
             >
               <Trophy className="w-4 h-4" />

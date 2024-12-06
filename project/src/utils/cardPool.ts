@@ -1,5 +1,5 @@
 import { CardBase, CardRarity } from '../types/cards';
-import { RARITY_COLORS } from '../config/cardConfig';
+import { RARITY_COLORS } from '../config/cards/rarities';
 
 export const CARD_POOL: CardBase[] = [
   // Common Cards
@@ -101,3 +101,4 @@ export const CARD_POOL: CardBase[] = [
     isLegendary: true,
     flavorText: "If you win, you live. If you lose, you die. If you don't fight, you can't win!"
   }
+]

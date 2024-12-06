@@ -27,26 +27,39 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'beer-havf',
     name: 'Öl Hävf',
-    description: "Challenge ",
+    description: "Challenge: Winner gains 5 HP, Loser loses 5 HP",
     manaCost: 4.0,
     rarity: CardRarity.EPIC,
-    type: 'damage',
-    effect: { type: 'challenge', value: 0.0 },
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0.0,
+      challengeEffects: {
+        winner: { type: 'heal', value: 5.0 },
+        loser: { type: 'damage', value: 5.0 }
+      }
+    },
     isChallenge: true,
-    requiresTarget: false,
+    requiresTarget: true,
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'big-muscles',
-    name: 'Got big muscles?',
-    description: "Challenge: ",
+    id: 'got-big-muscles',
+    name: 'Got Big Muscles?',
+    description: "Challenge: Winner gets full mana, Loser loses all mana",
     manaCost: 4.0,
     rarity: CardRarity.EPIC,
-    type: 'damage',
-    effect: { type: 'challenge', value: 0.0 },
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0.0,
+      challengeEffects: {
+        winner: { type: 'manaRefill', value: 0.0 },
+        loser: { type: 'manaBurn', value: 0.0 }
+      }
+    },
     isChallenge: true,
-    requiresTarget: false,
+    requiresTarget: true,
     color: RARITY_COLORS[CardRarity.EPIC]
   }
-
 ];

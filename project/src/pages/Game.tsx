@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 import { Card } from '../types/game';
@@ -20,7 +20,7 @@ export function Game() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const { applyCardEffect, drinkMana, resolveChallengeCard } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
-  
+
   useGameState(partyId);
 
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
@@ -31,17 +31,20 @@ export function Game() {
     (party?.players.length ?? 0) >= 2
   );
 
+  useEffect(() => {
+    console.log('Game state updated:', { party, currentPlayer, loading, error });
+  }, [party, currentPlayer, loading, error]);
+
   const handlePlayCard = async (card: Card) => {
+    console.log('handlePlayCard invoked:', { card, currentPlayer, isCurrentTurn });
     if (!currentPlayer || !isCurrentTurn || currentPlayer.health <= 0) {
+      console.warn('Cannot play card: Invalid conditions.');
       return;
     }
 
-    if (card.isChallenge) {
+    if (card.isChallenge || card.requiresTarget) {
       setSelectedCard(card);
-      console.log("YOU SEEE MEEE, TARGET IS REQUIRED");
-    } else if (card.requiresTarget) {
-      console.log("YOU SEEE MEEE, TARGET IS REQUIRED");
-      setSelectedCard(card);
+      console.log('Card selected for targeting or challenge:', card);
     } else {
       try {
         console.log('Playing non-targeted card:', card);
@@ -54,7 +57,9 @@ export function Game() {
   };
 
   const handleTargetSelect = async (targetId: string) => {
+    console.log('handleTargetSelect invoked:', { targetId, selectedCard });
     if (!currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) {
+      console.warn('Cannot select target: Invalid conditions.');
       return;
     }
 
@@ -67,9 +72,10 @@ export function Game() {
     }
   };
 
-
   const handleChallengeResolve = async (winnerId: string, loserId: string) => {
+    console.log('handleChallengeResolve invoked:', { winnerId, loserId, selectedCard });
     if (!currentPlayer || !selectedCard || !isCurrentTurn) {
+      console.warn('Cannot resolve challenge: Invalid conditions.');
       return;
     }
 
@@ -83,9 +89,14 @@ export function Game() {
   };
 
   const handleDrink = async () => {
-    if (!currentPlayer || currentPlayer.health <= 0) return;
+    console.log('handleDrink invoked for player:', currentPlayer?.id);
+    if (!currentPlayer || currentPlayer.health <= 0) {
+      console.warn('Cannot drink: Invalid conditions.');
+      return;
+    }
+
     try {
-      console.log('Drinking mana potion');
+      console.log('Drinking mana potion for player:', currentPlayer.id);
       await drinkMana(currentPlayer.id);
     } catch (error) {
       console.error('Error drinking mana:', error);
@@ -93,8 +104,14 @@ export function Game() {
   };
 
   const handleStartGame = async () => {
-    if (!canStart) return;
+    console.log('handleStartGame invoked:', { canStart });
+    if (!canStart) {
+      console.warn('Cannot start game: Invalid conditions.');
+      return;
+    }
+
     try {
+      console.log('Starting game...');
       await startGame(partyId);
     } catch (error) {
       console.error('Error starting game:', error);
@@ -102,8 +119,14 @@ export function Game() {
   };
 
   const handleLeaveParty = async () => {
-    if (!party || !currentPlayer) return;
+    console.log('handleLeaveParty invoked:', { party, currentPlayer });
+    if (!party || !currentPlayer) {
+      console.warn('Cannot leave party: Invalid conditions.');
+      return;
+    }
+
     try {
+      console.log('Leaving party...');
       await leaveParty(party.id, currentPlayer.id);
       navigate('/');
     } catch (error) {
@@ -112,6 +135,7 @@ export function Game() {
   };
 
   if (loading) {
+    console.log('Loading game...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
@@ -123,6 +147,7 @@ export function Game() {
   }
 
   if (error || !party || !currentPlayer) {
+    console.error('Game error or missing data:', { error, party, currentPlayer });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
@@ -134,6 +159,8 @@ export function Game() {
       </div>
     );
   }
+
+  console.log('Rendering game interface:', { party, currentPlayer });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-purple-900 overflow-auto">
@@ -148,58 +175,36 @@ export function Game() {
         />
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Opponents and Action Log */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">Opponents</h3>
-              <div className="space-y-2">
-                {party.players.filter(p => p.id !== currentPlayer.id).map((player) => (
-                  <PlayerStats
-                    key={player.id}
-                    player={player}
-                    isCurrentPlayer={false}
-                    isCurrentTurn={player.id === party.currentTurn}
-                    isTargetable={Boolean(
-                      selectedCard?.requiresTarget && 
-                      player.health > 0 && 
-                      (selectedCard.effect.type === 'heal' ? true : player.id !== currentPlayer.id)
-                    )}
-                    onSelect={selectedCard && !selectedCard.isChallenge ? () => handleTargetSelect(player.id) : undefined}
-                  />
-                ))}
-              </div>
-            </div>
+            <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">Opponents</h3>
+            {party.players.filter(p => p.id !== currentPlayer.id).map((player) => (
+              <PlayerStats
+                key={player.id}
+                player={player}
+                isCurrentPlayer={false}
+                isCurrentTurn={player.id === party.currentTurn}
+                isTargetable={Boolean(
+                  selectedCard?.requiresTarget &&
+                  player.health > 0 &&
+                  (selectedCard.effect.type === 'heal' || player.id !== currentPlayer.id)
+                )}
+                onSelect={selectedCard && !selectedCard.isChallenge ? () => handleTargetSelect(player.id) : undefined}
+              />
+            ))}
 
             {party.lastAction && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">Last Action</h3>
-                <ActionLog
-                  lastAction={party.lastAction}
-                  players={party.players}
-                  usedCard={selectedCard}
-                />
-              </div>
+              <ActionLog lastAction={party.lastAction} players={party.players} usedCard={selectedCard} />
             )}
           </div>
 
-          {/* Right Column - Game Content */}
           <div className="lg:col-span-8 space-y-6">
-            {/* Current Player */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">You</h3>
-              <PlayerStats
-                player={currentPlayer}
-                isCurrentPlayer={true}
-                isCurrentTurn={currentPlayer.id === party.currentTurn}
-                isTargetable={Boolean(
-                  selectedCard?.requiresTarget && 
-                  currentPlayer.health > 0 && 
-                  selectedCard.effect.type === 'heal'
-                )}
-                onSelect={selectedCard && !selectedCard.isChallenge ? () => handleTargetSelect(currentPlayer.id) : undefined}
-              />
-            </div>
-
+            <PlayerStats
+              player={currentPlayer}
+              isCurrentPlayer={true}
+              isCurrentTurn={currentPlayer.id === party.currentTurn}
+              isTargetable={false}
+              onSelect={undefined}
+            />
             <GameStatus
               status={party.status}
               winner={party.winner}
@@ -208,19 +213,14 @@ export function Game() {
             />
 
             {party.status === 'playing' && currentPlayer.health > 0 && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-purple-100">Your Cards</h3>
-                  <CardList
-                    cards={currentPlayer.cards}
-                    onPlayCard={handlePlayCard}
-                    onDoubleClickCard={handlePlayCard}
-                    disabled={!isCurrentTurn}
-                    currentMana={currentPlayer.mana}
-                    selectedCard={selectedCard}
-                  />
-                </div>
-              </div>
+              <CardList
+                cards={currentPlayer.cards}
+                onPlayCard={handlePlayCard}
+                onDoubleClickCard={handlePlayCard}
+                disabled={!isCurrentTurn}
+                currentMana={currentPlayer.mana}
+                selectedCard={selectedCard}
+              />
             )}
           </div>
         </div>
