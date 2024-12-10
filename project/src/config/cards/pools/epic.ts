@@ -177,7 +177,7 @@ export const EPIC_CARDS: CardBase[] = [
     id: 'strip-tease',
     name: 'STRIP TEASE TIME!!!',
     description: "Pick two to perform a strip tease, then swap seats: Winner gets +5 Mana, looser has to drop one piece of clothing (socks dont count)",
-    manaCost: 4.0,
+    manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
@@ -185,6 +185,25 @@ export const EPIC_CARDS: CardBase[] = [
       value: 0.0,
       challengeEffects: {
         winner: { type: 'manaRefill', value: 5.0 },
+        loser: { type: 'damage', value: 0.0 }
+      }
+    },
+    isChallenge: true,
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'armwrestling',
+    name: 'King of the Table #KingsMove!Allowed',
+    description: "Armwrestle the person won the previous challenge then swap seats: Winner gets +3 Mana and +3 HP, looser take 2 shots",
+    manaCost: 4.0,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0.0,
+      challengeEffects: {
+        winner: { type: 'heal', value: 3.0 },
         loser: { type: 'damage', value: 0.0 }
       }
     },

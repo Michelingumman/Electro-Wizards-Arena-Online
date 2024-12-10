@@ -16,11 +16,22 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'ice-chard',
     name: 'Ice Chard',
-    description: 'A sharp shard of ice that deals 1 damage',
+    description: 'A sharp shard of ice that deals 2 damage',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'damage', value: 1.0 },
+    effect: { type: 'damage', value: 2.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'lightning-chain',
+    name: 'Lightning Chain',
+    description: 'A sharp shard of ice that deals 2 damage',
+    manaCost: 2.0,
+    rarity: CardRarity.COMMON,
+    type: 'damage',
+    effect: { type: 'damage', value: 2.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   }
