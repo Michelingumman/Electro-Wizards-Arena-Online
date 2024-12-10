@@ -1,7 +1,43 @@
 import { Card, PlayerHand } from '../types/game';
 import { CARD_POOL } from '../config/cards/index';
+import { CardRarity } from '../types/cards';
+import { RARITY_WEIGHTS } from '../config/cards/rarities';
 
-const LEGENDARY_CARDS = CARD_POOL.filter(card => card.isLegendary);
+function getRandomRarity(): CardRarity {
+  const weights = Object.entries(RARITY_WEIGHTS);
+  const totalWeight = weights.reduce((sum, [, weight]) => sum + weight, 0);
+  const randomValue = Math.random() * totalWeight;
+
+  let cumulativeWeight = 0;
+  for (const [rarity, weight] of weights) {
+    cumulativeWeight += weight;
+    if (randomValue < cumulativeWeight) {
+      return rarity as CardRarity;
+    }
+  }
+
+  // Fallback (shouldn't reach here if weights are correct)
+  return CardRarity.COMMON;
+}
+
+function getCardByRarity(rarity: CardRarity): Card[] {
+  return CARD_POOL.filter(card => card.rarity === rarity);
+}
+
+export function drawNewCard(): Card {
+  const rarity = getRandomRarity(); // Determine card rarity based on weights
+  const pool = getCardByRarity(rarity); // Get cards of that rarity
+
+  if (pool.length === 0) {
+    throw new Error(`No cards available for rarity: ${rarity}`);
+  }
+
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    ...card,
+    id: `${card.id}-${Math.random().toString(36).substr(2, 9)}`
+  };
+}
 
 export function generateInitialHand(): PlayerHand {
   const hand: Card[] = [];
@@ -14,7 +50,7 @@ export function generateInitialHand(): PlayerHand {
   };
 
   while (hand.length < 4) {
-    const card = drawCard();
+    const card = drawNewCard(); // Draw a card with weighted rarity
     hand.push(card);
     if (card.rarity) {
       stats[card.rarity.toLowerCase() as keyof typeof stats]++;
@@ -25,18 +61,9 @@ export function generateInitialHand(): PlayerHand {
   return { cards: hand, stats };
 }
 
-export function drawCard(): Card {
-  const pool = CARD_POOL;
-  const card = pool[Math.floor(Math.random() * pool.length)];
-  
-  return {
-    ...card,
-    id: `${card.id}-${Math.random().toString(36).substr(2, 9)}`
-  };
-}
-
 export function drawLegendaryCard(): Card {
-  const card = LEGENDARY_CARDS[Math.floor(Math.random() * LEGENDARY_CARDS.length)];
+  const legendaryCards = getCardByRarity(CardRarity.LEGENDARY);
+  const card = legendaryCards[Math.floor(Math.random() * legendaryCards.length)];
   return {
     ...card,
     id: `${card.id}-${Math.random().toString(36).substr(2, 9)}`

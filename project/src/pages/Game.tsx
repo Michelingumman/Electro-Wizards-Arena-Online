@@ -31,9 +31,24 @@ export function Game() {
     (party?.players.length ?? 0) >= 2
   );
 
+
+
+
+
+
+
+
+  
   useEffect(() => {
     console.log('Game state updated:', { party, currentPlayer, loading, error });
   }, [party, currentPlayer, loading, error]);
+
+
+
+
+
+
+
 
   const handlePlayCard = async (card: Card) => {
     console.log('handlePlayCard invoked:', { card, currentPlayer, isCurrentTurn });
