@@ -156,7 +156,7 @@ export const EPIC_CARDS: CardBase[] = [
   },
   {
     id: 'breath-challenge',
-    name: '',
+    name: 'Wim Hoff Wannabe',
     description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,

@@ -2,37 +2,79 @@ import { CardBase, CardRarity } from '../../../types/cards';
 import { RARITY_COLORS } from '../rarities';
 
 export const LEGENDARY_CARDS: CardBase[] = [
+  // {
+  //   id: 'infinite-void',
+  //   name: "Gojo's: Infinite Void",
+  //   description: "For the next turn, all opponents' mana costs are doubled, and their card effects are reduced by half.",
+  //   manaCost: 5.0,
+  //   rarity: CardRarity.LEGENDARY,
+  //   type: 'legendary',
+  //   effect: { type: 'infiniteVoid', value: 1.0 },
+  //   requiresTarget: false,
+  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  //   isLegendary: true,
+  //   flavorText: 'Throughout Heaven and Earth, I alone am the honored one.'
+  // },
+  // {
+  //   id: 'titan-form',
+  //   name: "Eren Jaeger's: Titan",
+  //   description: 'Transform into a Titan for 3 turns. Gain +10 HP, deal +3 damage with all cards, and become immune to single-target effects.',
+  //   manaCost: 6.0,
+  //   rarity: CardRarity.LEGENDARY,
+  //   type: 'legendary',
+  //   effect: { type: 'titan', value: 3.0 },
+  //   requiresTarget: false,
+  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  //   isLegendary: true,
+  //   flavorText: "If you win, you live. If you lose, you die. If you don't fight, you can't win!"
+  // },
   {
-    id: 'infinite-void',
-    name: "Gojo's: Infinite Void",
-    description: "For the next turn, all opponents' mana costs are doubled, and their card effects are reduced by half.",
+    id: 'oskar',
+    name: "EYY JAG KOMMER FCKA UR ASSÅ",
+    description: 'Deal +4 Damage to all players and half all their Mana',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
-    effect: { type: 'infiniteVoid', value: 1.0 },
-    requiresTarget: false,
+    effect: { type: 'damage', value: 4.0 },
+    requiresTarget: true,
     color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: false,
     isLegendary: true,
-    flavorText: 'Throughout Heaven and Earth, I alone am the honored one.'
+    flavorText: "--- Oskar: OH JÄVLAR! **stumbles**"
   },
   {
-    id: 'titan-form',
-    name: "Eren Jaeger's: Titan",
-    description: 'Transform into a Titan for 3 turns. Gain +10 HP, deal +3 damage with all cards, and become immune to single-target effects.',
-    manaCost: 6.0,
+    id: 'jesper',
+    name: "AGH DET HÄNDER JU INTE!",
+    description: '15% chance to fully restore stats and make all enemies take a shot. Lose, and you take one shot per player.',
+    manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
-    effect: { type: 'titan', value: 3.0 },
+    effect: { type: 'heal', value: 10.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: true,
     isLegendary: true,
-    flavorText: "If you win, you live. If you lose, you die. If you don't fight, you can't win!"
+    flavorText: "--- Jesper: ahh tjena"
   },
   {
-    id: 'oskar-rage',
-    name: "Oskar: EYY JAG KOMMER FCKA UR ASSÅ",
-    description: 'Deal +4 Damage to all players and reduce all their Mana to 0',
-    manaCost: 4.0,
+    id: 'fellan',
+    name: "AH ELLER HUR",
+    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If they cant beat you, you resist all damage for 5 turns.',
+    manaCost: 5.0,
+    rarity: CardRarity.LEGENDARY,
+    type: 'legendary',
+    effect: { type: 'damage', value: 0.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: false,
+    isLegendary: true,
+    flavorText: "--- Fellan: jag såg för mycket blattar runt omkring asså... jag blev rädd asså"
+  },
+  {
+    id: 'markus',
+    name: "AH ELLER HUR",
+    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If they can’t beat you, you resist all damage for 5 turns.',
+    manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
     effect: { type: 'damage', value: 3.0 },
@@ -40,6 +82,34 @@ export const LEGENDARY_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.LEGENDARY],
     isChallenge: false,
     isLegendary: true,
-    flavorText: "... testa mig inte"
+    flavorText: "--- Markus: "
+  },
+  {
+    id: 'sam',
+    name: "AH ELLER HUR",
+    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If they can’t beat you, you resist all damage for 5 turns.',
+    manaCost: 5.0,
+    rarity: CardRarity.LEGENDARY,
+    type: 'legendary',
+    effect: { type: 'damage', value: 3.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: false,
+    isLegendary: true,
+    flavorText: "--- Sam: Kan tyvärr inte komma"
+  },
+  {
+    id: 'adam',
+    name: "AH ELLER HUR",
+    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If they can’t beat you, you resist all damage for 5 turns.',
+    manaCost: 5.0,
+    rarity: CardRarity.LEGENDARY,
+    type: 'legendary',
+    effect: { type: 'damage', value: 3.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: false,
+    isLegendary: true,
+    flavorText: "--- Sam: Kan tyvärr inte komma"
   }
 ];

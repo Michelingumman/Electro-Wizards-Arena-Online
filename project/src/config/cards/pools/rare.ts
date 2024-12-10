@@ -3,13 +3,24 @@ import { RARITY_COLORS } from '../rarities';
 
 export const RARE_CARDS: CardBase[] = [
   {
-    id: 'healing-light',
-    name: 'Healing Light',
-    description: 'Bathe yourself in healing light',
+    id: 'duct-tape',
+    name: 'Duct Tape',
+    description: 'Trashy bandage...',
+    manaCost: 1.0,
+    rarity: CardRarity.RARE,
+    type: 'heal',
+    effect: { type: 'heal', value: 1.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.RARE]
+  },
+  {
+    id: 'bacta-spray',
+    name: 'Bacta Spray',
+    description: 'An advanced healing mist that rapidly restores 4 HP to yourself',
     manaCost: 2.0,
     rarity: CardRarity.RARE,
     type: 'heal',
-    effect: { type: 'heal', value: 3.0 },
+    effect: { type: 'heal', value: 4.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.RARE]
   },
@@ -21,6 +32,17 @@ export const RARE_CARDS: CardBase[] = [
     rarity: CardRarity.RARE,
     type: 'utility',
     effect: { type: 'manaDrain', value: 3.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.RARE]
+  },
+  {
+    id: 'force-drink',
+    name: 'You Look Dehydrated',
+    description: 'Deal out 1 drink',
+    manaCost: 1.0,
+    rarity: CardRarity.RARE,
+    type: 'utility',
+    effect: { type: 'heal', value: 0.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.RARE]
   }
