@@ -1,5 +1,5 @@
 import { CardBase, CardRarity } from '../types/cards';
-import { NON_LEGENDARY_CARDS, LEGENDARY_CARDS, CARD_POOL, generateCardId } from '../config/cards';
+import { CARD_POOL, generateCardId } from '../config/cards';
 import { RARITY_WEIGHTS } from '../config/cards/rarities';
 import { GAME_CONFIG } from '../config/gameConfig';
 
