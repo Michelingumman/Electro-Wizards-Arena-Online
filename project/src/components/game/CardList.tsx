@@ -110,7 +110,7 @@ export function CardList({
                   'text-green-400': card.type === 'heal',
                   'text-purple-400': card.type === 'utility' || card.type === 'curse'
                 })}>
-                  {card.effect.value > 0 ? formatNumber(card.effect.value) : 'Special'}
+                  {card.effect.value > 0 ? formatNumber(card.effect.value) : 'Challenge'}
                 </span>
               </div>
 

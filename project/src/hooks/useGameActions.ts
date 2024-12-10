@@ -3,10 +3,17 @@ import { doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Card, Party } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
-import { drawNewCard } from '../utils/cards';
+import { drawNewCard } from '../utils/cardGeneration';
 import { getChallengeEffects, validateChallengeParticipants, applyChallengeEffect } from '../utils/challengeEffects';
+import { CardEnhancer } from '../utils/cardEnhancer';
+import { EffectManager } from '../utils/effectManager';
 
 export function useGameActions(partyId: string) {
+
+
+  const effectManager = new EffectManager();
+  const cardEnhancer = new CardEnhancer(effectManager);
+
   // Apply a card effect
   const applyCardEffect = useCallback(async (playerId: string, targetId: string, card: Card) => {
     console.debug('applyCardEffect invoked', { playerId, targetId, card });
@@ -27,32 +34,38 @@ export function useGameActions(partyId: string) {
 
         if (!player || player.health <= 0) throw new Error('Player is dead');
         if (!target) throw new Error('Target not found');
+        
         if (card.effect.type === 'damage' && target.health <= 0) throw new Error('Target is dead');
 
+
+        // Enhance the card before applying the effect
+        const enhancedCard = cardEnhancer.enhanceCard(card);
+
+
         // Apply mana cost
-        console.debug('Deducting mana:', { currentMana: player.mana, cost: card.manaCost });
-        player.mana = Math.max(0, player.mana - card.manaCost);
+        console.debug('Deducting mana:', { currentMana: player.mana, cost: enhancedCard.manaCost });
+        player.mana = Math.max(0, player.mana - enhancedCard.manaCost);
 
         // Replace used card
-        const cardIndex = player.cards.findIndex(c => c.id === card.id);
+        const cardIndex = player.cards.findIndex(c => c.id === enhancedCard.id);
         if (cardIndex !== -1) {
           console.debug('Replacing used card at index:', cardIndex);
           player.cards[cardIndex] = drawNewCard();
         }
 
         // Apply the card effect
-        switch (card.effect.type) {
+        switch (enhancedCard.effect.type) {
           case 'damage':
-            console.debug('Applying damage effect:', { targetId, damage: card.effect.value });
-            target.health = Math.max(0, target.health - card.effect.value);
+            console.debug('Applying damage effect:', { targetId, damage: enhancedCard.effect.value });
+            target.health = Math.max(0, target.health - enhancedCard.effect.value);
             break;
           case 'heal':
             const maxHealth = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
-            console.debug('Applying heal effect:', { targetId, heal: card.effect.value, maxHealth });
-            target.health = Math.min(maxHealth, target.health + card.effect.value);
+            console.debug('Applying heal effect:', { targetId, heal: enhancedCard.effect.value, maxHealth });
+            target.health = Math.min(maxHealth, target.health + enhancedCard.effect.value);
             break;
           case 'manaDrain':
-            const drainAmount = Math.min(target.mana, card.effect.value);
+            const drainAmount = Math.min(target.mana, enhancedCard.effect.value);
             console.debug('Applying manaDrain:', { targetId, drainAmount });
             target.mana -= drainAmount;
             player.mana = Math.min(
@@ -75,7 +88,7 @@ export function useGameActions(partyId: string) {
             break;
           case 'potionBuff':
             console.debug('Applying potionBuff:', { playerId });
-            player.potionMultiplier = { value: card.effect.value, turnsLeft: 3 };
+            player.potionMultiplier = { value: enhancedCard.effect.value, turnsLeft: 3 };
             break;
           case 'manaRefill':
             console.debug('Applying manaRefill:', { playerId });
@@ -101,10 +114,10 @@ export function useGameActions(partyId: string) {
           status,
           currentTurn: nextPlayerId,
           lastAction: {
-            type: card.effect.type,
+            type: enhancedCard.effect.type,
             playerId,
             targetId,
-            value: card.effect.value,
+            value: enhancedCard.effect.value,
             timestamp: Date.now(),
           },
         });

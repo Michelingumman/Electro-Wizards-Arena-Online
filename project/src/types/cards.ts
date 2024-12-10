@@ -15,7 +15,11 @@ export type EffectType =
   | 'manaRefill' 
   | 'infiniteVoid' 
   | 'titan' 
-  | 'challenge';
+  | 'challenge'  
+  | 'buff'   // From PotionEffect
+  | 'debuff' // From PotionEffect
+  | 'multiply'  // From EnhancementEffect
+  | 'add';      // From EnhancementEffect
 
 export interface CardEffect {
   type: EffectType;

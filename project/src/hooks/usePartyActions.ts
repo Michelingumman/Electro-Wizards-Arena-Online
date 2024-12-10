@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { collection, addDoc, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Party, Player, GameSettings } from '../types/game';
-import { generateInitialCards } from '../utils/cards';
+import { generateInitialCards } from '../utils/cardGeneration';
 import { generatePartyCode } from '../utils/party';
 import { GAME_CONFIG } from '../config/gameConfig';
 
