@@ -218,41 +218,41 @@ export function usePartyActions() {
 
 
   const updateGameSettings = useCallback(async (settings: GameSettings) => {
-    console.log("Debug: Received settings", settings); // Log settings object
-    console.log("Debug: Firestore instance", db); // Log Firestore instance
-    const partyRef = doc(db, 'parties', partyId);
+    // console.log("Debug: Received settings", settings); // Log settings object
+    // console.log("Debug: Firestore instance", db); // Log Firestore instance
+    // const partyRef = doc(db, 'parties', partyId);
 
   
-    if (!partyRef.id) {
-      console.error("Error: partyId is undefined in settings.");
-      throw new Error("Party ID is required to update game settings.");
-    }
+    // if (!partyRef.id) {
+    //   console.error("Error: partyId is undefined in settings.");
+    //   throw new Error("Party ID is required to update game settings.");
+    // }
   
-    try {
-      const partyRef = doc(db, 'parties', settings.partyId);
-      await runTransaction(db, async (transaction) => {
-        const partyDoc = await transaction.get(partyRef);
+    // try {
+    //   const partyRef = doc(db, 'parties', settings.partyId);
+    //   await runTransaction(db, async (transaction) => {
+    //     const partyDoc = await transaction.get(partyRef);
   
-        if (!partyDoc.exists()) {
-          throw new Error('Party not found');
-        }
+    //     if (!partyDoc.exists()) {
+    //       throw new Error('Party not found');
+    //     }
   
-        const party = partyDoc.data() as Party;
+    //     const party = partyDoc.data() as Party;
   
-        if (party.leaderId !== settings.playerId) {
-          throw new Error('Only the party leader can update settings');
-        }
+    //     if (party.leaderId !== settings.playerId) {
+    //       throw new Error('Only the party leader can update settings');
+    //     }
   
-        if (party.status !== 'waiting') {
-          throw new Error('Cannot update settings after game has started');
-        }
+    //     if (party.status !== 'waiting') {
+    //       throw new Error('Cannot update settings after game has started');
+    //     }
   
-        transaction.update(partyRef, { settings });
-      });
-    } catch (error) {
-      console.error("Error updating game settings:", error);
-      throw error;
-    }
+    //     transaction.update(partyRef, { settings });
+    //   });
+    // } catch (error) {
+    //   console.error("Error updating game settings:", error);
+    //   throw error;
+    // }
   }, []);
   
 

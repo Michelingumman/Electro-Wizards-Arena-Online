@@ -74,10 +74,12 @@ export class EffectManager {
     }));
   }
 
-  calculateTotalEffect(type: 'damage' | 'healing' | 'mana' | 'potion'): number {
+  calculateTotalEffect(
+    type: 'damage' | 'healing' | 'mana' | 'potion'
+  ): (value: number) => number {
     let multiplier = 1;
     let additive = 0;
-
+  
     this.effects.enhancements
       .filter(e => e.target === type)
       .forEach(effect => {
@@ -87,9 +89,11 @@ export class EffectManager {
           additive += effect.value;
         }
       });
-
+  
+    // Return a function that applies the total effect to the given value
     return (value: number) => (value + additive) * multiplier;
   }
+  
 
   getActiveEffects(): ActiveEffects {
     return {
