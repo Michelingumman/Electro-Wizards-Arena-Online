@@ -62,8 +62,8 @@ export interface GameSettings {
   manaDrinkAmount: number;
   initialHealth: number;
   initialMana: number;
-  partyId?: string;
-  playerId?: string;
+  partyId: string;
+  playerId: string;
 }
 
 export { CardRarity, type CardStats, type PlayerHand };

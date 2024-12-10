@@ -7,19 +7,24 @@ import { generatePartyCode } from '../utils/party';
 import { GAME_CONFIG } from '../config/gameConfig';
 
 export function usePartyActions() {
+
+
   const createParty = useCallback(async (player: Pick<Player, 'id' | 'name'>) => {
     const code = generatePartyCode();
-    
+  
+    // Prepare initial party data with an empty partyId placeholder
     const partyData: Omit<Party, 'id'> = {
       code,
       status: 'waiting',
-      players: [{
-        ...player,
-        health: GAME_CONFIG.INITIAL_HEALTH,
-        mana: GAME_CONFIG.INITIAL_MANA,
-        cards: generateInitialCards(),
-        isLeader: true
-      }],
+      players: [
+        {
+          ...player,
+          health: GAME_CONFIG.INITIAL_HEALTH,
+          mana: GAME_CONFIG.INITIAL_MANA,
+          cards: generateInitialCards(),
+          isLeader: true,
+        },
+      ],
       currentTurn: player.id,
       leaderId: player.id,
       settings: {
@@ -28,16 +33,37 @@ export function usePartyActions() {
         manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,
         initialHealth: GAME_CONFIG.INITIAL_HEALTH,
         initialMana: GAME_CONFIG.INITIAL_MANA,
-      }
+        partyId: '', // Placeholder for now
+        playerId: player.id,
+      },
     };
+  
     try {
+      // Add the party to the Firestore collection
       const partyRef = await addDoc(collection(db, 'parties'), partyData);
+  
+      // Update the `partyId` field in the settings after creating the document
+      await runTransaction(db, async (transaction) => {
+        const docRef = doc(db, 'parties', partyRef.id);
+        transaction.update(docRef, {
+          'settings.partyId': partyRef.id, // Set the `partyId` field in the settings
+        });
+      });
+  
+      console.log(`Party created successfully with ID: ${partyRef.id}`);
       return partyRef.id;
     } catch (error) {
       console.error('usePartyActions.ts --> Error creating party:', error);
       throw new Error('Failed to create party');
     }
   }, []);
+  
+
+
+
+
+
+
 
   const joinParty = useCallback(async (partyId: string, player: Pick<Player, 'id' | 'name'>) => {
     const partyRef = doc(db, 'parties', partyId);
@@ -81,6 +107,16 @@ export function usePartyActions() {
     }
   }, []);
 
+
+
+
+
+
+
+
+
+
+
   const startGame = useCallback(async (partyId: string) => {
     const partyRef = doc(db, 'parties', partyId);
     
@@ -115,6 +151,18 @@ export function usePartyActions() {
       throw error;
     }
   }, []);
+
+
+
+
+
+
+
+
+
+
+
+
 
   const leaveParty = useCallback(async (partyId: string, playerId: string) => {
     const partyRef = doc(db, 'parties', partyId);
@@ -156,35 +204,67 @@ export function usePartyActions() {
     }
   }, []);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   const updateGameSettings = useCallback(async (settings: GameSettings) => {
-    console.log('debug1');
+    console.log("Debug: Received settings", settings); // Log settings object
+    console.log("Debug: Firestore instance", db); // Log Firestore instance
+    const partyRef = doc(db, 'parties', partyId);
+
+  
+    if (!partyRef.id) {
+      console.error("Error: partyId is undefined in settings.");
+      throw new Error("Party ID is required to update game settings.");
+    }
+  
     try {
       const partyRef = doc(db, 'parties', settings.partyId);
       await runTransaction(db, async (transaction) => {
         const partyDoc = await transaction.get(partyRef);
-        
+  
         if (!partyDoc.exists()) {
           throw new Error('Party not found');
         }
-
+  
         const party = partyDoc.data() as Party;
-        
+  
         if (party.leaderId !== settings.playerId) {
           throw new Error('Only the party leader can update settings');
         }
-        
+  
         if (party.status !== 'waiting') {
           throw new Error('Cannot update settings after game has started');
         }
-        
+  
         transaction.update(partyRef, { settings });
       });
     } catch (error) {
-      console.error('Error updating game settings:', error);
+      console.error("Error updating game settings:", error);
       throw error;
     }
   }, []);
+  
 
+
+
+
+
+
+
+
+
+  
   return {
     createParty,
     joinParty,

@@ -5,5 +5,5 @@ export const GAME_CONFIG = {
   MAX_MANA: 10,
   MANA_DRINK_AMOUNT: 3,
   MAX_PLAYERS: 2,
-  PARTY_CODE_LENGTH: 4
+  PARTY_CODE_LENGTH: 3
 } as const;
