@@ -115,26 +115,18 @@ export function useGameActions(partyId: string) {
           status,
           currentTurn: nextPlayerId,
           lastAction: {
-            type: enhancedCard.effect.type,
             playerId,
             targetId,
-            value: enhancedCard.effect.value,
-            timestamp: Date.now(),
+            cardId: card.id,
+            cardName: card.name,
+            cardType: card.effect.type,
+            cardRarity: card.rarity,
+            cardDescription: card.description,
           },
         });
       });
 
-      // Update the lastAction in the game store
-    useGameStore.getState().updateLastAction({
-      playerId,
-      targetId,
-      cardId: card.id,
-      cardName: card.name,
-      cardType: card.effect.type,
-      cardRarity: card.rarity,
-      cardDescription: card.description,
-    });
-    
+
 
       console.info('Card effect applied successfully');
     } catch (error) {
@@ -215,26 +207,17 @@ export function useGameActions(partyId: string) {
           status,
           currentTurn: nextPlayerId,
           lastAction: {
-            type: 'challenge',
-            playerId,
+            playerId: winnerId,
             targetId: loserId,
-            value: card.effect.value,
-            timestamp: Date.now(),
+            cardId: card.id,
+            cardName: card.name,
+            cardType: card.effect.type,
+            cardRarity: card.rarity,
+            cardDescription: card.description,
           },
         });
       });
 
-
-        // Update the lastAction in the game store
-    useGameStore.getState().updateLastAction({
-      playerId: winnerId,
-      targetId: loserId,
-      cardId: card.id,
-      cardName: card.name,
-      cardType: card.effect.type,
-      cardRarity: card.rarity,
-      cardDescription: card.description,
-    });
 
       console.info('Challenge resolved successfully');
     } catch (error) {

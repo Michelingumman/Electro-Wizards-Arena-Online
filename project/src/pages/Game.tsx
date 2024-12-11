@@ -205,7 +205,7 @@ export function Game() {
             ))}
 
             {party.lastAction && (
-              <ActionLog lastAction={party.lastAction} players={party.players} usedCard={selectedCard} />
+              <ActionLog lastAction={party.lastAction} players={party.players} />
             )}
           </div>
 
