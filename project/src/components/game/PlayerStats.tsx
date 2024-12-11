@@ -41,11 +41,11 @@ export function PlayerStats({
     >
       {isCurrentTurn && !isDead && (
         <motion.div
-          className="absolute inset-0 bg-purple-500/5 animate-[pulse_2s_ease-in-out_infinite]" // Reduced opacity and adjusted animation
+          className="absolute inset-0 bg-purple-500/10 animate-[pulse_4s_ease-in-out_infinite]" // Reduced opacity and adjusted animation
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 1.0 }}
         />
       )}
 
