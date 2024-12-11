@@ -27,11 +27,11 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'mana-drain',
     name: 'Mana Drain',
-    description: 'Drain mana from your target',
+    description: 'Steal Mana from your opponent',
     manaCost: 2.0,
     rarity: CardRarity.RARE,
     type: 'utility',
-    effect: { type: 'manaDrain', value: 3.0 },
+    effect: { type: 'manaDrain', value: 4.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.RARE]
   },
@@ -40,6 +40,28 @@ export const RARE_CARDS: CardBase[] = [
     name: 'You Look Dehydrated',
     description: 'Deal out 1 drink',
     manaCost: 1.0,
+    rarity: CardRarity.RARE,
+    type: 'utility',
+    effect: { type: 'heal', value: 0.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.RARE]
+  },
+  {
+    id: 'reversed-curse-tech',
+    name: 'Reversed Curse Technique',
+    description: 'Heal half of the opponents health',
+    manaCost: 3.0,
+    rarity: CardRarity.RARE,
+    type: 'utility',
+    effect: { type: 'heal', value: 0.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.RARE]
+  },
+  {
+    id: 'guardian',
+    name: 'Guardian Angel',
+    description: 'Heal yourself for 3 HP and shield for 1 turn',
+    manaCost: 2.0,
     rarity: CardRarity.RARE,
     type: 'utility',
     effect: { type: 'heal', value: 0.0 },
