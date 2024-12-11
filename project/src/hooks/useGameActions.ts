@@ -53,6 +53,10 @@ export function useGameActions(partyId: string) {
           player.cards[cardIndex] = drawNewCard();
         }
 
+
+
+
+        
         // Apply the card effect
         switch (enhancedCard.effect.type) {
           case 'damage':

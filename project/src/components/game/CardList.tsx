@@ -123,7 +123,7 @@ export function CardList({
                   'text-yellow-400': card.isLegendary,
                   'text-red-400': card.type === 'damage',
                   'text-green-400': card.type === 'heal',
-                  'text-purple-400': card.isChallenge
+                  'text-orange-400': card.isChallenge
                 })}>
                 </span>
               </div>

@@ -28,7 +28,15 @@ export function Game() {
   useGameState(partyId);
 
 
-  const validPlayers = ['adam', 'madde', 'markus', 'oskar', 'jesper', 'fellan', 'felix'];
+  const validPlayers = [
+    'adam', 
+    'madde', 
+    'markus', 
+    'oskar', 
+    'jesper', 
+    'fellan', 
+    'felix'
+  ];
 
 
 

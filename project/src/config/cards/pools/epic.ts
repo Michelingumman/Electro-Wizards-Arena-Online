@@ -99,7 +99,7 @@ export const EPIC_CARDS: CardBase[] = [
   },
   {
     id: 'alko-brands',
-    name: 'Name the most: LIQOUR BRANDS',
+    name: 'Name the most: LIQUOR BRANDS',
     description: "Challenge the MOST drunk person here, determined by last man standing in a single leg blindfold then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,

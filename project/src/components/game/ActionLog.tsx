@@ -75,7 +75,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
           title={lastAction.cardDescription}
         >
           {/* Card Icon */}
-          <CardIcon className="w-5 h-5 text-white" />
+          <CardIcon className="w-4 h-4 text-white" />
 
           {/* Card Details */}
           <div className="flex flex-col items-center">
@@ -86,7 +86,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
 
         {/* Defender */}
         {!isSelfTarget && (
-          <span className="text-sm font-bold text-purple-300">{defender?.name || 'Unknown'}</span>
+          <span className="text-lg font-bold text-purple-300">{defender?.name || 'Unknown'}</span>
         )}
       </div>
     </motion.div>

@@ -29,7 +29,7 @@ export function ChallengeModal({
     'Name the most: CAR BRANDS',
     'Name the most: FOOTBALL TEAMS',
     'Name the most: BEER BRANDS',
-    'Name the most: LIQOUR BRANDS',
+    'Name the most: LIQUOR BRANDS',
     'Name the most: COUNTRIES',
     'Name the most: TYPES OF PORN',
     'Wim Hoff Wannabe',

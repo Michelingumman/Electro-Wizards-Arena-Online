@@ -31,7 +31,7 @@ export const COMMON_CARDS: CardBase[] = [
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'damage', value: 1.0 },
+    effect: { type: 'aoeDamage', value: 1.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.COMMON]
   },
@@ -42,7 +42,7 @@ export const COMMON_CARDS: CardBase[] = [
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'damage', value: 2.0 },
+    effect: { type: 'roulette', value: 2.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   },
@@ -53,7 +53,7 @@ export const COMMON_CARDS: CardBase[] = [
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'damage', value: 1.0 },
+    effect: { type: 'aoeDamage', value: 1.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.COMMON]
   },
