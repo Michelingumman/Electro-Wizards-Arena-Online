@@ -7,7 +7,6 @@ import { drawNewCard } from '../utils/cardGeneration';
 import { getChallengeEffects, validateChallengeParticipants, applyChallengeEffect } from '../utils/challengeEffects';
 import { CardEnhancer } from '../utils/cardEnhancer';
 import { EffectManager } from '../utils/effectManager';
-import { useGameStore } from '../store/gameStore';
 
 export function useGameActions(partyId: string) {
 

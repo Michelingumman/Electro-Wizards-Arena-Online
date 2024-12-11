@@ -50,46 +50,45 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-900/50 backdrop-blur-lg rounded-lg border border-gray-700 p-4 flex flex-col space-y-3"
+      className="bg-gray-900/50 backdrop-blur-lg rounded-lg border border-gray-700 p-6 flex flex-col items-center space-y-4"
     >
-      {/* Action Log Header */}
-      <div className="text-left text-lg font-bold text-purple-300">Action Log</div>
+      {/* Title */}
+      <h3 className="text-sm font-bold text-purple-200 uppercase tracking-wider">Action Log:</h3>
 
-      {/* Attacker Section */}
-      <div className="flex items-center space-x-2">
-        <span className="text-base font-semibold text-purple-300">{attacker.name}</span>
-      </div>
+      {/* Centered Log Details */}
+      <div className="flex flex-col items-center space-y-2">
+        {/* Attacker */}
+        <span className="text-lg font-bold text-purple-300">{attacker.name}</span>
 
-      {/* Card Details Section */}
-      <div
-        className={clsx(
-          'flex items-center justify-between p-2 rounded-lg border shadow-md space-x-3',
-          lastAction.cardRarity === 'legendary'
-            ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 border-yellow-400 shadow-yellow-500/50'
-            : lastAction.cardRarity === 'epic'
-            ? 'bg-gradient-to-br from-orange-500 to-orange-700 border-orange-400'
-            : lastAction.cardRarity === 'rare'
-            ? 'bg-gradient-to-br from-teal-500 to-teal-700 border-teal-400'
-            : 'bg-gradient-to-br from-gray-500 to-gray-700 border-gray-400'
+        {/* Card Box */}
+        <div
+          className={clsx(
+            'flex items-center space-x-2 p-3 rounded-lg border shadow text-center',
+            lastAction.cardRarity === 'legendary'
+              ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 border-yellow-400 shadow-yellow-500/50'
+              : lastAction.cardRarity === 'epic'
+              ? 'bg-gradient-to-br from-orange-500 to-orange-700 border-orange-400'
+              : lastAction.cardRarity === 'rare'
+              ? 'bg-gradient-to-br from-teal-500 to-teal-700 border-teal-400'
+              : 'bg-gradient-to-br from-gray-500 to-gray-700 border-gray-400'
+          )}
+          title={lastAction.cardDescription}
+        >
+          {/* Card Icon */}
+          <CardIcon className="w-5 h-5 text-white" />
+
+          {/* Card Details */}
+          <div className="flex flex-col items-center">
+            <span className="text-sm font-semibold text-white">{lastAction.cardName} used:</span>
+            <span className="text-xs text-gray-200">{lastAction.cardDescription}</span>
+          </div>
+        </div>
+
+        {/* Defender */}
+        {!isSelfTarget && (
+          <span className="text-lg font-bold text-purple-300">on {defender?.name || 'Unknown'}</span>
         )}
-        title={lastAction.cardDescription}
-      >
-        {/* Card Icon */}
-        <CardIcon className="w-6 h-6 text-white" />
-
-        {/* Card Name and Description */}
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-white">{lastAction.cardName}</span>
-          <span className="text-xs text-gray-200">{lastAction.cardDescription}</span>
-        </div>
       </div>
-
-      {/* Defender Section */}
-      {!isSelfTarget && (
-        <div className="flex items-center space-x-2">
-          <span className="text-base font-semibold text-purple-300">{defender?.name || 'Unknown'}</span>
-        </div>
-      )}
     </motion.div>
   );
 }

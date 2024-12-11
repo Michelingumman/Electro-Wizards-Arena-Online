@@ -188,7 +188,9 @@ export function Game() {
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-4">
+          <div className="text-center">
             <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">Opponents</h3>
+          </div>
             {party.players.filter(p => p.id !== currentPlayer.id).map((player) => (
               <PlayerStats
                 key={player.id}
@@ -210,6 +212,9 @@ export function Game() {
           </div>
 
           <div className="lg:col-span-8 space-y-6">
+          <div className="text-center">
+            <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">You</h3>
+          </div>
             <PlayerStats
               player={currentPlayer}
               isCurrentPlayer={true}
