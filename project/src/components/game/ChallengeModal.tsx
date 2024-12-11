@@ -25,17 +25,48 @@ export function ChallengeModal({
 
   const alivePlayers = players.filter(p => p.health > 0);
 
+
+  const challengeCardNames = [
+    'Name the most: CAR BRANDS',
+    'Name the most: FOOTBALL TEAMS',
+    'Name the most: BEER BRANDS',
+    'Name the most: LIQOUR BRANDS',
+    'Name the most: COUNTRIES',
+    'Name the most: TYPES OF PORN',
+    'Wim Hoff Wannabe',
+  ];
+
   const getChallengeEffects = () => {
-    if (card.name === 'Öl Hävf') {
+
+    if (challengeCardNames.includes(card.name)) {
       return {
-        winEffect: '+5.0 HP',
-        loseEffect: '-5.0 HP'
+        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
+        loseEffect: `- ${card.effect.challengeEffects?.loser.value} HP`,
       };
     }
-    else if (card.name === 'Got Big Muscles?'){
+    
+    else if (card.name === 'Öl Hävf'){ //non standard challenge
       return {
-        winEffect: 'Full mana',
-        loseEffect: 'Lose all mana'
+        winEffect: `+ ${card.effect.challengeEffects?.winner.value} HP`,
+        loseEffect: `- ${card.effect.challengeEffects?.loser.value} HP`
+      };
+    }
+    else if (card.name === 'Got Big Muscles?'){ // non standrad challenge
+      return {
+        winEffect: `Full Mana refill`,
+        loseEffect: `- ${card.effect.challengeEffects?.winner.value} Mana`
+      };
+    }
+    else if (card.name === 'STRIP TEASE TIME!!!'){ // non standrad challenge
+      return {
+        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
+        loseEffect: `take one piece of clothing of bby`
+      };
+    }
+    else if (card.name === 'King of the Table #KingsMove!Allowed'){ // non standrad challenge
+      return {
+        winEffect: `+ ${card.effect.challengeEffects?.winner.value} HP and + ${card.effect.challengeEffects?.winner.value} Mana`,
+        loseEffect: `takes 2 shots`
       };
     }
     else return {
@@ -45,6 +76,9 @@ export function ChallengeModal({
   };
 
 
+  console.log("HÄR ÄR JAG!!!!!!! ---> winner value:", card.effect.challengeEffects?.winner.value);
+  console.log("CARD NAME:", card.name);
+  
   // const canConfirm = winnerId && loserId && winnerId !== loserId;
   const effects = getChallengeEffects();
   console.log(effects);

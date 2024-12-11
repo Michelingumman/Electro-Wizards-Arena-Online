@@ -35,10 +35,7 @@ export function Game() {
 
 
 
-
-
-
-
+  
   useEffect(() => {
     console.log('Game state updated:', { party, currentPlayer, loading, error });
   }, [party, currentPlayer, loading, error]);

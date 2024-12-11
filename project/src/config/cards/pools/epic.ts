@@ -136,7 +136,7 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'porn_types',
+    id: 'porn-types',
     name: 'Name the most: TYPES OF PORN',
     description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
     manaCost: 2.0,

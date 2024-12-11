@@ -7,6 +7,7 @@ import { drawNewCard } from '../utils/cardGeneration';
 import { getChallengeEffects, validateChallengeParticipants, applyChallengeEffect } from '../utils/challengeEffects';
 import { CardEnhancer } from '../utils/cardEnhancer';
 import { EffectManager } from '../utils/effectManager';
+import { useGameStore } from '../store/gameStore';
 
 export function useGameActions(partyId: string) {
 
@@ -123,12 +124,31 @@ export function useGameActions(partyId: string) {
         });
       });
 
+      // Update the lastAction in the game store
+    useGameStore.getState().updateLastAction({
+      playerId,
+      targetId,
+      cardId: card.id,
+      cardName: card.name,
+      cardType: card.effect.type,
+      cardRarity: card.rarity,
+      cardDescription: card.description,
+    });
+    
+
       console.info('Card effect applied successfully');
     } catch (error) {
       console.error('Error applying card effect:', error);
       throw error;
     }
   }, [partyId]);
+
+
+
+
+
+
+
 
   // Resolve a challenge card
   const resolveChallengeCard = useCallback(async (playerId: string, card: Card, winnerId: string, loserId: string) => {
@@ -203,6 +223,18 @@ export function useGameActions(partyId: string) {
           },
         });
       });
+
+
+        // Update the lastAction in the game store
+    useGameStore.getState().updateLastAction({
+      playerId: winnerId,
+      targetId: loserId,
+      cardId: card.id,
+      cardName: card.name,
+      cardType: card.effect.type,
+      cardRarity: card.rarity,
+      cardDescription: card.description,
+    });
 
       console.info('Challenge resolved successfully');
     } catch (error) {

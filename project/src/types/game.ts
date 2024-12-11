@@ -48,13 +48,15 @@ export interface Party {
 }
 
 export interface GameAction {
-  type: string;
-  playerId: string;
-  targetId?: string;
-  value: number;
-  timestamp: number;
-  cardName: string;
+  playerId: string; // ID of the player performing the action
+  targetId?: string; // Optional target player ID
+  cardId: string; // ID of the card used
+  cardName: string; // Name of the card
+  cardType: string; // Type of the card effect (e.g., damage, heal, etc.)
+  cardRarity: string; // Rarity of the card (e.g., legendary, rare)
+  cardDescription: string; // Description of the card
 }
+
 
 export interface GameSettings {
   maxHealth: number;
