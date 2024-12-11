@@ -23,7 +23,7 @@ export function GameHeader({
   return (
     <div className="flex justify-between items-center">
       <div className="flex items-center space-x-4">
-        <h2 className="text-2xl font-bold text-purple-100">Not Enough Mana</h2>
+        <h2 className="text-2xl font-bold text-purple-100">Electro Wizards Arena</h2>
         <div className="text-sm text-purple-200">
           Party Code: <span className="font-mono bg-purple-900/50 px-2 py-1 rounded">{party.code}</span>
         </div>
