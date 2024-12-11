@@ -88,7 +88,7 @@ export function Home() {
               </div>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-              Not Enough Mana
+              Electro Wizards Arena
             </h1>
             <p className="text-gray-400">Enter your name to start playing</p>
           </div>
