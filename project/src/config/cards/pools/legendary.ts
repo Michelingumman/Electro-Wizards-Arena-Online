@@ -30,7 +30,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   // },
   {
     id: 'oskar',
-    name: "EYY JAG KOMMER FCKA UR ASSÅ",
+    name: "EYY JAG KOMMER LACKA UR ASSÅ",
     description: 'Deal +4 Damage to all players and half all their Mana',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,

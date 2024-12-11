@@ -21,16 +21,25 @@ export function Game() {
   const { applyCardEffect, drinkMana, resolveChallengeCard } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
 
+
+
+
+
   useGameState(partyId);
+
+
+  const validPlayers = ['adam', 'madde', 'markus', 'oskar', 'jesper', 'fellan', 'felix'];
+
+
 
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
   const isLeader = Boolean(currentPlayer?.isLeader);
   const canStart = Boolean(
     party?.status === 'waiting' && 
     isLeader && 
-    (party?.players.length ?? 0) >= 2
+    (party?.players.length ?? 0) >= 2 
+    && party.players.some((player) => validPlayers.includes(player.name.toLowerCase()))
   );
-
 
 
 

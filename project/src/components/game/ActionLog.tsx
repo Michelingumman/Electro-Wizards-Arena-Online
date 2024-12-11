@@ -79,14 +79,14 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
 
           {/* Card Details */}
           <div className="flex flex-col items-center">
-            <span className="text-sm font-semibold text-white">{lastAction.cardName} used:</span>
+            <span className="text-sm font-semibold text-white">{lastAction.cardName}</span>
             <span className="text-xs text-gray-200">{lastAction.cardDescription}</span>
           </div>
         </div>
 
         {/* Defender */}
         {!isSelfTarget && (
-          <span className="text-lg font-bold text-purple-300">on {defender?.name || 'Unknown'}</span>
+          <span className="text-sm font-bold text-purple-300">{defender?.name || 'Unknown'}</span>
         )}
       </div>
     </motion.div>
