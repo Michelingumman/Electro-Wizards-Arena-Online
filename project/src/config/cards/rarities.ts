@@ -16,10 +16,10 @@ import { CardRarity } from '../../types/cards';
 
 
 export const RARITY_WEIGHTS = {
-  [CardRarity.COMMON]: 0.45, //basic damage etc
-  [CardRarity.RARE]: 0.35,  //heal, mana drain grejor
-  [CardRarity.EPIC]: 0.15, //challenge kort, utmaningar etc
-  [CardRarity.LEGENDARY]: 0.05, //go craxy
+  [CardRarity.COMMON]: 0.25, //basic damage etc
+  [CardRarity.RARE]: 0.25,  //heal, mana drain grejor
+  [CardRarity.EPIC]: 0.25, //challenge kort, utmaningar etc
+  [CardRarity.LEGENDARY]: 0.25, //go craxy
 } as const;
 
 export const RARITY_COLORS = {

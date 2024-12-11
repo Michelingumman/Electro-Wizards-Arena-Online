@@ -72,7 +72,7 @@ export function applyChallengeEffect(
       result.mana = Math.min(0, result.mana - effect.value);
       break;
     case 'fellan_won':
-      result.health = result.health * 2;
+      result.health = 10;
       break;
     case 'fellan_lost':
       result.mana = 0;

@@ -27,7 +27,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'mana-drain',
     name: 'Mana Drain',
-    description: 'Steal Mana from your opponent',
+    description: 'Steal +4 Mana from your opponent',
     manaCost: 2.0,
     rarity: CardRarity.RARE,
     type: 'utility',

@@ -59,7 +59,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'fellan',
     name: "AH ELLER HUR",
-    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If they cant beat you, you get double health (can be above max health)',
+    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If you win: get full health',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
