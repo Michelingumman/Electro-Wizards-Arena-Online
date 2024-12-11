@@ -1,6 +1,6 @@
 # Electro Wizards Arena
 
-**Not ** is a multiplayer card-based game built with TypeScript, React, Firebase, and TailwindCSS. Players join parties, play strategic cards, and compete in challenges. Mena to play over the table with other players.
+Electro Wizards Arena is a multiplayer card-based game built with TypeScript, React, Firebase, and TailwindCSS. Players join parties, play strategic cards, and compete in challenges. Meant to play over the table with other players.
 
 ## Features
 
