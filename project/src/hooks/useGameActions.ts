@@ -123,7 +123,7 @@ export function useGameActions(partyId: string) {
           // --------------------------------------------------------------------------------------
           
           case 'reversed-curse-tech':
-            player.health = target.health / enhancedCard.effect.value;
+            player.health = target.health / 2;
             break;
 
 
@@ -204,7 +204,7 @@ export function useGameActions(partyId: string) {
             case 'jesper': {
               // Generate a random number to determine success (15% chance)
             
-              if (Math.random() <= 0.15) {
+              if (Math.random() <= 0.50) {
                 // Fully restore the player's stats
                 player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
                 player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
