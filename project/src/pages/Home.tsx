@@ -22,11 +22,15 @@ export function Home() {
     setError(null);
 
     try {
+      console.log('trying to get the userCredential....');
+      
       const userCredential = await signInAnonymously(auth);
+      console.log('Got: ', userCredential);
       const partyId = await createParty({
         id: userCredential.user.uid,
         name
       });
+      console.log('PartyID: ', partyId);
       navigate(`/game/${partyId}`);
     } catch (err) {
       setError('Failed to create party. Please try again.');
