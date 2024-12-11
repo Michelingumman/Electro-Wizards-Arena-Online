@@ -66,10 +66,7 @@ export function applyChallengeEffect(
       result.health = Math.max(0, result.health - effect.value);
       break;
     case 'manaRefill':
-      result.mana = maxMana;
-      break;
-    case 'manaBurn':
-      result.mana = 0;
+      result.mana = Math.min(maxMana, result.mana + effect.value);
       break;
     default:
       throw new Error(`Unsupported challenge effect type: ${effect.type}`);

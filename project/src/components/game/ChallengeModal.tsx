@@ -3,7 +3,6 @@ import { Card, Player } from '../../types/game';
 import { Trophy, X, Crown, Skull } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlayerStats } from './PlayerStats';
 
 interface ChallengeModalProps {
   card: Card;
