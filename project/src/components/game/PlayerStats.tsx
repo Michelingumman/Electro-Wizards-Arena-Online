@@ -1,5 +1,5 @@
 import { Player } from '../../types/game';
-import { Heart, Droplet, Crown, Skull, Shield, Flame } from 'lucide-react';
+import { Heart, Droplet, Crown, Skull } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 
@@ -85,15 +85,20 @@ export function PlayerStats({
             {player.effects.map((effect, index) => (
               <div
                 key={index}
-                className="flex items-center bg-gray-800/60 px-2 py-0.5 rounded text-xs"
-                title={`${effect.type} (${effect.duration} turns)`}
+                className={clsx(
+                  'flex items-center px-2 py-0.5 rounded text-xs',
+                  effect.stackId === 'untargetable'
+                    ? 'bg-blue-700 text-blue-300'
+                    : 'bg-gray-800/60'
+                )}
+                title={`${effect.type} (${effect.duration} turns left)`}
               >
-                {effect.type === 'shield' && <Shield className="w-4 h-4 text-blue-400" />}
-                {effect.type === 'burn' && <Flame className="w-4 h-4 text-orange-400" />}
+                {effect.stackId === 'untargetable' ? '🛡️ Untargetable' : effect.type}
               </div>
             ))}
           </div>
         )}
+
       </div>
 
       {/* Current Turn Indicator */}

@@ -10,13 +10,24 @@ export type EffectType =
   | 'heal' 
   | 'manaDrain' 
   | 'forceDrink' 
+  | 'life-steal' 
   | 'manaBurn' 
   | 'potionBuff' 
   | 'manaRefill'
   | 'aoeDamage'
   | 'roulette'
-  | 'infiniteVoid' 
-  | 'titan' 
+  | 'reversed-curse-tech'
+  | 'poison'
+  // Legendary
+  | 'oskar' 
+  | 'jesper' 
+  | 'fellan' 
+  | 'fellan_won'  //used for the challenge logic in challengeEffects 
+  | 'fellan_lost' //      ----- | | ----- 
+  | 'markus' 
+  | 'sam' 
+  | 'adam'
+  // 
   | 'challenge'  
   | 'buff'   // From PotionEffect
   | 'debuff' // From PotionEffect

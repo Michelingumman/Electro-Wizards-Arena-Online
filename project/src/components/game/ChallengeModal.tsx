@@ -53,19 +53,25 @@ export function ChallengeModal({
     else if (card.name === 'Got Big Muscles?'){ // non standrad challenge
       return {
         winEffect: `Full Mana refill`,
-        loseEffect: `- ${card.effect.challengeEffects?.winner.value} Mana`
+        loseEffect: `- ${card.effect.challengeEffects?.loser.value} Mana`
       };
     }
     else if (card.name === 'STRIP TEASE TIME!!!'){ // non standrad challenge
       return {
         winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
-        loseEffect: `take one piece of clothing of bby`
+        loseEffect: `take off one piece of clothing bby`
       };
     }
     else if (card.name === 'King of the Table #KingsMove!Allowed'){ // non standrad challenge
       return {
         winEffect: `+ ${card.effect.challengeEffects?.winner.value} HP and + ${card.effect.challengeEffects?.winner.value} Mana`,
         loseEffect: `takes 2 shots`
+      };
+    }
+    else if (card.name === 'AH ELLER HUR'){ // non standrad challenge
+      return {
+        winEffect: `x2 HP can stack above max health`,
+        loseEffect: `Mana = 0, true for all other opponents`
       };
     }
     else return {
@@ -75,8 +81,6 @@ export function ChallengeModal({
   };
 
 
-  console.log("HÄR ÄR JAG!!!!!!! ---> winner value:", card.effect.challengeEffects?.winner.value);
-  console.log("CARD NAME:", card.name);
   
   // const canConfirm = winnerId && loserId && winnerId !== loserId;
   const effects = getChallengeEffects();

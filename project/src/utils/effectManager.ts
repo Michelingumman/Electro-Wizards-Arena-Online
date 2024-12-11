@@ -8,6 +8,9 @@ import {
 import { generateCardId } from '../config/cards';
 
 export class EffectManager {
+  static getActiveEffects() {
+    throw new Error('Method not implemented.');
+  }
   private effects: ActiveEffects = {
     potions: [],
     enhancements: [],
@@ -17,10 +20,22 @@ export class EffectManager {
   addPotionEffect(effect: Omit<PotionEffect, 'id'>): void {
     const newEffect = {
       ...effect,
-      id: generateCardId()
+      id: generateCardId(),
     };
-
-    // Check for existing effects with same stackId
+  
+    // Ensure only one untargetable effect exists at a time
+    if (effect.stackId === 'untargetable') {
+      const existingEffect = this.effects.potions.find(e => e.stackId === 'untargetable');
+      if (existingEffect) {
+        existingEffect.duration.turnsLeft = Math.max(
+          existingEffect.duration.turnsLeft,
+          effect.duration.turnsLeft
+        );
+        return;
+      }
+    }
+  
+    // Check for existing effects with the same stackId
     if (effect.stackId) {
       const existingEffect = this.effects.potions.find(e => e.stackId === effect.stackId);
       if (existingEffect) {
@@ -32,7 +47,7 @@ export class EffectManager {
         return;
       }
     }
-
+  
     this.effects.potions.push(newEffect);
   }
 
@@ -113,8 +128,8 @@ export class EffectManager {
 
       const { type, value, comparison } = effect.triggerCondition;
       const actualValue = type === 'health' ? health :
-                         type === 'mana' ? mana :
-                         type === 'cards' ? cardCount : 0;
+                        type === 'mana' ? mana :
+                        type === 'cards' ? cardCount : 0;
 
       switch (comparison) {
         case 'less': return actualValue < value;

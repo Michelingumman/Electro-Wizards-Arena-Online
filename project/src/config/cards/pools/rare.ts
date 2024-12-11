@@ -5,7 +5,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'duct-tape',
     name: 'Duct Tape',
-    description: 'Trashy bandage...',
+    description: 'Trashy bandage... +1 HP',
     manaCost: 1.0,
     rarity: CardRarity.RARE,
     type: 'heal',
@@ -36,6 +36,17 @@ export const RARE_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.RARE]
   },
   {
+    id: 'life-steal',
+    name: 'Life Steal',
+    description: 'Switch HP with an opponent',
+    manaCost: 4.0,
+    rarity: CardRarity.RARE,
+    type: 'utility',
+    effect: { type: 'life-steal', value: 0.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.RARE]
+  },
+  {
     id: 'force-drink',
     name: 'You Look Dehydrated',
     description: 'Deal out 1 drink',
@@ -53,19 +64,20 @@ export const RARE_CARDS: CardBase[] = [
     manaCost: 3.0,
     rarity: CardRarity.RARE,
     type: 'utility',
-    effect: { type: 'heal', value: 0.0 },
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.RARE]
-  },
-  {
-    id: 'guardian',
-    name: 'Guardian Angel',
-    description: 'Heal yourself for 3 HP and shield for 1 turn',
-    manaCost: 2.0,
-    rarity: CardRarity.RARE,
-    type: 'utility',
-    effect: { type: 'heal', value: 0.0 },
+    effect: { type: 'reversed-curse-tech', value: 2.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.RARE]
   }
+  // {
+  //   id: 'guardian',
+  //   name: 'Guardian Angel',
+  //   description: 'Heal yourself for 3 HP and shield for 1 turn',
+  //   manaCost: 2.0,
+  //   rarity: CardRarity.RARE,
+  //   type: 'utility',
+  //   effect: { type: 'heal', value: 0.0 },
+  //   requiresTarget: true,
+  //   color: RARITY_COLORS[CardRarity.RARE]
+  // }
 ];
+

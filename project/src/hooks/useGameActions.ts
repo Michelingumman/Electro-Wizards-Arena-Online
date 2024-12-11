@@ -3,7 +3,7 @@ import { doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Card, Party } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
-import { drawNewCard } from '../utils/cardGeneration';
+import { drawLegendaryCard, drawNewCard } from '../utils/cardGeneration';
 import { getChallengeEffects, validateChallengeParticipants, applyChallengeEffect } from '../utils/challengeEffects';
 import { CardEnhancer } from '../utils/cardEnhancer';
 import { EffectManager } from '../utils/effectManager';
@@ -43,8 +43,8 @@ export function useGameActions(partyId: string) {
 
 
         // Apply mana cost
-        console.debug('Deducting mana:', { currentMana: player.mana, cost: enhancedCard.manaCost });
         player.mana = Math.max(0, player.mana - enhancedCard.manaCost);
+        console.debug('Deducting mana:', { currentMana: player.mana, cost: enhancedCard.manaCost });
 
         // Replace used card
         const cardIndex = player.cards.findIndex(c => c.id === enhancedCard.id);
@@ -56,18 +56,50 @@ export function useGameActions(partyId: string) {
 
 
 
-        
+
         // Apply the card effect
         switch (enhancedCard.effect.type) {
+          
+          // --------------------------------------------------------------------------------------
+
           case 'damage':
-            console.debug('Applying damage effect:', { targetId, damage: enhancedCard.effect.value });
             target.health = Math.max(0, target.health - enhancedCard.effect.value);
             break;
+
+
+            // --------------------------------------------------------------------------------------
+
+          case 'aoeDamage':
+            // Apply damage to all players in the game, including the player using the card
+            updatedPlayers.forEach(p => {
+              p.health = Math.max(0, p.health - enhancedCard.effect.value);
+            });
+            break;
+
+            
+          // --------------------------------------------------------------------------------------
+
+
           case 'heal':
             const maxHealth = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
             console.debug('Applying heal effect:', { targetId, heal: enhancedCard.effect.value, maxHealth });
             target.health = Math.min(maxHealth, target.health + enhancedCard.effect.value);
             break;
+
+
+          // --------------------------------------------------------------------------------------
+
+
+          case 'life-steal':
+            let enemyHealth = target.health;
+            target.health = player.health;
+            player.health = enemyHealth;
+            break;
+
+
+          // --------------------------------------------------------------------------------------
+
+
           case 'manaDrain':
             const drainAmount = Math.min(target.mana, enhancedCard.effect.value);
             console.debug('Applying manaDrain:', { targetId, drainAmount });
@@ -77,6 +109,70 @@ export function useGameActions(partyId: string) {
               player.mana + drainAmount
             );
             break;
+
+
+          // --------------------------------------------------------------------------------------
+          
+          case 'manaBurn':
+            const burnDamage = Math.floor(target.mana / 2);
+            console.debug('Applying manaBurn effect:', { targetId, burnDamage });
+            target.health = Math.max(0, target.health - burnDamage);
+            break;
+
+
+          // --------------------------------------------------------------------------------------
+          
+          case 'reversed-curse-tech':
+            player.health = target.health / enhancedCard.effect.value;
+            break;
+
+
+          // --------------------------------------------------------------------------------------
+
+
+          case 'manaRefill':
+            console.debug('Applying manaRefill:', { playerId });
+            player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+            break;
+
+          // --------------------------------------------------------------------------------------
+          
+          
+          case 'potionBuff':
+            effectManager.addPotionEffect({
+              type: 'buff',
+              value: enhancedCard.effect.value,
+              duration: { turnsLeft: 3, initialDuration: 3 },
+              source: card.id,
+            });
+            break;
+            
+              
+          // --------------------------------------------------------------------------------------
+          
+          case 'debuff':
+            effectManager.addPotionEffect({
+              type: 'debuff',
+              value: enhancedCard.effect.value,
+              duration: { turnsLeft: 3, initialDuration: 3 },
+              source: card.id,
+            });
+            break;
+            
+              
+          // --------------------------------------------------------------------------------------
+
+
+          case 'roulette':
+            target.health = Math.max(0, target.health - enhancedCard.effect.value);
+            // Apply random targeting logic
+            const randomTarget = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
+            randomTarget.health = Math.max(0, randomTarget.health - enhancedCard.effect.value);
+            break;
+
+
+           // --------------------------------------------------------------------------------------
+
           case 'forceDrink':
             console.debug('Applying forceDrink effect:', { targetId });
             target.mana = Math.min(
@@ -84,35 +180,112 @@ export function useGameActions(partyId: string) {
               target.mana + GAME_CONFIG.MANA_DRINK_AMOUNT
             );
             break;
-          case 'manaBurn':
-            const burnDamage = Math.floor(target.mana / 2);
-            console.debug('Applying manaBurn effect:', { targetId, burnDamage });
-            target.health = Math.max(0, target.health - burnDamage);
-            target.mana = 0;
+            
+              
+              
+// ------------ CUSTOM LEGENDARY CARDS --------------------------------------------------------------------------
+
+          case 'oskar':
+            console.debug('Applying oskars legendary to:', { targetId });
+            // Deal damage to all other players and half their mana
+            updatedPlayers.forEach(p => {
+              if (p.id !== playerId) {
+                // Deal damage
+                p.health = Math.max(0, p.health - enhancedCard.effect.value);
+
+                // Half their mana
+                p.mana = Math.floor(p.mana / 2);
+              }
+            });
             break;
-          case 'potionBuff':
-            console.debug('Applying potionBuff:', { playerId });
-            player.potionMultiplier = { value: enhancedCard.effect.value, turnsLeft: 3 };
-            break;
-          case 'manaRefill':
-            console.debug('Applying manaRefill:', { playerId });
-            player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
-            break;
+
+            // -----------------------------------------------------------------------------------
+
+            case 'jesper': {
+              // Generate a random number to determine success (15% chance)
+            
+              if (Math.random() <= 0.15) {
+                // Fully restore the player's stats
+                player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
+                player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+              }
+            
+              break;
+            }
+
+
+            // ---------------FELLAN IS PLACED AS A CHALLENGE CARD, LOOK IN challengeEffects.ts--------------------------------------------------------------------
+
+
+            case 'markus': {
+              // Draw 2 legendary cards for the player using the card
+              const legendaryCard1 = drawLegendaryCard();
+              const legendaryCard2 = drawLegendaryCard();
+              
+              // Add the drawn cards to the player's hand
+              player.cards.push(legendaryCard1, legendaryCard2);
+
+              player.health = player.health / 2;
+              
+              break;
+            }
+
+            // -----------------------------------------------------------------------------------
+
+            case 'sam': {
+              const alivePlayersCount = updatedPlayers.filter(p => p.health > 0).length;
+              effectManager.addPotionEffect({
+                stackId: 'untargetable',
+                type: 'untargetable',
+                value: 0,
+                duration: { turnsLeft: alivePlayersCount * 2, initialDuration: alivePlayersCount * 2 },
+                source: card.id,
+              });
+            
+              break;
+            }
+            
+            
+            
+            // -----------------------------------------------------------------------------------
+
+            
+            case 'adam': {
+              const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
+
+              targetEnemies.forEach(enemy => {
+                const legendaryCards = enemy.cards.filter(card => card.isLegendary);
+
+                // Remove legendary cards and replace each with a new random card
+                enemy.cards = enemy.cards.filter(card => !card.isLegendary);
+                legendaryCards.forEach(() => {
+                  enemy.cards.push(drawNewCard());
+                });
+
+                // Deal damage equal to the number of legendary cards the player has
+                const playerLegendaryCount = player.cards.filter(card => card.isLegendary).length;
+                enemy.health = Math.max(0, enemy.health - playerLegendaryCount);
+              });
+            
+              break;
+            }
+
+            
         }
 
-        // Update players and calculate next turn
         console.debug('Updating players state after effect:', updatedPlayers);
+        
+         // Update effects and cooldowns
+        effectManager.updateEffects();
+        effectManager.checkLegendaryTriggers(player.health, player.mana, player.cards.length);
+
+        // Update turn
         const alivePlayers = updatedPlayers.filter(p => p.health > 0);
         const status = alivePlayers.length > 1 ? 'playing' : 'finished';
         const nextTurnIndex = (updatedPlayers.findIndex(p => p.id === playerId) + 1) % updatedPlayers.length;
         const nextPlayerId = alivePlayers[nextTurnIndex]?.id || playerId;
 
         // Save to Firestore
-        console.debug('Saving updated party state to Firestore:', {
-          updatedPlayers,
-          nextPlayerId,
-          status,
-        });
         transaction.update(partyRef, {
           players: updatedPlayers,
           status,

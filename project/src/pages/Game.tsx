@@ -86,9 +86,25 @@ export function Game() {
   };
 
   const handleTargetSelect = async (targetId: string) => {
-    console.log('handleTargetSelect invoked:', { targetId, selectedCard });
     if (!currentPlayer || !selectedCard || !isCurrentTurn || currentPlayer.health <= 0) {
       console.warn('Cannot select target: Invalid conditions.');
+      return;
+    }
+  
+    // Find the target player
+    const targetPlayer = party?.players.find(p => p.id === targetId);
+    if (!targetPlayer) {
+      console.warn('Target player not found.');
+      return;
+    }
+  
+    // Check for untargetable status
+    const isUntargetable = targetPlayer.effects?.some(
+      effect => effect.stackId === 'untargetable' && effect.type === 'untargetable'
+    );
+  
+    if (isUntargetable) {
+      console.warn('Target is untargetable.');
       return;
     }
 

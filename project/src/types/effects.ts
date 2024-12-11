@@ -5,7 +5,7 @@ export type EffectDuration = {
 
 export type PotionEffect = {
   id: string;
-  type: 'buff' | 'debuff';
+  type: 'buff' | 'debuff' | 'untargetable';
   value: number;
   duration: EffectDuration;
   source: string; // Card ID that applied the effect

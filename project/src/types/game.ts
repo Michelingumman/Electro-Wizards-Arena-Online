@@ -23,10 +23,12 @@ export interface Player {
 }
 
 export interface PlayerEffect {
-  type: string;
-  value: number;
-  duration: number;
+  stackId: string; // Unique identifier for stacking effects
+  type: 'buff' | 'debuff' | 'untargetable'; // Add 'untargetable' as a valid effect type
+  value: number; // Optional, not used for untargetable
+  duration: number; // Number of turns the effect lasts
 }
+
 
 export type Card = CardBase;
 
@@ -64,8 +66,7 @@ export interface GameSettings {
   manaDrinkAmount: number;
   initialHealth: number;
   initialMana: number;
-  partyId: string;
-  playerId: string;
 }
+
 
 export { CardRarity, type CardStats, type PlayerHand };

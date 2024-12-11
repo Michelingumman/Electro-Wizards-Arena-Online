@@ -1,5 +1,5 @@
 import { Party } from '../../types/game';
-import { Sword, Heart, Star, Shield, Crown, Droplet } from 'lucide-react';
+// import { Sword, Heart, Star, Shield, Crown, Droplet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 
@@ -20,31 +20,29 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
 
   const isSelfTarget = lastAction.playerId === lastAction.targetId;
 
-  const getCardIcon = (type: string) => {
-    switch (type) {
-      case 'damage':
-        return Sword;
-      case 'heal':
-        return Heart;
-      case 'manaDrain':
-      case 'manaRefill':
-      case 'potionBuff':
-      case 'manaBurn':
-      case 'forceDrink':
-        return Droplet;
-      case 'buff':
-      case 'challenge':
-        return Star;
-      case 'defend':
-        return Shield;
-      case 'legendary':
-        return Crown;
-      default:
-        return Star;
-    }
-  };
-
-  const CardIcon = getCardIcon(lastAction.cardType);
+  // const getCardIcon = (type: string) => {
+  //   switch (type) {
+  //     case 'damage':
+  //       return Sword;
+  //     case 'heal':
+  //       return Heart;
+  //     case 'manaDrain':
+  //     case 'manaRefill':
+  //     case 'potionBuff':
+  //     case 'manaBurn':
+  //     case 'forceDrink':
+  //       return Droplet;
+  //     case 'buff':
+  //     case 'challenge':
+  //       return Star;
+  //     case 'defend':
+  //       return Shield;
+  //     case 'legendary':
+  //       return Crown;
+  //     default:
+  //       return Star;
+  //   }
+  // };
 
   return (
     <motion.div
@@ -70,12 +68,12 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
               ? 'bg-gradient-to-br from-orange-500 to-orange-700 border-orange-400'
               : lastAction.cardRarity === 'rare'
               ? 'bg-gradient-to-br from-teal-500 to-teal-700 border-teal-400'
-              : 'bg-gradient-to-br from-gray-500 to-gray-700 border-gray-400'
+              : lastAction.cardRarity === 'common'
+              ? 'bg-gradient-to-br from-gray-500 to-gray-700 border-gray-400'
+              : 'bg-gradient-to-br from-blue-500 to-blue-700 border-blue-400'
           )}
           title={lastAction.cardDescription}
         >
-          {/* Card Icon */}
-          <CardIcon className="w-4 h-4 text-white" />
 
           {/* Card Details */}
           <div className="flex flex-col items-center">
@@ -86,7 +84,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
 
         {/* Defender */}
         {!isSelfTarget && (
-          <span className="text-lg font-bold text-purple-300">{defender?.name || 'Unknown'}</span>
+          <span className="text-lg font-bold text-purple-300">{defender?.name || 'Drank a Potion'}</span>
         )}
       </div>
     </motion.div>

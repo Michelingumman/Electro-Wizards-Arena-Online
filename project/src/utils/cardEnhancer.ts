@@ -32,10 +32,20 @@ export class CardEnhancer {
         enhancedCard.effect.value = calculateMana(card.effect.value);
         break;
       case 'challenge':
-      case 'infiniteVoid':
-      case 'titan':
-        // Special effects can be handled here if needed in the future
         break;
+      case 'oskar':
+        break;
+      case 'jesper':
+        break;
+      case 'fellan':
+        break;
+      case 'markus':
+        break;
+      case 'sam':
+        break;
+      case 'adam':
+        break;
+
       case 'buff':
       case 'debuff':
       case 'multiply':

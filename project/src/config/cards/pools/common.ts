@@ -27,12 +27,12 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'lightning-chain',
     name: 'Lightning Chain',
-    description: 'Deals 1 damage to everyone (even the one playing the card)',
+    description: 'Deals +1 damage to everyone (even the one playing the card)',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'aoeDamage', value: 1.0 },
-    requiresTarget: false,
+    requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   },
   {
@@ -49,22 +49,11 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'shockwave',
     name: 'Shockwave',
-    description: 'Deals damage to all enemies',
+    description: 'Deals +1 damage to all enemies',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'aoeDamage', value: 1.0 },
-    requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.COMMON]
-  },
-  {
-    id: 'posion-dart',
-    name: 'Posion Dart',
-    description: 'A toxic dart that deals 1 damage now and 1 damage on the next turn.',
-    manaCost: 2.0,
-    rarity: CardRarity.COMMON,
-    type: 'damage',
-    effect: { type: 'damage', value: 1.0},
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   }

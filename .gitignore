@@ -1,0 +1,59 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase configuration and local emulators
+.firebase/
+firebase-debug.log
+
+# Build output
+dist/
+build/
+
+# Static site build output
+*.html
+*.css.map
+*.js.map
+
+# TypeScript output
+*.tsbuildinfo
+
+# TailwindCSS
+.tailwind/
+*.css.map
+
+# IDE and editor-specific files
+.vscode/
+.idea/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# Environment variable files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# macOS and system-specific files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+*.orig
+
+# Ignore generated files in src
+src/**/*.css.map
+src/**/*.js.map
+
+# Ignore linting caches
+.eslintcache

@@ -2,8 +2,8 @@ export const GAME_CONFIG = {
   // Party settings
   MAX_PLAYERS: 10,
   MIN_PLAYERS_TO_START: 2,
-  PARTY_CODE_LENGTH: 4,
-  CARDS_PER_HAND: 4,
+  PARTY_CODE_LENGTH: 2,
+  CARDS_PER_HAND: 6,
 
   // Player stats (now using floating points)
   INITIAL_HEALTH: 10.0,
@@ -13,3 +13,4 @@ export const GAME_CONFIG = {
   MANA_DRINK_AMOUNT: 3.0,
 
 } as const;
+
