@@ -1,6 +1,7 @@
 import { Player } from '../../types/game';
 import { Heart, Droplet, Crown, Skull, LayoutGrid, Shield, Flame } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion } from 'framer-motion';
 
 interface PlayerStatsProps {
   player: Player;
@@ -27,18 +28,27 @@ export function PlayerStats({
     <div
       onClick={isTargetable && onSelect ? onSelect : undefined}
       className={clsx(
-        'p-3 rounded-lg transition-all duration-200',
+        'p-3 rounded-lg transition-all duration-200 relative overflow-hidden',
         {
           'bg-red-900/20': isDead,
-          'bg-purple-900/20 ring-1 ring-purple-500/50': isCurrentTurn && !isDead,
-          'bg-gray-800/20': !isCurrentTurn && !isDead,
-          'transform hover:scale-102': isCurrentTurn && !isDead,
+          'bg-purple-900/20 ring-1 ring-purple-500/50 animate-pulse': isCurrentTurn && !isDead, // Pulses only for the current player's turn
+          'bg-gray-800/40 ring-1 ring-gray-700 opacity-75': !isCurrentTurn && !isDead, // Darkens for all other players
+          'transform hover:scale-105': isTargetable, // Scaling for targetable players
           'cursor-pointer hover:ring-2 hover:ring-purple-400/50': isTargetable,
-          'hover:scale-102': isTargetable,
-          'ring-2 ring-purple-400/50 scale-102': isTargetable
+          'ring-2 ring-purple-400/50 scale-105': isTargetable,
         }
       )}
     >
+      {isCurrentTurn && !isDead && (
+        <motion.div
+          className="absolute inset-0 bg-purple-500/5 animate-[pulse_2s_ease-in-out_infinite]" // Reduced opacity and adjusted animation
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <h3 className="text-sm font-medium">{player.name}</h3>
@@ -46,14 +56,14 @@ export function PlayerStats({
           {isDead && <Skull className="w-3 h-3 text-red-400" />}
         </div>
 
-        {!isCurrentPlayer && (
+        {/* {!isCurrentPlayer && (
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-1 bg-gray-800/40 px-1.5 py-0.5 rounded text-xs">
               <LayoutGrid className="w-3 h-3 text-gray-400" />
               <span className="text-gray-400">{player.cards.length}</span>
             </div>
           </div>
-        )}
+        )} */}
       </div>
       
       <div className="flex items-center justify-between mt-1.5">

@@ -48,7 +48,7 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'shockwave',
-    name: 'Showkwave',
+    name: 'Shockwave',
     description: 'Deals damage to all enemies',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,

@@ -38,7 +38,7 @@ export function Game() {
 
 
 
-  
+
   useEffect(() => {
     console.log('Game state updated:', { party, currentPlayer, loading, error });
   }, [party, currentPlayer, loading, error]);
@@ -231,7 +231,6 @@ export function Game() {
               <CardList
                 cards={currentPlayer.cards}
                 onPlayCard={handlePlayCard}
-                onDoubleClickCard={handlePlayCard}
                 disabled={!isCurrentTurn}
                 currentMana={currentPlayer.mana}
                 selectedCard={selectedCard}
