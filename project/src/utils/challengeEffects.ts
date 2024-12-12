@@ -1,6 +1,6 @@
 import { Card } from '../types/game';
 import { EffectType } from '../types/cards';
-
+import { GAME_CONFIG } from '../config/gameConfig';
 export interface ChallengeOutcome {
   winner: {
     type: EffectType;
@@ -54,9 +54,17 @@ export function applyChallengeEffect(
   player: { health: number; mana: number },
   effect: { type: EffectType; value: number },
   maxHealth: number,
-  maxMana: number
+  maxMana: number,
+  card: Card
 ): { health: number; mana: number } {
   const result = { ...player };
+
+  // adding special function to  the armwrestling battle so if winner here gets +3 mana AND health
+    if(card.name === "King of the Table #KingsMove!Allowed" && effect.type === 'heal'){
+      result.health += effect.value;
+      result.mana += effect.value;
+      return result;
+    }
 
   switch (effect.type) {
     case 'heal':
@@ -72,7 +80,7 @@ export function applyChallengeEffect(
       result.mana = Math.min(0, result.mana - effect.value);
       break;
     case 'fellan_won':
-      result.health = 10;
+      result.health = GAME_CONFIG.MAX_HEALTH;
       break;
     case 'fellan_lost':
       result.mana = 0;

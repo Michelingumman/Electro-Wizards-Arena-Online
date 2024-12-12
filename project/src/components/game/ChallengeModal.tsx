@@ -3,6 +3,7 @@ import { Card, Player } from '../../types/game';
 import { Trophy, X, Crown, Skull } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GAME_CONFIG } from '../../config/gameConfig';
 
 interface ChallengeModalProps {
   card: Card;
@@ -70,7 +71,7 @@ export function ChallengeModal({
     }
     else if (card.name === 'AH ELLER HUR'){ // non standrad challenge
       return {
-        winEffect: `x2 HP can stack above max health`,
+        winEffect: `${GAME_CONFIG.MAX_HEALTH} can stack above max health`,
         loseEffect: `Mana = 0, true for all other opponents`
       };
     }

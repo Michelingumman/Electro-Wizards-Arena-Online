@@ -1,4 +1,5 @@
 import { CardBase, CardRarity } from '../../../types/cards';
+import { GAME_CONFIG } from '../../gameConfig';
 import { RARITY_COLORS } from '../rarities';
 
 export const LEGENDARY_CARDS: CardBase[] = [
@@ -67,7 +68,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
       type: 'fellan',
       value: 0.0,
       challengeEffects: {
-        winner: { type: 'fellan_won', value: 10.0 },
+        winner: { type: 'fellan_won', value: GAME_CONFIG.MAX_HEALTH },
         loser: { type: 'fellan_lost', value: 0.0 }
       }
     },
@@ -75,7 +76,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.LEGENDARY],
     isChallenge: true,
     isLegendary: true,
-    flavorText: "--- Fellan: jag såg för mycket blattar runt omkring asså... jag blev rädd asså"
+    flavorText: ""
   },
   {
     id: 'markus',
@@ -117,6 +118,6 @@ export const LEGENDARY_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.LEGENDARY],
     isChallenge: false,
     isLegendary: true,
-    flavorText: "--- Adam: NI*****AAAHHH"
+    flavorText: ""
   }
 ];

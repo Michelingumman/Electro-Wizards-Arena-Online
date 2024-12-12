@@ -355,8 +355,8 @@ export function useGameActions(partyId: string) {
         const maxMana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
 
         // Apply effects to winner and loser
-        const winnerResult = applyChallengeEffect(winner, effects.winner, maxHealth, maxMana);
-        const loserResult = applyChallengeEffect(loser, effects.loser, maxHealth, maxMana);
+        const winnerResult = applyChallengeEffect(winner, effects.winner, maxHealth, maxMana, card);
+        const loserResult = applyChallengeEffect(loser, effects.loser, maxHealth, maxMana, card);
 
         // Update player states
         Object.assign(winner, winnerResult);
