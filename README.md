@@ -24,11 +24,11 @@ Electro Wizards Arena is a multiplayer card-based game built with TypeScript, Re
 
 1. Clone the repository:
 
-        git clone https://github.com/your-username/not-enough-mana.git
+        git clone https://github.com/Michelingumman/Electro-Wizards-Arena-Online.git
 
 2. Navigate to the project directory:
 
-        cd not-enough-mana
+        cd Electro-Wizards-Arena-Online
 
 3. Install dependicies:
 
@@ -47,7 +47,7 @@ Electro Wizards Arena is a multiplayer card-based game built with TypeScript, Re
 # Firebase Setup
 
 1. Create a Firebase project in the Firebase Console.
-2. Add your Firebase configuration in .env:
+2. Add your Firebase configuration in .env in /src:
 
         VITE_FIREBASE_API_KEY=your_api_key
         VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
