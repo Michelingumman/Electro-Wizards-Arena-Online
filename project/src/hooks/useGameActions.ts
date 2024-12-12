@@ -114,7 +114,7 @@ export function useGameActions(partyId: string) {
           // --------------------------------------------------------------------------------------
           
           case 'manaBurn':
-            const burnDamage = Math.floor(target.mana / 2);
+            const burnDamage = target.mana / 2;
             console.debug('Applying manaBurn effect:', { targetId, burnDamage });
             target.health = Math.max(0, target.health - burnDamage);
             break;
@@ -195,7 +195,7 @@ export function useGameActions(partyId: string) {
                 p.health = Math.max(0, p.health - enhancedCard.effect.value);
 
                 // Half their mana
-                p.mana = Math.floor(p.mana / 2);
+                p.mana = p.mana / 2;
               }
             });
             break;
