@@ -265,7 +265,7 @@ export function useGameActions(partyId: string) {
 
                 // Deal damage equal to the number of legendary cards the player has
                 const playerLegendaryCount = player.cards.filter(card => card.isLegendary).length;
-                enemy.health = Math.max(0, enemy.health - playerLegendaryCount);
+                enemy.health = Math.max(0, enemy.health - (playerLegendaryCount + 1)); //include the card just played as one
               });
             
               break;
