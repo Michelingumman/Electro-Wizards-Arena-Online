@@ -123,7 +123,8 @@ export function useGameActions(partyId: string) {
           // --------------------------------------------------------------------------------------
           
           case 'reversed-curse-tech':
-            player.health = target.health / 2;
+            player.health = Math.min(party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH
+              , player.health + target.health / 2);
             break;
 
 
