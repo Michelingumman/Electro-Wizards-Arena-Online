@@ -34,11 +34,37 @@ export function Game() {
     'markus', 
     'oskar', 
     'jesper', 
+    'said', 
+    'BORGMÄSTAREN', 
+    'babis', 
+    'admin', 
+    'charlie', 
+    'pim', 
+    'siadman', 
+    'linus', 
+    'limpan', 
+    'siadman', 
+    'master', 
+    'master1', 
+    'master2', 
+    'master3', 
+    'slave', 
+    'slave1', 
+    'slave2', 
+    'slave3', 
+    'SB', 
+    'limpan_döda_mig_inte', 
+    'ollanbollan', 
+    'ollan', 
+    'The_Boss', 
+    'The_Frowning_Friends', 
+    'The_Smiling_Friends', 
+    'papis', 
+    'SB', 
+    'SB', 
     'fellan', 
     'felix'
   ];
-
-
 
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
   const isLeader = Boolean(currentPlayer?.isLeader);
