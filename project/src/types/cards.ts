@@ -27,6 +27,7 @@ export type EffectType =
   | 'markus' 
   | 'sam' 
   | 'adam'
+  | 'said'
   // 
   | 'challenge'  
   | 'buff'   // From PotionEffect

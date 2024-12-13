@@ -271,6 +271,18 @@ export function useGameActions(partyId: string) {
               break;
             }
 
+
+            case 'said': {
+              const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
+
+              targetEnemies.forEach(enemy => {
+                enemy.health = 1;
+                enemy.mana = 1;
+              });
+            
+              break;
+            }
+
             
         }
 
