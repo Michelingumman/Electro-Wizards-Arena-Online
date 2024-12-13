@@ -1,6 +1,7 @@
 import { Button } from '../ui/Button';
 import { Beaker } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { GAME_CONFIG } from '../../config/gameConfig';
 
 interface GameControlsProps {
   gameStatus: string;
@@ -27,7 +28,7 @@ export function GameControls({
       >
         <span className="relative z-10 flex items-center justify-center text-sm font-medium">
           <Beaker className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-          Drink Potion (+{manaDrinkAmount.toFixed(1)})
+          Drink Potion +{GAME_CONFIG.MANA_DRINK_AMOUNT}
         </span>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-400 opacity-0 group-hover:opacity-20 transition-opacity" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.2),transparent_70%)]" />
