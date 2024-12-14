@@ -119,19 +119,20 @@ export const LEGENDARY_CARDS: CardBase[] = [
     isChallenge: false,
     isLegendary: true,
     flavorText: ""
-  },
-  {
-    id: 'said',
-    name: "BORGMÄSTAREN",
-    description: 'set all opponents helath and mana to 1',
-    manaCost: 5.0,
-    rarity: CardRarity.LEGENDARY,
-    type: 'legendary',
-    effect: { type: 'said', value: 3.0 },
-    requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.LEGENDARY],
-    isChallenge: false,
-    isLegendary: true,
-    flavorText: ""
   }
+  // ,
+  // {
+  //   id: 'said',
+  //   name: "BORGMÄSTAREN",
+  //   description: 'set all opponents helath and mana to 1',
+  //   manaCost: 5.0,
+  //   rarity: CardRarity.LEGENDARY,
+  //   type: 'legendary',
+  //   effect: { type: 'said', value: 3.0 },
+  //   requiresTarget: false,
+  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  //   isChallenge: false,
+  //   isLegendary: true,
+  //   flavorText: ""
+  // }
 ];
