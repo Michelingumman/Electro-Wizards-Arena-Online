@@ -6,11 +6,11 @@ export const GAME_CONFIG = {
   CARDS_PER_HAND: 6,
 
   // Player stats (now using floating points)
-  INITIAL_HEALTH: 10.0,
+  INITIAL_HEALTH: 20.0,
   INITIAL_MANA: 10.0,
   MAX_HEALTH: 10.0,
   MAX_MANA: 10.0,
-  MANA_DRINK_AMOUNT: 3.0,
+  MANA_DRINK_AMOUNT: 10.0,
 
 } as const;
 

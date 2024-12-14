@@ -46,7 +46,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'jesper',
     name: "AGH DET HÄNDER JU INTE!",
-    description: '50/50 chance to fully restore stats and make all enemies take a shot. Lose, and you take one shot per player.',
+    description: '70% chance to fully restore stats and make all enemies take a shot. Lose, and you take one shot per player.',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',

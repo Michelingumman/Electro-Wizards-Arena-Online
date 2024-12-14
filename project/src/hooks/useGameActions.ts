@@ -176,10 +176,7 @@ export function useGameActions(partyId: string) {
 
           case 'forceDrink':
             console.debug('Applying forceDrink effect:', { targetId });
-            target.mana = Math.min(
-              party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
-              target.mana + GAME_CONFIG.MANA_DRINK_AMOUNT
-            );
+
             break;
             
               
@@ -205,7 +202,7 @@ export function useGameActions(partyId: string) {
             case 'jesper': {
               // Generate a random number to determine success (15% chance)
             
-              if (Math.random() <= 0.50) {
+              if (Math.random() <= 0.70) {
                 // Fully restore the player's stats
                 player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
                 player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
@@ -369,6 +366,16 @@ export function useGameActions(partyId: string) {
         // Apply effects to winner and loser
         const winnerResult = applyChallengeEffect(winner, effects.winner, maxHealth, maxMana, card);
         const loserResult = applyChallengeEffect(loser, effects.loser, maxHealth, maxMana, card);
+
+
+
+        if(card.name === "AH ELLER HUR" && winnerId != playerId){
+           const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
+
+              targetEnemies.forEach(enemy => {
+                enemy.mana = 0;
+                });
+              }
 
         // Update player states
         Object.assign(winner, winnerResult);

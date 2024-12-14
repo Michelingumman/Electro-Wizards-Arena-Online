@@ -47,13 +47,13 @@ export const RARE_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.RARE]
   },
   {
-    id: 'force-drink',
+    id: 'forceDrink',
     name: 'You Look Dehydrated',
     description: 'Deal out 1 drink',
     manaCost: 1.0,
     rarity: CardRarity.RARE,
     type: 'utility',
-    effect: { type: 'heal', value: 0.0 },
+    effect: { type: 'forceDrink', value: 0.0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.RARE]
   },
