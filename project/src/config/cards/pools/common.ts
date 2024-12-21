@@ -1,4 +1,5 @@
 import { CardBase, CardRarity } from '../../../types/cards';
+import { GAME_CONFIG } from '../../gameConfig';
 import { RARITY_COLORS } from '../rarities';
 
 export const COMMON_CARDS: CardBase[] = [
@@ -32,7 +33,7 @@ export const COMMON_CARDS: CardBase[] = [
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'aoeDamage', value: 1.0 },
-    requiresTarget: true,
+    requiresTarget: false,
     color: RARITY_COLORS[CardRarity.COMMON]
   },
   {
@@ -49,11 +50,33 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'shockwave',
     name: 'Shockwave',
-    description: 'Deals +1 damage to all enemies',
+    description: 'Deals +2 damage to all enemies',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'aoeDamage', value: 1.0 },
+    effect: { type: 'aoeDamage', value: 2.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'fireball',
+    name: 'Fireball',
+    description: 'Cast a powerful Fireball that deals +4 Damage to an opponent ',
+    manaCost: 5.0,
+    rarity: CardRarity.COMMON,
+    type: 'damage',
+    effect: { type: 'damage', value: 4.0 },
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'energi',
+    name: 'Du har inte matchat energin i rummet... ',
+    description: '',
+    manaCost: 2.0,
+    rarity: CardRarity.COMMON,
+    type: 'damage',
+    effect: { type: 'aoeDamage', value: GAME_CONFIG.MAX_HEALTH },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   }
