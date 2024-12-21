@@ -178,6 +178,14 @@ export function useGameActions(partyId: string) {
             console.debug('Applying forceDrink effect:', { targetId });
 
             break;
+
+
+
+          case 'energi_i_rummet':
+            console.debug('Någon har inte matchat energin i rummet... -->', { targetId });
+            target.health = target.health/2;
+            player.health = player.health/2;
+            break;
             
               
               

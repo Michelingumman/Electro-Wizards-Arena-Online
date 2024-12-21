@@ -70,13 +70,13 @@ export const COMMON_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.COMMON]
   },
   {
-    id: 'energi',
-    name: 'Du har inte matchat energin i rummet... ',
-    description: '',
+    id: 'energi_i_rummet',
+    name: 'Du har inte matchat energin i rummet',
+    description: '...half your own life but take someone with you aswell',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
-    effect: { type: 'aoeDamage', value: GAME_CONFIG.MAX_HEALTH },
+    effect: { type: 'energi_i_rummet', value: 0 },
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.COMMON]
   }

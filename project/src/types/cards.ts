@@ -18,6 +18,7 @@ export type EffectType =
   | 'roulette'
   | 'reversed-curse-tech'
   | 'poison'
+  | 'energi_i_rummet'
   // Legendary
   | 'oskar' 
   | 'jesper' 
