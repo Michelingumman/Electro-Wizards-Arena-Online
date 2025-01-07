@@ -183,8 +183,8 @@ export function useGameActions(partyId: string) {
 
           case 'energi_i_rummet':
             console.debug('Någon har inte matchat energin i rummet... -->', { targetId });
-            target.health = target.health/2;
-            player.health = player.health/2;
+            target.health = target.health - card.effect.value;
+            player.health = player.health - card.effect.value;
             break;
             
               
