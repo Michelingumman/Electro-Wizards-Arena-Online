@@ -43,41 +43,41 @@ export const LEGENDARY_CARDS: CardBase[] = [
     isLegendary: true,
     flavorText: "--- Oskar: OH JÄVLAR! **stumbles**"
   },
-  {
-    id: 'jesper',
-    name: "AGH DET HÄNDER JU INTE!",
-    description: '70% chance to fully restore stats and make all enemies take a shot. Lose, and you take one shot per player.',
-    manaCost: 5.0,
-    rarity: CardRarity.LEGENDARY,
-    type: 'legendary',
-    effect: { type: 'jesper', value: 10.0 },
-    requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.LEGENDARY],
-    isChallenge: false,
-    isLegendary: true,
-    flavorText: "--- Jesper: ahh tjena"
-  },
-  {
-    id: 'fellan',
-    name: "AH ELLER HUR",
-    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If you win: get full health',
-    manaCost: 5.0,
-    rarity: CardRarity.LEGENDARY,
-    type: 'challenge',
-    effect: {
-      type: 'fellan',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'fellan_won', value: GAME_CONFIG.MAX_HEALTH },
-        loser: { type: 'fellan_lost', value: 0.0 }
-      }
-    },
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.LEGENDARY],
-    isChallenge: true,
-    isLegendary: true,
-    flavorText: ""
-  },
+  // {
+  //   id: 'jesper',
+  //   name: "AGH DET HÄNDER JU INTE!",
+  //   description: '70% chance to fully restore stats and make all enemies take a shot. Lose, and you take one shot per player.',
+  //   manaCost: 5.0,
+  //   rarity: CardRarity.LEGENDARY,
+  //   type: 'legendary',
+  //   effect: { type: 'jesper', value: 10.0 },
+  //   requiresTarget: false,
+  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  //   isChallenge: false,
+  //   isLegendary: true,
+  //   flavorText: "--- Jesper: ahh tjena"
+  // },
+  // {
+  //   id: 'fellan',
+  //   name: "AH ELLER HUR",
+  //   description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If you win: get full health',
+  //   manaCost: 5.0,
+  //   rarity: CardRarity.LEGENDARY,
+  //   type: 'challenge',
+  //   effect: {
+  //     type: 'fellan',
+  //     value: 0.0,
+  //     challengeEffects: {
+  //       winner: { type: 'fellan_won', value: GAME_CONFIG.MAX_HEALTH },
+  //       loser: { type: 'fellan_lost', value: 0.0 }
+  //     }
+  //   },
+  //   requiresTarget: true,
+  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  //   isChallenge: true,
+  //   isLegendary: true,
+  //   flavorText: ""
+  // },
   {
     id: 'markus',
     name: "VA FAN GÖRU MANNEN",
@@ -91,35 +91,35 @@ export const LEGENDARY_CARDS: CardBase[] = [
     isChallenge: false,
     isLegendary: true,
     flavorText: "--- Markus: Va fan göru mannen... "
-  },
+  }
+  // // {
+  // //   id: 'sam',
+  // //   name: "SORRY I'M LATE",
+  // //   description: 'Leave the group temporarily. Opponents cant target you for 2 turns.',
+  // //   manaCost: 5.0,
+  // //   rarity: CardRarity.LEGENDARY,
+  // //   type: 'legendary',
+  // //   effect: { type: 'sam', value: 3.0 },
+  // //   requiresTarget: false,
+  // //   color: RARITY_COLORS[CardRarity.LEGENDARY],
+  // //   isChallenge: false,
+  // //   isLegendary: true,
+  // //   flavorText: "--- Sam: Kan inte komma"
+  // // },
   // {
-  //   id: 'sam',
-  //   name: "SORRY I'M LATE",
-  //   description: 'Leave the group temporarily. Opponents cant target you for 2 turns.',
+  //   id: 'adam',
+  //   name: "GULD",
+  //   description: 'Remove all legendary cards from enemies hands and deal damage equal to the number of legendary cards in your hand',
   //   manaCost: 5.0,
   //   rarity: CardRarity.LEGENDARY,
   //   type: 'legendary',
-  //   effect: { type: 'sam', value: 3.0 },
+  //   effect: { type: 'adam', value: 3.0 },
   //   requiresTarget: false,
   //   color: RARITY_COLORS[CardRarity.LEGENDARY],
   //   isChallenge: false,
   //   isLegendary: true,
-  //   flavorText: "--- Sam: Kan inte komma"
-  // },
-  {
-    id: 'adam',
-    name: "GULD",
-    description: 'Remove all legendary cards from enemies hands and deal damage equal to the number of legendary cards in your hand',
-    manaCost: 5.0,
-    rarity: CardRarity.LEGENDARY,
-    type: 'legendary',
-    effect: { type: 'adam', value: 3.0 },
-    requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.LEGENDARY],
-    isChallenge: false,
-    isLegendary: true,
-    flavorText: ""
-  }
+  //   flavorText: ""
+  // }
   // ,
   // {
   //   id: 'said',

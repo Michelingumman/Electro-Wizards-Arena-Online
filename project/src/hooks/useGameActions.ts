@@ -233,6 +233,13 @@ export function useGameActions(partyId: string) {
 
               player.health = player.health / 2;
               
+              console.log("Trying to play auido file");
+              const audioFile = "/audio/vafangorumannen.mp3";
+              const audio = new Audio(audioFile); // Initialize audio object
+              audio.volume = 0.8;
+              audio.play().catch((error) => {
+                console.error("Audio playback failed:", error);
+              });
               break;
             }
 
