@@ -75,6 +75,12 @@ export function ChallengeModal({
         loseEffect: `Mana = 0, true for all other opponents`
       };
     }
+    else if (card.name === 'Charader!!!'){ // non standrad challenge
+      return {
+        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
+        loseEffect: `Everyone else takes a shot`
+      };
+    }
     else return {
       winEffect: '???', //non existant card
       loseEffect: '???'

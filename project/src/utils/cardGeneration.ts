@@ -3,6 +3,119 @@ import { CARD_POOL, generateCardId } from '../config/cards';
 import { RARITY_WEIGHTS } from '../config/cards/rarities';
 import { GAME_CONFIG } from '../config/gameConfig';
 
+
+
+const randomWords = [
+  'katt',
+  'hund',
+  'fisk',
+  'bil',
+  'båt',
+  'flygplan',
+  'dator',
+  'telefon',
+  'bok',
+  'penna',
+  'bord',
+  'stol',
+  'hus',
+  'skola',
+  'lärare',
+  'doktor',
+  'polis',
+  'fotboll',
+  'cykel',
+  'äpple',
+  'banan',
+  'boll',
+  'sjuksköterska',
+  'pilot',
+  'brandman',
+  'målare',
+  'snickare',
+  'kock',
+  'mus',
+  'fågel',
+  'orm',
+  'groda',
+  'tiger',
+  'elefant',
+  'flodhäst',
+  'nyckel',
+  'sol',
+  'måne',
+  'stjärna',
+  'träd',
+  'blomma',
+  'fönster',
+  'dörr',
+  'spegel',
+  'sked',
+  'gaffel',
+  'tåg',
+  'buss',
+  'klocka',
+  'cykelhjälm',
+  'glass',
+  'regn',
+  'snö',
+  'moln',
+  'hatt',
+  'skor',
+  'strumpor',
+  'jacka',
+  'tröja',
+  'tårta',
+  'choklad',
+  'glasspinne',
+  'fotograf',
+  'målning',
+  'teater',
+  'piano',
+  'gitarr',
+  'trumma',
+  'fiol',
+  'fiskespö',
+  'strand',
+  'hav',
+  'båtresa',
+  'berg',
+  'skog',
+  'väg',
+  'bro',
+  'park',
+  'lekplats',
+  'tält',
+  'brasa',
+  'grill',
+  'tandborste',
+  'schampo',
+  'såpa',
+  'kudde',
+  'täcke',
+  'kylskåp',
+  'spis',
+  'ugn',
+  'diskmaskin',
+  'tvättmaskin',
+  'dammsugare',
+  'leksak',
+  'bollhav',
+  'paraply',
+  'hammare',
+  'skruvmejsel',
+  'borste',
+  'lim',
+  'sax',
+  'tejp',
+  'färg'
+];
+
+
+
+function getRandomWord() {
+  return randomWords[Math.floor(Math.random() * randomWords.length)];
+}
 /**
  * Helper function to determine a random rarity based on weights.
  */
@@ -69,6 +182,18 @@ export function drawNewCard(): CardBase {
   }
 
   const card = pool[Math.floor(Math.random() * pool.length)];
+
+
+   // Check if the drawn card is the Charader!!! card and update its description
+  if (card.name === 'Charader!!!') {
+    const word = getRandomWord();
+    return {
+      ...card,
+      description: `YOUR WORD: "${word}". Make everybody guess your word, the person who guesses it first gets +5 Mana, you get +3 HP, and the rest takes a shot.`,
+      id: generateCardId()
+    };
+  }
+
   return {
     ...card,
     id: generateCardId()

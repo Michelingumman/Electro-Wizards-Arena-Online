@@ -210,5 +210,24 @@ export const EPIC_CARDS: CardBase[] = [
     isChallenge: true,
     requiresTarget: true,
     color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'charades',
+    name: 'Charader!!!',
+    description: "Make everybody guess the word, the person who guesses it first gets +5 Mana and the rest takes a shot",
+    manaCost: 5.0,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0.0,
+      challengeEffects: {
+        winner: { type: 'heal', value: 5.0 },
+        loser: { type: 'damage', value: 0.0 }
+      }
+    },
+    isChallenge: true,
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.EPIC]
   }
 ];
