@@ -461,8 +461,8 @@ export function useGameActions(partyId: string) {
 
                 console.log("Trying to play audio files");
 
-                const audioFile1 = "/audio/minipekka-child.mp3";
-                const audioFile2 = "/audio/minipekka.mp3";
+                const audioFile1 = "/audio/mini-pekka-child.mp3";
+                const audioFile2 = "/audio/mini-pekka.mp3";
                 
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
