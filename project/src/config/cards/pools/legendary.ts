@@ -37,7 +37,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
     effect: { type: 'oskar', value: 4.0 },
-    requiresTarget: true,
+    requiresTarget: false,
     color: RARITY_COLORS[CardRarity.LEGENDARY],
     isChallenge: false,
     isLegendary: true,
