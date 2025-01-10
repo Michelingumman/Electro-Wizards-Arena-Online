@@ -458,34 +458,40 @@ export function useGameActions(partyId: string) {
                 enemy.mana = 0;
                 });
 
-
                 console.log("Trying to play audio files");
 
                 const audioFile1 = "/audio/mini-pekka-child.mp3";
                 const audioFile2 = "/audio/mini-pekka.mp3";
+                const audioFile3 = "/audio/ahelrhur.mp3";
                 
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
+                const audio3 = new Audio(audioFile3); // Initialize third audio object
                 
                 audio1.volume = 0.8;
                 audio2.volume = 0.8;
+                audio3.volume = 0.8;
                 
+                // Play audio1 and audio2 concurrently
                 Promise.all([audio1.play(), audio2.play()])
                   .then(() => {
-                    console.log("Both audio files are playing");
+                    console.log("Both audio files finished playing, starting audio3");
+                    // Wait for both audio1 and audio2 to end before playing audio3
+                    return Promise.all([
+                      new Promise((resolve) => (audio1.onended = resolve)),
+                      new Promise((resolve) => (audio2.onended = resolve)),
+                    ]);
+                  })
+                  .then(() => {
+                    // Play audio3 after audio1 and audio2 have finished
+                    audio3.play().then(() => {
+                      console.log("Audio3 is playing");
+                    });
                   })
                   .catch((error) => {
                     console.error("Audio playback failed:", error);
                   });
-  
-
-                console.log("Trying to play auido file");
-                const audioFile3 = "/audio/ahelrhur.mp3";
-                const audio3 = new Audio(audioFile3); // Initialize audio object
-                audio3.volume = 0.8;
-                audio3.play().catch((error) => {
-                  console.error("Audio playback failed:", error);
-                });
+                
 
         }
 
