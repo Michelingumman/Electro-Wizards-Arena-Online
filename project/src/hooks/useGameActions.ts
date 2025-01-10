@@ -203,6 +203,17 @@ export function useGameActions(partyId: string) {
                 p.mana = p.mana / 2;
               }
             });
+
+
+
+            console.log("Trying to play auido file");
+            const audioFile = "/audio/oskar.mp3";
+            const audio = new Audio(audioFile); // Initialize audio object
+            audio.volume = 0.8;
+            audio.play().catch((error) => {
+              console.error("Audio playback failed:", error);
+            });
+
             break;
 
             // -----------------------------------------------------------------------------------
@@ -215,6 +226,16 @@ export function useGameActions(partyId: string) {
                 player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
                 player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
               }
+
+
+              console.log("Trying to play auido file");
+              const audioFile = "/audio/jesper.mp3";
+              const audio = new Audio(audioFile); // Initialize audio object
+              audio.volume = 0.8;
+              audio.play().catch((error) => {
+                console.error("Audio playback failed:", error);
+              });
+
             
               break;
             }
@@ -233,13 +254,27 @@ export function useGameActions(partyId: string) {
 
               player.health = player.health / 2;
               
-              console.log("Trying to play auido file");
-              const audioFile = "/audio/vafangorumannen.mp3";
-              const audio = new Audio(audioFile); // Initialize audio object
-              audio.volume = 0.8;
-              audio.play().catch((error) => {
-                console.error("Audio playback failed:", error);
-              });
+              console.log("Trying to play audio files");
+
+              const audioFile1 = "/audio/vafangorumannen.mp3";
+              const audioFile2 = "/audio/hub.mp3";
+              
+              const audio1 = new Audio(audioFile1); // Initialize first audio object
+              const audio2 = new Audio(audioFile2); // Initialize second audio object
+              
+              audio1.volume = 0.8;
+              audio2.volume = 0.8;
+              
+              Promise.all([audio1.play(), audio2.play()])
+                .then(() => {
+                  console.log("Both audio files are playing");
+                })
+                .catch((error) => {
+                  console.error("Audio playback failed:", error);
+                });
+
+                
+                
               break;
             }
 
@@ -279,6 +314,19 @@ export function useGameActions(partyId: string) {
                 const playerLegendaryCount = player.cards.filter(card => card.isLegendary).length;
                 enemy.health = Math.max(0, enemy.health - (playerLegendaryCount + 1)); //include the card just played as one
               });
+
+
+
+
+              console.log("Trying to play auido file");
+              const audioFile = "/audio/meow.mp3";
+              const audio = new Audio(audioFile); // Initialize audio object
+              audio.volume = 0.8;
+              audio.play().catch((error) => {
+                console.error("Audio playback failed:", error);
+              });
+
+
             
               break;
             }
@@ -390,7 +438,24 @@ export function useGameActions(partyId: string) {
               targetEnemies.forEach(enemy => {
                 enemy.mana = 0;
                 });
-              }
+
+
+                console.log("Trying to play auido file");
+                const audioFile1 = "/audio/formangaomkringmig.mp3";
+                const audio1 = new Audio(audioFile1); // Initialize audio object
+                audio1.volume = 0.8;
+                audio1.play().catch((error) => {
+                  console.error("Audio playback failed:", error);
+                });
+
+                console.log("Trying to play auido file");
+                const audioFile2 = "/audio/ahelrhur.mp3";
+                const audio2 = new Audio(audioFile2); // Initialize audio object
+                audio2.volume = 0.8;
+                audio2.play().catch((error) => {
+                  console.error("Audio playback failed:", error);
+                });
+        }
 
         // Update player states
         Object.assign(winner, winnerResult);
