@@ -228,13 +228,22 @@ export function useGameActions(partyId: string) {
               }
 
 
-              console.log("Trying to play auido file");
-              const audioFile = "/audio/jesper.mp3";
-              const audio = new Audio(audioFile); // Initialize audio object
-              audio.volume = 0.8;
-              audio.play().catch((error) => {
-                console.error("Audio playback failed:", error);
-              });
+              const audioFile1 = "/audio/jesper.mp3";
+              const audioFile2 = "/audio/jesper2.mp3";
+              
+              const audio1 = new Audio(audioFile1); // Initialize first audio object
+              const audio2 = new Audio(audioFile2); // Initialize second audio object
+              
+              audio1.volume = 0.8;
+              audio2.volume = 0.8;
+              
+              Promise.all([audio1.play(), audio2.play()])
+                .then(() => {
+                  console.log("Both audio files are playing");
+                })
+                .catch((error) => {
+                  console.error("Audio playback failed:", error);
+                });
 
             
               break;
@@ -256,8 +265,8 @@ export function useGameActions(partyId: string) {
               
               console.log("Trying to play audio files");
 
-              const audioFile1 = "/audio/vafangorumannen.mp3";
-              const audioFile2 = "/audio/hub.mp3";
+              const audioFile1 = "/audio/hub.mp3";
+              const audioFile2 = "/audio/vafangorumannen.mp3";
               
               const audio1 = new Audio(audioFile1); // Initialize first audio object
               const audio2 = new Audio(audioFile2); // Initialize second audio object
@@ -274,7 +283,7 @@ export function useGameActions(partyId: string) {
                 });
 
                 
-                
+
               break;
             }
 
