@@ -206,8 +206,8 @@ export function useGameActions(partyId: string) {
 
 
 
-            const audioFile1 = "/audio/oska2.mp3";
-            const audioFile2 = "/audio/oskar1.mp3";
+            const audioFile1 = "/audio/oskar2.mp3";
+            const audioFile2 = "/audio/oskar.mp3";
             
             const audio1 = new Audio(audioFile1); // Initialize first audio object
             const audio2 = new Audio(audioFile2); // Initialize second audio object
@@ -459,21 +459,34 @@ export function useGameActions(partyId: string) {
                 });
 
 
-                console.log("Trying to play auido file");
-                const audioFile1 = "/audio/formangaomkringmig.mp3";
-                const audio1 = new Audio(audioFile1); // Initialize audio object
+                console.log("Trying to play audio files");
+
+                const audioFile1 = "/audio/minipekka-child.mp3";
+                const audioFile2 = "/audio/minipekka.mp3";
+                
+                const audio1 = new Audio(audioFile1); // Initialize first audio object
+                const audio2 = new Audio(audioFile2); // Initialize second audio object
+                
                 audio1.volume = 0.8;
-                audio1.play().catch((error) => {
+                audio2.volume = 0.8;
+                
+                Promise.all([audio1.play(), audio2.play()])
+                  .then(() => {
+                    console.log("Both audio files are playing");
+                  })
+                  .catch((error) => {
+                    console.error("Audio playback failed:", error);
+                  });
+  
+
+                console.log("Trying to play auido file");
+                const audioFile3 = "/audio/ahelrhur.mp3";
+                const audio3 = new Audio(audioFile3); // Initialize audio object
+                audio3.volume = 0.8;
+                audio3.play().catch((error) => {
                   console.error("Audio playback failed:", error);
                 });
 
-                console.log("Trying to play auido file");
-                const audioFile2 = "/audio/ahelrhur.mp3";
-                const audio2 = new Audio(audioFile2); // Initialize audio object
-                audio2.volume = 0.8;
-                audio2.play().catch((error) => {
-                  console.error("Audio playback failed:", error);
-                });
         }
 
         // Update player states
