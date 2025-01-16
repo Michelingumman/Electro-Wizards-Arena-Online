@@ -79,9 +79,9 @@ export function usePartyActions() {
         const party = partyDoc.data() as Party;
         
         
-        if (party.status !== 'waiting') {
-          throw new Error('Game has already started');
-        }
+        // if (party.status !== 'waiting') {
+        //   throw new Error('Game has already started');
+        // }
 
         if (party.players.some(p => p.id === player.id)) {
           throw new Error('Player already in party');
@@ -100,6 +100,10 @@ export function usePartyActions() {
         });
       });
 
+            // Save the partyId and playerId to localStorage for session persistence
+            localStorage.setItem('partyId', partyId);
+            localStorage.setItem('playerId', player.id);
+            
       return partyId;
     } catch (error) {
       console.error('Error joining party:', error);
