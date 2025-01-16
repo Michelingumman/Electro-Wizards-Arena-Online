@@ -215,7 +215,7 @@ export const EPIC_CARDS: CardBase[] = [
     id: 'charades',
     name: 'Charader!!!',
     description: "Make everybody guess the word, the person who guesses it first gets +5 Mana and the rest takes a shot",
-    manaCost: 5.0,
+    manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
@@ -228,6 +228,25 @@ export const EPIC_CARDS: CardBase[] = [
     },
     isChallenge: true,
     requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'clashroyale',
+    name: 'Clash Royale 1v1',
+    description: "When this card is played, your opponent will be named in the action log (random). Winner gets to see the oppenents hand, looser takes a shot",
+    manaCost: 3.0,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0.0,
+      challengeEffects: {
+        winner: { type: 'damage', value: 0 },
+        loser: { type: 'damage', value: 0 }
+      }
+    },
+    isChallenge: false,
+    requiresTarget: false,
     color: RARITY_COLORS[CardRarity.EPIC]
   }
 ];
