@@ -73,7 +73,7 @@ export function useGameActions(partyId: string) {
           // Play audio
           const audioFile1 = "/audio/clash-royale-laugh.mp3";
           const audio1 = new Audio(audioFile1); // Initialize first audio object
-          audio1.volume = 0.8;
+          audio1.volume = 1;
           
           audio1.play().catch((error) => {
             console.error("Audio playback failed:", error);
@@ -237,8 +237,8 @@ export function useGameActions(partyId: string) {
               const audio1 = new Audio(audioFile1); // Initialize first audio object
               const audio2 = new Audio(audioFile2); // Initialize second audio object
               
-              audio1.volume = 0.8;
-              audio2.volume = 0.8;
+              audio1.volume = 1;
+              audio2.volume = 1;
 
               audio1.play().catch((error) => {
                 console.error("Audio playback failed:", error);
@@ -269,8 +269,8 @@ export function useGameActions(partyId: string) {
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
                 
-                audio1.volume = 0.8;
-                audio2.volume = 0.8;
+                audio1.volume = 1;
+                audio2.volume = 1;
                 
                 Promise.all([audio1.play(), audio2.play()])
                   .then(() => {
@@ -306,8 +306,8 @@ export function useGameActions(partyId: string) {
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
                 
-                audio1.volume = 0.8;
-                audio2.volume = 0.8;
+                audio1.volume = 1;
+                audio2.volume = 1;
                 
                 Promise.all([audio1.play(), audio2.play()])
                   .then(() => {
@@ -365,7 +365,7 @@ export function useGameActions(partyId: string) {
                 console.log("Trying to play auido file");
                 const audioFile = "/audio/meow.mp3";
                 const audio = new Audio(audioFile); // Initialize audio object
-                audio.volume = 0.8;
+                audio.volume = 1;
                 audio.play().catch((error) => {
                   console.error("Audio playback failed:", error);
                 });
@@ -477,53 +477,54 @@ export function useGameActions(partyId: string) {
         const winnerResult = applyChallengeEffect(winner, effects.winner, maxHealth, maxMana, card);
         const loserResult = applyChallengeEffect(loser, effects.loser, maxHealth, maxMana, card);
 
+        
 
-
-        if(card.name === "AH ELLER HUR" && winnerId != playerId){
-           const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
-
-              targetEnemies.forEach(enemy => {
-                enemy.mana = 0;
-                });
-
-                console.log("Trying to play audio files");
-
-                const audioFile1 = "/audio/mini-pekka-child.mp3";
-                const audioFile2 = "/audio/mini-pekka.mp3";
-                const audioFile3 = "/audio/ahelrhur.mp3";
-                
-                const audio1 = new Audio(audioFile1); // Initialize first audio object
-                const audio2 = new Audio(audioFile2); // Initialize second audio object
-                const audio3 = new Audio(audioFile3); // Initialize third audio object
-                
-                audio1.volume = 0.8;
-                audio2.volume = 0.8;
-                audio3.volume = 0.8;
-                
-                // Play audio1 and audio2 concurrently
-                Promise.all([audio1.play(), audio2.play()])
-                  .then(() => {
-                    console.log("Both audio files finished playing, starting audio3");
-                    // Wait for both audio1 and audio2 to end before playing audio3
-                    return Promise.all([
-                      new Promise((resolve) => (audio1.onended = resolve)),
-                      new Promise((resolve) => (audio2.onended = resolve)),
-                    ]);
-                  })
-                  .then(() => {
-                    // Play audio3 after audio1 and audio2 have finished
-                    audio3.play().then(() => {
-                      console.log("Audio3 is playing");
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Audio playback failed:", error);
-                  });
-                
-
+        if (card.name === "AH ELLER HUR" && winnerId !== playerId) {
+          // Set enemies' mana to zero directly
+          updatedPlayers.forEach(player => {
+            if (player.id !== playerId) {
+              player.mana = 0;
+            }
+          });
+        
+          console.log("Updated enemies' mana to zero:", updatedPlayers);
+        
+          console.log("Trying to play audio files");
+        
+          const audioFile1 = "/audio/mini-pekka-child.mp3";
+          const audioFile2 = "/audio/mini-pekka.mp3";
+          const audioFile3 = "/audio/ahelrhur.mp3";
+        
+          const audio1 = new Audio(audioFile1); // Initialize first audio object
+          const audio2 = new Audio(audioFile2); // Initialize second audio object
+          const audio3 = new Audio(audioFile3); // Initialize third audio object
+        
+          audio1.volume = 1;
+          audio2.volume = 1;
+          audio3.volume = 1;
+        
+          // Play audio1 and audio2 concurrently
+          Promise.all([audio1.play(), audio2.play()])
+            .then(() => {
+              console.log("Both audio files finished playing, starting audio3");
+              // Wait for both audio1 and audio2 to end before playing audio3
+              return Promise.all([
+                new Promise(resolve => (audio1.onended = resolve)),
+                new Promise(resolve => (audio2.onended = resolve)),
+              ]);
+            })
+            .then(() => {
+              // Play audio3 after audio1 and audio2 have finished
+              audio3.play().then(() => {
+                console.log("Audio3 is playing");
+              });
+            })
+            .catch(error => {
+              console.error("Audio playback failed:", error);
+            });
         }
-
-
+        
+        
 
         // Update player states
         Object.assign(winner, winnerResult);
