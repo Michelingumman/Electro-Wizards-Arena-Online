@@ -256,7 +256,7 @@ export function useGameActions(partyId: string) {
               case 'jesper': {
                 // Generate a random number to determine success (15% chance)
               
-                if (Math.random() <= 0.70) {
+                if (Math.random() <= 0.80) {
                   // Fully restore the player's stats
                   player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
                   player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
@@ -292,9 +292,10 @@ export function useGameActions(partyId: string) {
                 // Draw 2 legendary cards for the player using the card
                 const legendaryCard1 = drawLegendaryCard();
                 const legendaryCard2 = drawLegendaryCard();
+                const legendaryCard3 = drawLegendaryCard();
                 
                 // Add the drawn cards to the player's hand
-                player.cards.push(legendaryCard1, legendaryCard2);
+                player.cards.push(legendaryCard1, legendaryCard2, legendaryCard3);
 
                 player.health = player.health / 2;
                 
