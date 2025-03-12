@@ -26,6 +26,10 @@ export function Home() {
       
       const userCredential = await signInAnonymously(auth);
       console.log('Got: ', userCredential);
+      
+      // Save player name to localStorage for reconnection
+      localStorage.setItem('playerName', name);
+      
       const partyId = await createParty({
         id: userCredential.user.uid,
         name
@@ -48,16 +52,20 @@ export function Home() {
     try {
       const userCredential = await signInAnonymously(auth);
       
+      // Save player name to localStorage for reconnection
+      localStorage.setItem('playerName', name);
+      
       const partyQuery = query(
         collection(db, 'parties'),
         where('code', '==', partyCode.toUpperCase()),
-        where('status', '==', 'waiting')
+        // Allow joining parties that have started for reconnection purposes
+        // where('status', '==', 'waiting')
       );
 
       const querySnapshot = await getDocs(partyQuery);
       
       if (querySnapshot.empty) {
-        throw new Error('Party not found or already started');
+        throw new Error('Party not found');
       }
 
       const partyDoc = querySnapshot.docs[0];

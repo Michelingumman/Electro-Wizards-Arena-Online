@@ -5,8 +5,8 @@ import { RARITY_COLORS } from '../rarities';
 export const COMMON_CARDS: CardBase[] = [
   {
     id: 'fire-arrow',
-    name: 'Fire Arrow',
-    description: 'A basic fire arrow that deals 1 damage',
+    name: 'Mana Drain Arrow',
+    description: 'A basic magic arrow that drains 1 mana from target',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -16,8 +16,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'ice-chard',
-    name: 'Ice Chard',
-    description: 'A sharp shard of ice that deals 2 damage',
+    name: 'Mana Freeze Shard',
+    description: 'A sharp shard of ice that drains 2 mana from target',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -27,8 +27,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'lightning-chain',
-    name: 'Lightning Chain',
-    description: 'Deals +1 damage to everyone (even the one playing the card)',
+    name: 'Mana Chain Lightning',
+    description: 'Drains 1 mana from everyone (even the one playing the card)',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -38,8 +38,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'shotgun',
-    name: 'Shotgun Roulette',
-    description: 'Shoots a shell that deals +2 damage and one random collateral (could be you)',
+    name: 'Drunk Roulette',
+    description: 'Increases mana intake by 2 for the target and one random player (could be you)',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -49,8 +49,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'shockwave',
-    name: 'Shockwave',
-    description: 'Deals +2 damage to all enemies',
+    name: 'Mana Shockwave',
+    description: 'Drains 2 mana from all other players',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -60,8 +60,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'fireball',
-    name: 'Fireball',
-    description: 'Cast a powerful Fireball that deals +4 Damage to an opponent ',
+    name: 'Mana Fireball',
+    description: 'Cast a powerful Fireball that drains 4 Mana from an opponent',
     manaCost: 5.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -71,13 +71,35 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'energi_i_rummet',
-    name: 'Du har inte matchat energin i rummet',
-    description: 'you take -3hp but take someone with you aswell',
+    name: 'Match the Energy!',
+    description: 'You and your target both get +3 to mana intake (getting closer to drunk state)',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'energi_i_rummet', value: 3 },
     requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'hangover-cure',
+    name: 'Hangover Cure',
+    description: 'Reduces your mana intake by 4, helping you sober up',
+    manaCost: 2.0,
+    rarity: CardRarity.COMMON,
+    type: 'utility',
+    effect: { type: 'soberingPotion', value: 4.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'bar-tab',
+    name: 'Open Bar Tab',
+    description: 'Gain 3 mana, but increase your mana intake by 1',
+    manaCost: 0.0,
+    rarity: CardRarity.COMMON,
+    type: 'utility',
+    effect: { type: 'manaRefill', value: 3.0 },
+    requiresTarget: false,
     color: RARITY_COLORS[CardRarity.COMMON]
   }
 ];

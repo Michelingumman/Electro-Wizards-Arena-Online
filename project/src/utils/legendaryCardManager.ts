@@ -10,14 +10,12 @@ export class LegendaryCardManager {
   }
 
   activateLegendaryCard(card: Card, playerState: {
-    health: number;
     mana: number;
     cardCount: number;
   }): boolean {
     if (!card.isLegendary) return false;
 
     const legendaryEffects = this.effectManager.checkLegendaryTriggers(
-      playerState.health,
       playerState.mana,
       playerState.cardCount
     );

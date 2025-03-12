@@ -45,7 +45,21 @@ export function useGameState(partyId: string) {
     }
 
     const partyData = { ...doc.data(), id: doc.id } as Party;
-    const player = partyData.players.find(p => p.id === user.uid);
+    
+    // Look for player with either matching ID or name
+    const savedPlayerName = localStorage.getItem('playerName');
+    let player = partyData.players.find(p => p.id === user.uid);
+    
+    // If player is not found by ID but we have a saved name and a player with that name exists,
+    // it means we're reconnecting, and we should trigger a re-join with same name
+    if (!player && savedPlayerName) {
+      const playerWithSameName = partyData.players.find(p => p.name === savedPlayerName);
+      if (playerWithSameName) {
+        console.log('Detected reconnection with same name, updating player data');
+        // We find the player by name, but we'll continue with the current user ID
+        player = playerWithSameName;
+      }
+    }
 
     if (!player) {
       cleanup();
@@ -105,11 +119,10 @@ export function useGameState(partyId: string) {
   // Handle cleanup when leaving the game
   useEffect(() => {
     const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
-      if (party && currentPlayer) {
-        event.preventDefault();
-        event.returnValue = '';
-        await leaveParty(party.id, currentPlayer.id);
-      }
+      // We don't need to call leaveParty on normal disconnects anymore
+      // Instead, we just let the player remain in the party so they can rejoin
+      event.preventDefault();
+      event.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -117,16 +130,16 @@ export function useGameState(partyId: string) {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       
-      // Only clean up if we're actually leaving the game page
+      // Only clean up if we're actually navigating away from the game page
+      // Not for refreshes or disconnects
       if (window.location.pathname !== `/game/${partyId}`) {
-        if (party && currentPlayer) {
-          leaveParty(party.id, currentPlayer.id);
-        }
+        // Note: We're not calling leaveParty here anymore since we want to allow rejoin
+        // Only explicit Leave Game button calls will use leaveParty with isIntentionalLeave=true
         cleanup();
         reset();
       }
     };
-  }, [partyId, party, currentPlayer, leaveParty, cleanup, reset]);
+  }, [partyId, cleanup, reset]);
 
   return { cleanup };
 }

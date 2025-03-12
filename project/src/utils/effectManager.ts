@@ -3,7 +3,9 @@ import {
   PotionEffect, 
   EnhancementEffect, 
   LegendaryEffect,
-  EffectDuration 
+  EffectDuration,
+  ManaShieldEffect,
+  IntakeEffect
 } from '../types/effects';
 import { generateCardId } from '../config/cards';
 
@@ -14,7 +16,9 @@ export class EffectManager {
   private effects: ActiveEffects = {
     potions: [],
     enhancements: [],
-    legendary: []
+    legendary: [],
+    manaShields: [],
+    intakeEffects: []
   };
 
   addPotionEffect(effect: Omit<PotionEffect, 'id'>): void {
@@ -51,6 +55,22 @@ export class EffectManager {
     this.effects.potions.push(newEffect);
   }
 
+  addManaShield(effect: Omit<ManaShieldEffect, 'id'>): void {
+    const newEffect = {
+      ...effect,
+      id: generateCardId()
+    };
+    this.effects.manaShields.push(newEffect);
+  }
+
+  addIntakeEffect(effect: Omit<IntakeEffect, 'id'>): void {
+    const newEffect = {
+      ...effect,
+      id: generateCardId()
+    };
+    this.effects.intakeEffects.push(newEffect);
+  }
+
   addEnhancement(effect: Omit<EnhancementEffect, 'id'>): void {
     const newEffect = {
       ...effect,
@@ -70,6 +90,8 @@ export class EffectManager {
   updateEffects(): void {
     this.updateDurations(this.effects.potions);
     this.updateDurations(this.effects.enhancements);
+    this.updateDurations(this.effects.manaShields);
+    this.updateDurations(this.effects.intakeEffects);
     this.updateLegendaryCooldowns();
   }
 
@@ -109,17 +131,48 @@ export class EffectManager {
     return (value: number) => (value + additive) * multiplier;
   }
   
+  calculateManaIntakeMultiplier(): number {
+    let multiplier = 1;
+    
+    // Apply mana shield effects (reduces intake)
+    for (const shield of this.effects.manaShields) {
+      multiplier *= (1 - shield.reduction);
+    }
+    
+    // Apply intake multiplier effects (increases or decreases intake)
+    for (const effect of this.effects.intakeEffects) {
+      if (effect.type === 'multiply') {
+        multiplier *= effect.value;
+      }
+    }
+    
+    return multiplier;
+  }
+  
+  calculateManaIntakeAdditive(): number {
+    let additive = 0;
+    
+    // Apply additive intake effects
+    for (const effect of this.effects.intakeEffects) {
+      if (effect.type === 'add') {
+        additive += effect.value;
+      }
+    }
+    
+    return additive;
+  }
 
   getActiveEffects(): ActiveEffects {
     return {
       potions: [...this.effects.potions],
       enhancements: [...this.effects.enhancements],
-      legendary: [...this.effects.legendary]
+      legendary: [...this.effects.legendary],
+      manaShields: [...this.effects.manaShields],
+      intakeEffects: [...this.effects.intakeEffects]
     };
   }
 
   checkLegendaryTriggers(
-    health: number,
     mana: number,
     cardCount: number
   ): LegendaryEffect[] {
@@ -127,8 +180,7 @@ export class EffectManager {
       if (!effect.triggerCondition || effect.currentCooldown > 0) return false;
 
       const { type, value, comparison } = effect.triggerCondition;
-      const actualValue = type === 'health' ? health :
-                        type === 'mana' ? mana :
+      const actualValue = type === 'mana' ? mana :
                         type === 'cards' ? cardCount : 0;
 
       switch (comparison) {
@@ -143,5 +195,7 @@ export class EffectManager {
   clearExpiredEffects(): void {
     this.effects.potions = this.effects.potions.filter(e => e.duration.turnsLeft > 0);
     this.effects.enhancements = this.effects.enhancements.filter(e => e.duration.turnsLeft > 0);
+    this.effects.manaShields = this.effects.manaShields.filter(e => e.duration.turnsLeft > 0);
+    this.effects.intakeEffects = this.effects.intakeEffects.filter(e => e.duration.turnsLeft > 0);
   }
 }

@@ -17,6 +17,9 @@ export function GameStatus({ status, winner, players, isLeader }: GameStatusProp
             Winner: {players.find(p => p.id === winner)?.name}
           </p>
         )}
+        <p className="text-sm text-purple-300 mt-2">
+          The last wizard standing with mana!
+        </p>
       </div>
     );
   }

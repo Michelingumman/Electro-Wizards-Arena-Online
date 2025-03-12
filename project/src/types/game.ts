@@ -3,8 +3,8 @@ import { CardBase, CardRarity, CardStats, PlayerHand } from './cards';
 export interface Player {
   id: string;
   name: string;
-  health: number;
   mana: number;
+  manaIntake: number; // Tracks how much mana the player has consumed recently
   cards: Card[];
   isLeader?: boolean;
   effects?: PlayerEffect[];
@@ -14,12 +14,12 @@ export interface Player {
   };
   titanForm?: {
     turnsLeft: number;
-    bonusHealth: number;
     bonusDamage: number;
   };
   infiniteVoid?: {
     turnsLeft: number;
   };
+  isDrunk?: boolean; // Indicates if the player is "drunk" based on mana intake
 }
 
 export interface PlayerEffect {
@@ -54,18 +54,18 @@ export interface GameAction {
   targetId?: string; // Optional target player ID
   cardId: string; // ID of the card used
   cardName: string; // Name of the card
-  cardType: string; // Type of the card effect (e.g., damage, heal, etc.)
+  cardType: string; // Type of the card effect (e.g., manaDrain, etc.)
   cardRarity: string; // Rarity of the card (e.g., legendary, rare)
   cardDescription: string; // Description of the card
 }
 
 
 export interface GameSettings {
-  maxHealth: number;
   maxMana: number;
   manaDrinkAmount: number;
-  initialHealth: number;
   initialMana: number;
+  drunkThreshold: number; // The threshold at which a player becomes "drunk"
+  manaIntakeDecayRate: number; // How fast the mana intake counter decreases per turn
 }
 
 

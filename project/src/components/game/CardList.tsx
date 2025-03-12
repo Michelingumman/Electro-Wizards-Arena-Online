@@ -2,6 +2,7 @@ import { Card as CardType } from '../../types/game';
 import { Sword, Heart, Droplet, Zap, Crown, Star } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import { useGameStore } from '../../store/gameStore';
 
 interface CardListProps {
   cards: CardType[];
@@ -18,6 +19,10 @@ export function CardList({
   currentMana,
   selectedCard,
 }: CardListProps) {
+  // Get current player state to check for drunk status
+  const { currentPlayer } = useGameStore();
+  const isDrunk = currentPlayer?.isDrunk || false;
+
   // Helper to determine card icons based on effects
   const getCardIcons = (card: CardType) => {
     const icons = [];
@@ -53,11 +58,109 @@ export function CardList({
   // Helper to format numbers
   const formatNumber = (num: number) => Number(num.toFixed(1));
 
+  // Helper to scramble text for drunk player
+  const randomizeText = (text: string): string => {
+    // Create a mapping of characters to use for scrambling
+    const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    
+    // For some words, completely replace them with nonsense
+    if (Math.random() < 0.3) {
+      return Array.from({ length: text.length }).map(() => 
+        alphabet[Math.floor(Math.random() * alphabet.length)]
+      ).join('');
+    }
+    
+    // For other words, scramble individual characters
+    return text.split('').map(char => {
+      if (char === ' ') return ' ';
+      
+      // Chance to replace with a completely different character
+      if (Math.random() < 0.3) {
+        return alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+      
+      // Chance to switch case
+      if (Math.random() < 0.5) {
+        return char.toLowerCase();
+      }
+      
+      return char.toUpperCase();
+    }).join('');
+  };
+
+  // Helper to get rarity-based styling
+  const getRarityStyles = (card: CardType) => {
+    const base = {
+      border: '',
+      gradient: '',
+      glow: ''
+    };
+
+    switch (card.rarity) {
+      case 'legendary':
+        base.border = 'border-yellow-400';
+        base.gradient = 'from-yellow-600 to-yellow-800';
+        base.glow = 'shadow-lg shadow-yellow-500/40';
+        break;
+      case 'epic':
+        base.border = 'border-purple-400';
+        base.gradient = 'from-purple-600 to-purple-800';
+        base.glow = 'shadow-md shadow-purple-500/30';
+        break;
+      case 'rare':
+        base.border = 'border-blue-400';
+        base.gradient = 'from-blue-600 to-blue-800';
+        base.glow = 'shadow-sm shadow-blue-500/20';
+        break;
+      case 'common':
+      default:
+        base.border = 'border-gray-500';
+        base.gradient = 'from-gray-600 to-gray-800';
+        base.glow = '';
+        break;
+    }
+
+    return base;
+  };
+
+  // Helper to get color-based styling
+  const getColorStyles = (card: CardType) => {
+    if (!card.color) return 'from-gray-600 to-gray-800';
+
+    const colorMap: Record<string, string> = {
+      'blue': 'from-blue-600 to-blue-800',
+      'red': 'from-red-600 to-red-800',
+      'green': 'from-green-600 to-green-800',
+      'yellow': 'from-yellow-600 to-yellow-800',
+      'purple': 'from-purple-600 to-purple-800',
+      'indigo': 'from-indigo-600 to-indigo-800',
+      'pink': 'from-pink-600 to-pink-800',
+      'orange': 'from-orange-600 to-orange-800',
+      'teal': 'from-teal-600 to-teal-800',
+      'cyan': 'from-cyan-600 to-cyan-800',
+      'amber': 'from-amber-600 to-amber-800',
+      'lime': 'from-lime-600 to-lime-800',
+      'emerald': 'from-emerald-600 to-emerald-800',
+      'rose': 'from-rose-600 to-rose-800',
+      'fuchsia': 'from-fuchsia-600 to-fuchsia-800',
+      'violet': 'from-violet-600 to-violet-800'
+    };
+
+    return colorMap[card.color] || 'from-gray-600 to-gray-800';
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {cards.map((card) => {
         const isSelected = selectedCard?.id === card.id;
         const canPlay = !disabled && card.manaCost <= currentMana;
+        const rarityStyles = getRarityStyles(card);
+        const colorGradient = getColorStyles(card);
+        
+        // For drunk players, randomly adjust displayed mana cost (visual only, not functional)
+        const displayedManaCost = isDrunk 
+          ? formatNumber(card.manaCost + (Math.random() > 0.5 ? Math.floor(Math.random() * 3) : 0))
+          : formatNumber(card.manaCost);
 
         return (
           <motion.div
@@ -70,17 +173,19 @@ export function CardList({
             onClick={() => canPlay && onPlayCard(card)}
             className={clsx(
               'relative overflow-hidden transition-all duration-200',
-              'rounded-lg border p-3',
+              'rounded-lg border-2 p-3',
+              rarityStyles.border,
+              rarityStyles.glow,
               {
-                'cursor-pointer transform hover:scale-105': canPlay,
-                'cursor-not-allowed opacity-50': !canPlay,
-                'border-purple-400 shadow-lg shadow-purple-500/20': isSelected,
-                'border-gray-700 hover:border-gray-600': !isSelected && canPlay,
+                'cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30': canPlay,
+                'cursor-not-allowed opacity-75': !canPlay,
+                'opacity-75 filter saturate-50': disabled, 
+                'ring-2 ring-purple-400 shadow-lg shadow-purple-500/30': isSelected,
+                'hover:border-white': !isSelected && canPlay,
                 'bg-gradient-to-br': true,
-                [card.color]: true,
-                'ring-2 ring-yellow-500/50': card.isLegendary
-
-              }
+                'drunk-card-effect': isDrunk,
+              },
+              colorGradient
             )}
           >
             {isSelected && (
@@ -93,52 +198,55 @@ export function CardList({
               />
             )}
 
+            {!disabled && canPlay && (
+              <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none"></div>
+            )}
+
             <div className="relative">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center space-x-2">
-                  <h4 className="font-semibold text-base">{card.name}</h4>
+                  <h4 className="font-semibold text-base text-white">
+                    {isDrunk ? randomizeText(card.name) : card.name}
+                  </h4>
                   {card.isLegendary && (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
-                      Legendary
+                    <span className="text-xs bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded-full">
+                      {isDrunk ? randomizeText("Legendary") : "Legendary"}
                     </span>
                   )}
                   {card.isChallenge && (
-                    <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded">
-                      Challenge
+                    <span className="text-xs bg-orange-500/30 text-orange-300 px-1.5 py-0.5 rounded-full">
+                      {isDrunk ? randomizeText("Challenge") : "Challenge"}
                     </span>
                   )}
                 </div>
-                <span className="flex items-center text-blue-400 bg-blue-950/50 px-2 py-1 rounded text-sm">
-                  {formatNumber(card.manaCost)} <Droplet className="w-3 h-3 ml-1" />
+                <span className="flex items-center text-white bg-blue-900/80 px-2 py-1 rounded-full text-sm font-medium">
+                  {displayedManaCost} <Droplet className="w-3 h-3 ml-1 text-blue-300" />
                 </span>
               </div>
 
-  <p className="text-xs text-gray-300 mb-2">{card.description}</p>
+              <p className="text-xs text-gray-200 mb-3 min-h-[2.5rem]">
+                {isDrunk ? randomizeText(card.description) : card.description}
+              </p>
 
-              <div className="flex items-center space-x-2 text-xs">
-                {getCardIcons(card).map((icon) => (
-                  <span key={Math.random()}>{icon}</span> // Render all icons
-                ))}
-                <span className={clsx({
-                  'text-yellow-400': card.isLegendary,
-                  'text-red-400': card.type === 'damage',
-                  'text-green-400': card.type === 'heal',
-                  'text-orange-400': card.isChallenge
-                })}>
-                </span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2 text-xs">
+                  {getCardIcons(card).map((icon, index) => (
+                    <span key={`icon-${index}`}>{icon}</span>
+                  ))}
+                </div>
+
+                {isSelected && card.requiresTarget && (
+                  <div className="text-xs text-purple-200 animate-pulse font-medium">
+                    {isDrunk ? randomizeText("Click a player to target") : "Click a player to target"}
+                  </div>
+                )}
+
+                {!card.requiresTarget && canPlay && (
+                  <div className="text-xs text-gray-300">
+                    {isDrunk ? randomizeText("Click to use") : "Click to use"}
+                  </div>
+                )}
               </div>
-
-              {isSelected && card.requiresTarget && (
-                <div className="mt-2 text-xs text-purple-200 animate-pulse">
-                  Click a player to target
-                </div>
-              )}
-
-              {!card.requiresTarget && canPlay && (
-                <div className="mt-2 text-xs text-gray-400">
-                  Click to use
-                </div>
-              )}
             </div>
           </motion.div>
         );

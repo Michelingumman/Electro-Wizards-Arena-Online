@@ -32,3 +32,92 @@ html, body {
 button, a {
   touch-action: manipulation;
 }
+
+/* Player/Opponent Card Styles */
+.player-card {
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.1);
+}
+
+.player-card-active {
+  animation: cardGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+}
+
+.opponent-card {
+  transform-origin: center;
+  transition: all 0.3s ease;
+}
+
+@keyframes cardGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
+  }
+}
+
+/* Drunk player effects */
+.drunk-player-view {
+  animation: drunkSway 8s ease-in-out infinite;
+}
+
+.drunk-card-effect {
+  animation: drunkPulse 4s ease-in-out infinite;
+}
+
+@keyframes drunkSway {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(0.5deg) scale(1.01);
+  }
+  50% {
+    transform: rotate(-0.5deg) scale(1);
+  }
+  75% {
+    transform: rotate(0.25deg) scale(0.99);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes drunkPulse {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(10deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 1s ease-in-out infinite;
+}

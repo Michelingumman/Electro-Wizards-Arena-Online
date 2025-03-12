@@ -4,69 +4,123 @@ import { RARITY_COLORS } from '../rarities';
 export const RARE_CARDS: CardBase[] = [
   {
     id: 'duct-tape',
-    name: 'Duct Tape',
-    description: 'Trashy bandage... +1 HP',
-    manaCost: 1.0,
+    name: 'Alcoholic Tolerance',
+    description: 'Reduce your mana intake by 4',
+    manaCost: 5,
     rarity: CardRarity.RARE,
-    type: 'heal',
-    effect: { type: 'heal', value: 1.0 },
+    type: 'normal',
+    effect: {
+      type: 'manaIntake',
+      value: -4
+    },
     requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.RARE]
+    color: 'amber'
   },
   {
     id: 'bacta-spray',
-    name: 'Bacta Spray',
-    description: 'An advanced healing mist that rapidly restores 4 HP to yourself',
-    manaCost: 2.0,
+    name: 'Double Shot',
+    description: 'Increase your max mana by 3',
+    manaCost: 6,
     rarity: CardRarity.RARE,
-    type: 'heal',
-    effect: { type: 'heal', value: 4.0 },
+    type: 'normal',
+    effect: {
+      type: 'maxMana',
+      value: 3
+    },
     requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.RARE]
+    color: 'lime'
   },
   {
     id: 'mana-drain',
     name: 'Mana Drain',
-    description: 'Steal +4 Mana from your opponent',
-    manaCost: 2.0,
+    description: 'Drain 7 mana from target, increasing your mana by 7',
+    manaCost: 6,
     rarity: CardRarity.RARE,
-    type: 'utility',
-    effect: { type: 'manaDrain', value: 4.0 },
+    type: 'targeted',
+    effect: {
+      type: 'manaDrain',
+      value: 7
+    },
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.RARE]
+    color: 'blue'
   },
   {
-    id: 'life-steal',
-    name: 'Life Steal',
-    description: 'Switch HP with an opponent',
-    manaCost: 4.0,
+    id: 'mana-transfer',
+    name: 'Mana Transfer',
+    description: 'Transfer 5 mana from yourself to target player',
+    manaCost: 3,
     rarity: CardRarity.RARE,
-    type: 'utility',
-    effect: { type: 'life-steal', value: 0.0 },
+    type: 'targeted',
+    effect: {
+      type: 'manaTransfer',
+      value: 5
+    },
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.RARE]
+    color: 'violet'
   },
   {
-    id: 'forceDrink',
-    name: 'You Look Dehydrated',
-    description: 'Deal out 1 drink',
-    manaCost: 1.0,
+    id: 'sobering-potion',
+    name: 'Sobering Potion',
+    description: 'Reset your mana intake to 0',
+    manaCost: 4,
     rarity: CardRarity.RARE,
-    type: 'utility',
-    effect: { type: 'forceDrink', value: 0.0 },
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.RARE]
+    type: 'normal',
+    effect: {
+      type: 'soberingPotion',
+      value: 0
+    },
+    requiresTarget: false,
+    color: 'emerald'
   },
   {
-    id: 'reversed-curse-tech',
-    name: 'Reversed Curse Technique',
-    description: 'Heal half of the opponents health',
-    manaCost: 3.0,
+    id: 'mana-shield',
+    name: 'Mana Shield',
+    description: 'Gain immunity to the next targeted mana drain effect',
+    manaCost: 5,
     rarity: CardRarity.RARE,
-    type: 'utility',
-    effect: { type: 'reversed-curse-tech', value: 2.0 },
+    type: 'normal',
+    effect: {
+      type: 'manaShield',
+      value: 1
+    },
+    requiresTarget: false,
+    color: 'cyan'
+  },
+  {
+    id: 'challice-of-focus',
+    name: 'Chalice of Focus',
+    description: 'Reduce all players mana intake by 2 (including yourself)',
+    manaCost: 6,
+    rarity: CardRarity.RARE,
+    type: 'aoe',
+    effect: {
+      type: 'manaIntake',
+      value: -2
+    },
+    requiresTarget: false,
+    color: 'indigo'
+  },
+  {
+    id: 'shot-contest',
+    name: 'Shot Contest',
+    description: 'Challenge another player. Winner gains 2 mana, loser gains 6 mana intake',
+    manaCost: 3,
+    rarity: CardRarity.RARE,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: {
+        type: 'mana',
+        value: 2
+      },
+      loserEffect: {
+        type: 'manaIntake',
+        value: 6
+      }
+    },
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.RARE]
+    color: 'amber'
   }
   // {
   //   id: 'guardian',

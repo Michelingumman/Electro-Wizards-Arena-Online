@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Player } from '../../types/game';
-import { Trophy, X, Crown, Skull } from 'lucide-react';
+import { Trophy, Droplet, Wine, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GAME_CONFIG } from '../../config/gameConfig';
@@ -22,9 +22,12 @@ export function ChallengeModal({
 }: ChallengeModalProps) {
   const [winnerId, setWinnerId] = useState<string>('');
   const [loserId, setLoserId] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
 
-  const alivePlayers = players.filter(p => p.health > 0);
-
+  // Reset error when selections change
+  useEffect(() => {
+    setError(null);
+  }, [winnerId, loserId]);
 
   const challengeCardNames = [
     'Name the most: CAR BRANDS',
@@ -37,62 +40,128 @@ export function ChallengeModal({
   ];
 
   const getChallengeEffects = () => {
+    try {
+      // Check for direct winnerEffect and loserEffect properties
+      if (card.effect.winnerEffect && card.effect.loserEffect) {
+        const winnerEffect = card.effect.winnerEffect;
+        const loserEffect = card.effect.loserEffect;
 
-    if (challengeCardNames.includes(card.name)) {
+        return {
+          winEffect: `${getEffectDescription(winnerEffect)}`,
+          loseEffect: `${getEffectDescription(loserEffect)}`
+        };
+      }
+      // Backward compatibility for older challenge structure
+      else if (card.effect.challengeEffects?.winner && card.effect.challengeEffects?.loser) {
+        return {
+          winEffect: `${getEffectDescription(card.effect.challengeEffects.winner)}`,
+          loseEffect: `${getEffectDescription(card.effect.challengeEffects.loser)}`,
+        };
+      }
+      // Handle specific card cases by name
+      else if (card.name === 'Öl Hävf'){ //non standard challenge
+        return {
+          winEffect: `+ 5 Mana`,
+          loseEffect: `+ 10 Mana Intake`
+        };
+      }
+      else if (card.name === 'Got Big Muscles?'){ // non standrad challenge
+        return {
+          winEffect: `+ 3 Mana`,
+          loseEffect: `- 4 Mana`
+        };
+      }
+      else if (card.name === 'Shot Contest'){ // non standard challenge
+        return {
+          winEffect: `+ 2 Mana`,
+          loseEffect: `+ 6 Mana Intake`
+        };
+      }
+      else if (card.name === 'SHOT MASTER'){ // non standard challenge
+        return {
+          winEffect: `Mana intake reset to 0`,
+          loseEffect: `Mana intake doubled`
+        };
+      }
+      else if (card.name.includes('Name the most')){ // Naming challenges
+        const value = card.effect.winnerEffect?.value || 5;
+        return {
+          winEffect: `Steal ${value} mana from loser`,
+          loseEffect: `Lose ${value} mana to winner`
+        };
+      }
+      else return {
+        winEffect: 'Effect will be determined based on card', // More generic fallback message
+        loseEffect: 'Effect will be determined based on card'
+      };
+    } catch (error) {
+      console.error('Error determining challenge effects:', error);
       return {
-        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
-        loseEffect: `- ${card.effect.challengeEffects?.loser.value} HP`,
+        winEffect: 'Effects could not be determined',
+        loseEffect: 'Effects could not be determined'
       };
     }
-    
-    else if (card.name === 'Öl Hävf'){ //non standard challenge
-      return {
-        winEffect: `+ ${card.effect.challengeEffects?.winner.value} HP`,
-        loseEffect: `- ${card.effect.challengeEffects?.loser.value} HP`
-      };
-    }
-    else if (card.name === 'Got Big Muscles?'){ // non standrad challenge
-      return {
-        winEffect: `Full Mana refill`,
-        loseEffect: `- ${card.effect.challengeEffects?.loser.value} Mana`
-      };
-    }
-    else if (card.name === 'STRIP TEASE TIME!!!'){ // non standrad challenge
-      return {
-        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
-        loseEffect: `take off one piece of clothing bby`
-      };
-    }
-    else if (card.name === 'King of the Table #KingsMove!Allowed'){ // non standrad challenge
-      return {
-        winEffect: `+ ${card.effect.challengeEffects?.winner.value} HP and + ${card.effect.challengeEffects?.winner.value} Mana`,
-        loseEffect: `takes 2 shots`
-      };
-    }
-    else if (card.name === 'AH ELLER HUR'){ // non standrad challenge
-      return {
-        winEffect: `${GAME_CONFIG.MAX_HEALTH} can stack above max health`,
-        loseEffect: `Mana = 0, true for all other opponents`
-      };
-    }
-    else if (card.name === 'Charader!!!'){ // non standrad challenge
-      return {
-        winEffect: `+ ${card.effect.challengeEffects?.winner.value} Mana`,
-        loseEffect: `Everyone else takes a shot`
-      };
-    }
-    else return {
-      winEffect: '???', //non existant card
-      loseEffect: '???'
-    };
   };
 
+  // Helper to get human-readable description of an effect
+  const getEffectDescription = (effect: any) => {
+    if (!effect) return 'No effect';
+    
+    try {
+      switch (effect.type) {
+        case 'mana':
+          return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
+        case 'manaIntake':
+          return `${effect.value > 0 ? '+' : ''}${effect.value} Mana Intake`;
+        case 'manaBurn':
+          return `${effect.value > 0 ? '-' : ''}${effect.value} Mana`;
+        case 'manaStealer':
+          return `Steal ${effect.value} Mana`;
+        case 'resetManaIntake':
+          return `Reset Mana Intake to 0`;
+        case 'manaIntakeMultiply':
+          return `Multiply Mana Intake by ${effect.value}`;
+        case 'heal':
+          return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
+        case 'damage':
+          return `${effect.value > 0 ? '-' : ''}${effect.value} Mana`;
+        case 'manaRefill':
+          return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
+        default:
+          return `${effect.type}: ${effect.value}`;
+      }
+    } catch (err) {
+      console.error('Error parsing effect description:', err, effect);
+      return 'Effect parsing error';
+    }
+  };
 
-  
-  // const canConfirm = winnerId && loserId && winnerId !== loserId;
+  const handleConfirm = () => {
+    if (!winnerId || !loserId) {
+      setError('Please select both a winner and loser');
+      return;
+    }
+    
+    if (winnerId === loserId) {
+      setError('Winner and loser cannot be the same player');
+      return;
+    }
+    
+    try {
+      onConfirm(winnerId, loserId);
+    } catch (error) {
+      console.error('Error confirming challenge:', error);
+      setError('Failed to resolve challenge. Please try again.');
+    }
+  };
+
+  const canConfirm = winnerId && loserId && winnerId !== loserId;
   const effects = getChallengeEffects();
-  console.log(effects);
-  if (!effects) console.log('Couldnt get challenge correct card id. Got:', card.id);
+  
+  // Enhanced card styling based on its color
+  const cardColorClass = card.color ? 
+    `from-${card.color}-600 to-${card.color}-800` : 
+    'from-purple-600 to-purple-900';
 
   return (
     <AnimatePresence>
@@ -106,7 +175,7 @@ export function ChallengeModal({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className={`w-full max-w-md bg-gradient-to-br ${card.color} rounded-lg shadow-xl border border-gray-700/50 overflow-hidden`}
+          className={`w-full max-w-md bg-gradient-to-br ${cardColorClass} rounded-lg shadow-xl border border-gray-700/50 overflow-hidden`}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
@@ -128,6 +197,13 @@ export function ChallengeModal({
               <p className="text-sm text-gray-200">{card.description}</p>
             </div>
 
+            {/* Error message if any */}
+            {error && (
+              <div className="bg-red-900/30 border border-red-700 rounded-lg p-2 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+
             {/* Winner Selection */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-purple-200">Winner</label>
@@ -137,7 +213,7 @@ export function ChallengeModal({
                 className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="">Select winner...</option>
-                {alivePlayers.map(player => (
+                {players.map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name}
                   </option>
@@ -154,13 +230,13 @@ export function ChallengeModal({
                 className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="">Select loser...</option>
-                {alivePlayers.map(player => (
+                {players.map(player => (
                   <option 
                     key={player.id} 
                     value={player.id}
                     disabled={player.id === winnerId}
                   >
-                    {player.name}
+                    {player.name} {player.id === winnerId ? '(Winner)' : ''}
                   </option>
                 ))}
               </select>
@@ -172,15 +248,15 @@ export function ChallengeModal({
                 <h4 className="text-sm font-medium text-purple-200">Challenge Effects:</h4>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center space-x-2">
-                    <Crown className="w-4 h-4 text-yellow-400" />
+                    <Trophy className="w-4 h-4 text-yellow-400" />
                     <p className="text-green-400">
-                      Winner ({players.find(p => p.id === winnerId)?.name}): {effects.winEffect}
+                      Winner {winnerId ? `(${players.find(p => p.id === winnerId)?.name})` : ''}: {effects.winEffect}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Skull className="w-4 h-4 text-red-400" />
+                    <Wine className="w-4 h-4 text-red-400" />
                     <p className="text-red-400">
-                      Loser ({players.find(p => p.id === loserId)?.name}): {effects.loseEffect}
+                      Loser {loserId ? `(${players.find(p => p.id === loserId)?.name})` : ''}: {effects.loseEffect}
                     </p>
                   </div>
                 </div>
@@ -194,8 +270,8 @@ export function ChallengeModal({
               Cancel
             </Button>
             <Button
-              onClick={() => onConfirm(winnerId, loserId)}
-              // disabled={!canConfirm}
+              onClick={handleConfirm}
+              disabled={!canConfirm}
               className="flex items-center space-x-2"
             >
               <Trophy className="w-4 h-4" />

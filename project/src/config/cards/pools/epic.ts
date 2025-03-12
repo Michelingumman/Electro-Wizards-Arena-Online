@@ -3,250 +3,171 @@ import { RARITY_COLORS } from '../rarities';
 
 export const EPIC_CARDS: CardBase[] = [
   {
-    id: 'beer-havf',
+    id: 'ol-havf',
     name: 'Öl Hävf',
-    description: "Challenge the person to your RIGHT then swap seats: Chug the drink the fastest, gain 2 HP, Loser loses 2 HP",
-    manaCost: 2.0,
+    description: 'Challenge another player to a chugging contest. Winner gains 5 mana, loser gains 10 mana intake',
+    manaCost: 4,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
       type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'heal', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
+      value: 0,
+      winnerEffect: {
+        type: 'mana',
+        value: 5
+      },
+      loserEffect: {
+        type: 'manaIntake',
+        value: 10
       }
     },
-    isChallenge: true,
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'amber'
   },
   {
     id: 'got-big-muscles',
     name: 'Got Big Muscles?',
-    description: "Challenge the person to your LEFT then swap seats: Pushup constest to restore all Mana, Loser loses 5 Mana",
-    manaCost: 5.0,
+    description: 'Challenge another player to an arm wrestle. Winner gains 3 mana, loser loses 4 mana',
+    manaCost: 5,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
       type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 10.0 },
-        loser: { type: 'manaBurn', value: 5.0 }
+      value: 0,
+      winnerEffect: {
+        type: 'mana',
+        value: 3
+      },
+      loserEffect: {
+        type: 'mana',
+        value: -4
       }
     },
-    isChallenge: true,
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'rose'
   },
   {
-    id: 'car-brands',
+    id: 'name-the-most-car-brands',
     name: 'Name the most: CAR BRANDS',
-    description: "Challenge the person to your RIGHT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
+    description: 'Challenge another player. Winner steals 5 mana from loser',
+    manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
       type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
+      value: 0,
+      winnerEffect: {
+        type: 'manaStealer',
+        value: 5
       }
     },
-    isChallenge: true,
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'cyan'
   },
   {
-    id: 'football-teams',
-    name: 'Name the most: FOOTBALL TEAMS',
-    description: "Challenge the second person to your LEFT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
+    id: 'name-the-most-pokemon',
+    name: 'Name the most: POKÉMON',
+    description: 'Challenge another player. Winner steals 6 mana from loser',
+    manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
       type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
+      value: 0,
+      winnerEffect: {
+        type: 'manaStealer',
+        value: 6
       }
     },
-    isChallenge: true,
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'yellow'
   },
   {
-    id: 'beer-brands',
-    name: 'Name the most: BEER BRANDS',
-    description: "Challenge the second person to your RIGHT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'alko-brands',
-    name: 'Name the most: LIQUOR BRANDS',
-    description: "Challenge the MOST drunk person here, determined by last man standing in a single leg blindfold then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'countries',
+    id: 'name-the-most-countries',
     name: 'Name the most: COUNTRIES',
-    description: "Challenge the 3rd person to your right then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
+    description: 'Challenge another player. Winner steals 5 mana from loser',
+    manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
       type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
+      value: 0,
+      winnerEffect: {
+        type: 'manaStealer',
+        value: 5
       }
     },
-    isChallenge: true,
     requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'blue'
   },
   {
-    id: 'porn-types',
-    name: 'Name the most: TYPES OF PORN',
-    description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
+    id: 'mana-explosion',
+    name: 'Mana Explosion',
+    description: 'All players drink! Everyone gains 5 mana intake',
+    manaCost: 7,
     rarity: CardRarity.EPIC,
-    type: 'challenge',
+    type: 'aoe',
     effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
-      }
+      type: 'manaIntake',
+      value: 5
     },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'breath-challenge',
-    name: 'Wim Hoff Wannabe',
-    description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
-    manaCost: 2.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 2.0 },
-        loser: { type: 'damage', value: 2.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'strip-tease',
-    name: 'STRIP TEASE TIME!!!',
-    description: "Pick two to perform a strip tease, then swap seats: Winner gets +5 Mana, looser has to drop one piece of clothing (socks dont count)",
-    manaCost: 3.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'manaRefill', value: 5.0 },
-        loser: { type: 'damage', value: 0.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'armwrestling',
-    name: 'King of the Table #KingsMove!Allowed',
-    description: "Armwrestle the person won the previous challenge then swap seats: Winner gets +3 Mana and +3 HP, looser take 2 shots",
-    manaCost: 4.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'heal', value: 3.0 },
-        loser: { type: 'damage', value: 0.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'charades',
-    name: 'Charader!!!',
-    description: "Make everybody guess the word, the person who guesses it first gets +5 Mana and the rest takes a shot",
-    manaCost: 3.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'heal', value: 5.0 },
-        loser: { type: 'damage', value: 0.0 }
-      }
-    },
-    isChallenge: true,
-    requiresTarget: true,
-    color: RARITY_COLORS[CardRarity.EPIC]
-  },
-  {
-    id: 'clashroyale',
-    name: 'Clash Royale 1v1',
-    description: "When this card is played, your opponent will be named in the action log (random). Winner gets to see the oppenents hand, looser takes a shot",
-    manaCost: 3.0,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0.0,
-      challengeEffects: {
-        winner: { type: 'damage', value: 0 },
-        loser: { type: 'damage', value: 0 }
-      }
-    },
-    isChallenge: false,
     requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.EPIC]
+    color: 'orange'
+  },
+  {
+    id: 'party-round',
+    name: 'Party Round',
+    description: 'Buy a round for everyone! All players gain 3 mana',
+    manaCost: 8,
+    rarity: CardRarity.EPIC,
+    type: 'aoe',
+    effect: {
+      type: 'mana',
+      value: 3
+    },
+    requiresTarget: false,
+    color: 'green'
+  },
+  {
+    id: 'breath-test',
+    name: 'Breath Test',
+    description: 'Force the drunkest player (highest mana intake) to lose 7 mana',
+    manaCost: 5,
+    rarity: CardRarity.EPIC,
+    type: 'aoe',
+    effect: {
+      type: 'drunkestPlayerDamage',
+      value: -7
+    },
+    requiresTarget: false,
+    color: 'red'
+  },
+  {
+    id: 'mana-roulette',
+    name: 'Mana Roulette',
+    description: 'Randomly select a player (including yourself) to gain 8 mana intake',
+    manaCost: 4,
+    rarity: CardRarity.EPIC,
+    type: 'aoe',
+    effect: {
+      type: 'roulette',
+      value: 8
+    },
+    requiresTarget: false,
+    color: 'purple'
+  },
+  {
+    id: 'potentiation',
+    name: 'Potentiation',
+    description: 'Double your current mana intake (more effective when already drunk)',
+    manaCost: 3,
+    rarity: CardRarity.EPIC,
+    type: 'normal',
+    effect: {
+      type: 'manaIntakeMultiply',
+      value: 2
+    },
+    requiresTarget: false,
+    color: 'indigo'
   }
 ];

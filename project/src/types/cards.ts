@@ -6,49 +6,66 @@ export enum CardRarity {
 }
 
 export type EffectType = 
-  | 'damage' 
-  | 'heal' 
-  | 'manaDrain' 
-  | 'forceDrink' 
-  | 'life-steal' 
-  | 'manaBurn' 
-  | 'potionBuff' 
-  | 'manaRefill'
-  | 'aoeDamage'
-  | 'roulette'
-  | 'reversed-curse-tech'
-  | 'poison'
-  | 'energi_i_rummet'
-  // Legendary
-  | 'oskar' 
-  | 'jesper' 
-  | 'fellan' 
-  | 'fellan_won'  //used for the challenge logic in challengeEffects 
-  | 'fellan_lost' //      ----- | | ----- 
-  | 'markus' 
-  | 'sam' 
-  | 'adam'
-  | 'said'
-  // 
-  | 'challenge'  
-  | 'buff'   // From PotionEffect
-  | 'debuff' // From PotionEffect
-  | 'multiply'  // From EnhancementEffect
-  | 'add';      // From EnhancementEffect
+  'damage' | 
+  'aoe-damage' | 
+  'healing' | 
+  'aoe-healing' | 
+  'life-steal' | 
+  'challenge' | 
+  'manaDrain' | 
+  'manaBurn' | 
+  'manaRefill' | 
+  'potionBuff' | 
+  'debuff' | 
+  'roulette' | 
+  'forceDrink' | 
+  'reversed-curse-tech' | 
+  'heal' |
+  // New mana/drunk effects
+  'manaOverload' |
+  'manaShield' |
+  'manaStealAny' |
+  'manaSwapAny' |
+  'soberingPotion' |
+  'manaExplosion' |
+  'aoeManaBurst' |
+  'goldenLiver' |
+  'divineSobriety' |
+  'manaHurricane' |
+  'partyMaster' |
+  'manaIntakeMultiplier' |
+  'manaIntakeReduction' |
+  'resetIntake' |
+  'increaseIntake' |
+  // New effect types for updated cards
+  'manaIntake' |
+  'manaDouble' |
+  'manaIntakeOthers' |
+  'setAllToDrunk' |
+  'resetManaIntake' |
+  'maxManaAndMana' |
+  'manaStealAll' |
+  'divineIntervention' |
+  'manaIntakeMultiply' |
+  'drunkestPlayerDamage' |
+  'manaTransfer' |
+  'manaStealer' |
+  'maxMana' |
+  'mana' |
+  'null'; // For effects that don't do anything
+
+export interface Challenge {
+  type: string;
+  winnerEffect: CardEffect;
+  loserEffect: CardEffect;
+}
 
 export interface CardEffect {
   type: EffectType;
   value: number;
-  challengeEffects?: {
-    winner: {
-      type: EffectType;
-      value: number;
-    };
-    loser: {
-      type: EffectType;
-      value: number;
-    };
-  };
+  challenge?: Challenge;
+  winnerEffect?: CardEffect;
+  loserEffect?: CardEffect;
 }
 
 export interface CardBase {
@@ -60,10 +77,15 @@ export interface CardBase {
   type: string;
   effect: CardEffect;
   requiresTarget: boolean;
-  color: string;
   isChallenge?: boolean;
+  color?: string;
   isLegendary?: boolean;
   flavorText?: string;
+}
+
+export interface EnhancedCard extends CardBase {
+  enhancedManaCost: number;
+  enhancedEffect: CardEffect;
 }
 
 export interface CardStats {

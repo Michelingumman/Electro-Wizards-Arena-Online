@@ -1,17 +1,19 @@
 import { Button } from '../ui/Button';
-import { Beaker } from 'lucide-react';
+import { Beaker, Wine } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { GAME_CONFIG } from '../../config/gameConfig';
 
 interface GameControlsProps {
   gameStatus: string;
   manaDrinkAmount: number;
+  isCurrentTurn: boolean;
   onDrink: () => void;
 }
 
 export function GameControls({
   gameStatus,
   manaDrinkAmount,
+  isCurrentTurn,
   onDrink
 }: GameControlsProps) {
   if (gameStatus !== 'playing') return null;
@@ -20,7 +22,7 @@ export function GameControls({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-4 right-4 z-50"
+      className="fixed bottom-4 right-4 z-50 flex space-x-2"
     >
       <Button
         onClick={onDrink}
@@ -28,11 +30,14 @@ export function GameControls({
       >
         <span className="relative z-10 flex items-center justify-center text-sm font-medium">
           <Beaker className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-          Drink Potion +{GAME_CONFIG.MANA_DRINK_AMOUNT}
+          Drink Potion +{manaDrinkAmount}
+          <Wine className="w-4 h-4 ml-2 text-amber-400" />
         </span>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-400 opacity-0 group-hover:opacity-20 transition-opacity" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.2),transparent_70%)]" />
       </Button>
+
+      {/* End turn button has been removed */}
     </motion.div>
   );
 }

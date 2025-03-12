@@ -23,7 +23,7 @@ export function TargetSelectionModal({
   onCancel
 }: TargetSelectionModalProps) {
   const canConfirm = selectedTargetId !== null;
-  const alivePlayers = players.filter(p => p.health > 0 && (card.effect.type === 'heal' ? true : p.id !== currentPlayerId));
+  const targetablePlayers = players.filter(p => (card.effect.type === 'manaRefill' ? true : p.id !== currentPlayerId));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -42,7 +42,7 @@ export function TargetSelectionModal({
         </div>
 
         <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-          {alivePlayers.map(player => (
+          {targetablePlayers.map(player => (
             <div
               key={player.id}
               onClick={() => onSelectTarget(player.id)}
