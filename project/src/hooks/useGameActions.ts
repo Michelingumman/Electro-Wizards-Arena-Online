@@ -251,8 +251,8 @@ export function useGameActions(partyId: string) {
               const audio1 = new Audio(audioFile1); // Initialize first audio object
               const audio2 = new Audio(audioFile2); // Initialize second audio object
               
-              audio1.volume = 0.8;
-              audio2.volume = 0.8;
+              audio1.volume = 1;
+              audio2.volume = 1;
 
               audio1.play().catch((error) => {
                 console.error("Audio playback failed:", error);
@@ -270,7 +270,7 @@ export function useGameActions(partyId: string) {
               case 'jesper': {
                 // Generate a random number to determine success (15% chance)
               
-                if (Math.random() <= 0.70) {
+                if (Math.random() <= 0.80) {
                   // Fully restore the player's stats
                   player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
                   player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
@@ -283,8 +283,8 @@ export function useGameActions(partyId: string) {
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
                 
-                audio1.volume = 0.8;
-                audio2.volume = 0.8;
+                audio1.volume = 1;
+                audio2.volume = 1;
                 
                 Promise.all([audio1.play(), audio2.play()])
                   .then(() => {
@@ -306,9 +306,10 @@ export function useGameActions(partyId: string) {
                 // Draw 2 legendary cards for the player using the card
                 const legendaryCard1 = drawLegendaryCard();
                 const legendaryCard2 = drawLegendaryCard();
+                const legendaryCard3 = drawLegendaryCard();
                 
                 // Add the drawn cards to the player's hand
-                player.cards.push(legendaryCard1, legendaryCard2);
+                player.cards.push(legendaryCard1, legendaryCard2, legendaryCard3);
 
                 player.health = player.health / 2;
                 
@@ -320,8 +321,8 @@ export function useGameActions(partyId: string) {
                 const audio1 = new Audio(audioFile1); // Initialize first audio object
                 const audio2 = new Audio(audioFile2); // Initialize second audio object
                 
-                audio1.volume = 0.8;
-                audio2.volume = 0.8;
+                audio1.volume = 1;
+                audio2.volume = 1;
                 
                 Promise.all([audio1.play(), audio2.play()])
                   .then(() => {
@@ -379,7 +380,7 @@ export function useGameActions(partyId: string) {
                 console.log("Trying to play auido file");
                 const audioFile = "/audio/meow.mp3";
                 const audio = new Audio(audioFile); // Initialize audio object
-                audio.volume = 0.8;
+                audio.volume = 1;
                 audio.play().catch((error) => {
                   console.error("Audio playback failed:", error);
                 });
