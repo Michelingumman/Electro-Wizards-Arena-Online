@@ -105,28 +105,34 @@ export function useGameState(partyId: string) {
   // Handle cleanup when leaving the game
   useEffect(() => {
     const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
-      if (party && currentPlayer) {
-        event.preventDefault();
-        event.returnValue = '';
-        await leaveParty(party.id, currentPlayer.id);
+      // Don't automatically leave party on page unload - allow reconnection
+      // The party system will mark them as disconnected instead
+      console.log('Page unloading - player will be marked as disconnected');
+    };
+
+    const handleVisibilityChange = () => {
+      // Update last seen timestamp when page becomes visible again
+      if (!document.hidden && party && currentPlayer) {
+        // Player is back, they can reconnect through normal join flow
+        console.log('Player returned to page');
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       
-      // Only clean up if we're actually leaving the game page
+      // Only clean up if we're actually leaving the game page permanently
+      // Removed automatic leaveParty call to prevent immediate disconnections
       if (window.location.pathname !== `/game/${partyId}`) {
-        if (party && currentPlayer) {
-          leaveParty(party.id, currentPlayer.id);
-        }
         cleanup();
         reset();
       }
     };
-  }, [partyId, party, currentPlayer, leaveParty, cleanup, reset]);
+  }, [partyId, party, currentPlayer, cleanup, reset]);
 
   return { cleanup };
 }

@@ -400,11 +400,34 @@ export function useGameActions(partyId: string) {
         effectManager.updateEffects();
         effectManager.checkLegendaryTriggers(player.health, player.mana, player.cards.length);
 
-        // Update turn
+        // Calculate next turn and game status - skip disconnected players
         const alivePlayers = updatedPlayers.filter(p => p.health > 0);
-        const status = alivePlayers.length > 1 ? 'playing' : 'finished';
-        const nextTurnIndex = (updatedPlayers.findIndex(p => p.id === playerId) + 1) % updatedPlayers.length;
-        const nextPlayerId = alivePlayers[nextTurnIndex]?.id || playerId;
+        const connectedAlivePlayers = alivePlayers.filter(p => p.connectionStatus === 'connected');
+        const status = connectedAlivePlayers.length <= 1 ? 'finished' : 'playing';
+        
+        // Find next connected, alive player
+        let nextPlayerId = playerId;
+        if (connectedAlivePlayers.length > 0) {
+          const currentPlayerIndex = updatedPlayers.findIndex(p => p.id === playerId);
+          let nextIndex = (currentPlayerIndex + 1) % updatedPlayers.length;
+          
+          // Skip disconnected or dead players
+          let attempts = 0;
+          while (attempts < updatedPlayers.length) {
+            const nextPlayer = updatedPlayers[nextIndex];
+            if (nextPlayer && nextPlayer.health > 0 && nextPlayer.connectionStatus === 'connected') {
+              nextPlayerId = nextPlayer.id;
+              break;
+            }
+            nextIndex = (nextIndex + 1) % updatedPlayers.length;
+            attempts++;
+          }
+          
+          // Fallback to first connected alive player
+          if (attempts >= updatedPlayers.length && connectedAlivePlayers.length > 0) {
+            nextPlayerId = connectedAlivePlayers[0].id;
+          }
+        }
 
         // Save to Firestore
         transaction.update(partyRef, {
@@ -540,12 +563,34 @@ export function useGameActions(partyId: string) {
 
         player.cards[cardIndex] = drawNewCard();
 
-        // Calculate next turn and game status
+        // Calculate next turn and game status - skip disconnected players
         const alivePlayers = updatedPlayers.filter(p => p.health > 0);
-        const status = alivePlayers.length <= 1 ? 'finished' : 'playing';
-        const currentPlayerIndex = updatedPlayers.findIndex(p => p.id === playerId);
-        const nextTurnIndex = (currentPlayerIndex + 1) % updatedPlayers.length;
-        const nextPlayerId = updatedPlayers[nextTurnIndex]?.id || playerId;
+        const connectedAlivePlayers = alivePlayers.filter(p => p.connectionStatus === 'connected');
+        const status = connectedAlivePlayers.length <= 1 ? 'finished' : 'playing';
+        
+        // Find next connected, alive player
+        let nextPlayerId = playerId;
+        if (connectedAlivePlayers.length > 0) {
+          const currentPlayerIndex = updatedPlayers.findIndex(p => p.id === playerId);
+          let nextIndex = (currentPlayerIndex + 1) % updatedPlayers.length;
+          
+          // Skip disconnected or dead players
+          let attempts = 0;
+          while (attempts < updatedPlayers.length) {
+            const nextPlayer = updatedPlayers[nextIndex];
+            if (nextPlayer && nextPlayer.health > 0 && nextPlayer.connectionStatus === 'connected') {
+              nextPlayerId = nextPlayer.id;
+              break;
+            }
+            nextIndex = (nextIndex + 1) % updatedPlayers.length;
+            attempts++;
+          }
+          
+          // Fallback to first connected alive player
+          if (attempts >= updatedPlayers.length && connectedAlivePlayers.length > 0) {
+            nextPlayerId = connectedAlivePlayers[0].id;
+          }
+        }
 
         // Update Firestore
         transaction.update(partyRef, {

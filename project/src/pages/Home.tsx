@@ -50,18 +50,23 @@ export function Home() {
       
       const partyQuery = query(
         collection(db, 'parties'),
-        where('code', '==', partyCode.toUpperCase()),
-        where('status', '==', 'waiting')
+        where('code', '==', partyCode.toUpperCase())
       );
 
       const querySnapshot = await getDocs(partyQuery);
       
       if (querySnapshot.empty) {
-        throw new Error('Party not found or already started');
+        throw new Error('Party not found');
       }
 
       const partyDoc = querySnapshot.docs[0];
+      const partyData = partyDoc.data();
       const partyId = partyDoc.id;
+
+      // Check if party is finished
+      if (partyData.status === 'finished') {
+        throw new Error('This party has already finished');
+      }
 
       await joinParty(partyId, {
         id: userCredential.user.uid,
@@ -95,6 +100,7 @@ export function Home() {
               Electro Wizards Arena
             </h1>
             <p className="text-gray-400">Enter your name to start playing</p>
+            <p className="text-xs text-gray-500 mt-1">💡 Tip: Use the same name to reconnect and restore your game state</p>
           </div>
 
           <div className="mt-8 space-y-6">

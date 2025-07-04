@@ -1,4 +1,5 @@
 import { CardBase, CardRarity, CardStats, PlayerHand } from './cards';
+import { FieldValue } from 'firebase/firestore';
 
 export interface Player {
   id: string;
@@ -20,6 +21,9 @@ export interface Player {
   infiniteVoid?: {
     turnsLeft: number;
   };
+  connectionStatus?: 'connected' | 'disconnected';
+  lastSeen?: number; // timestamp of last activity
+  disconnectedAt?: number; // timestamp when disconnected
 }
 
 export interface PlayerEffect {
@@ -35,10 +39,12 @@ export type Card = CardBase;
 export interface Party {
   id: string;
   code: string;
+  name: string;
   players: Player[];
   currentTurn: string;
   status: 'waiting' | 'playing' | 'finished';
   leaderId: string;
+  createdAt: Date | FieldValue;
   winner?: string | null;
   settings?: GameSettings;
   lastAction?: GameAction;

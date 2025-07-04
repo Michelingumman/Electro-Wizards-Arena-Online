@@ -1,5 +1,5 @@
 import { Player } from '../../types/game';
-import { Heart, Droplet, Crown, Skull } from 'lucide-react';
+import { Heart, Droplet, Crown, Skull, WifiOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 
@@ -19,6 +19,7 @@ export function PlayerStats({
   onSelect 
 }: PlayerStatsProps) {
   const isDead = player.health <= 0;
+  const isDisconnected = player.connectionStatus === 'disconnected';
 
   const formatNumber = (num: number) => {
     return Number(num.toFixed(1));
@@ -31,13 +32,14 @@ export function PlayerStats({
         'rounded-lg transition-all duration-200 relative overflow-hidden p-4',
         {
           'bg-gradient-to-br from-purple-900 to-gray-900 ring-2 ring-purple-500': isCurrentPlayer,
-          'bg-gray-800/40 ring-1 ring-gray-600 opacity-80': !isCurrentPlayer && !isCurrentTurn,
-          'bg-purple-700/20 ring-2 ring-purple-400 animate-pulse': isCurrentTurn && !isDead,
+          'bg-gray-800/40 ring-1 ring-gray-600 opacity-80': !isCurrentPlayer && !isCurrentTurn && !isDisconnected,
+          'bg-gray-900/60 ring-1 ring-gray-500 opacity-50': isDisconnected,
+          'bg-purple-700/20 ring-2 ring-purple-400 animate-pulse': isCurrentTurn && !isDead && !isDisconnected,
           'cursor-pointer hover:scale-105': isTargetable,
         }
       )}
     >
-      {isCurrentTurn && !isDead && (
+      {isCurrentTurn && !isDead && !isDisconnected && (
         <motion.div
           className="absolute inset-0 bg-purple-500/10 animate-[pulse_2s_ease-in-out_infinite]"
           initial={{ opacity: 0 }}
@@ -53,15 +55,24 @@ export function PlayerStats({
           <h3
             className={clsx(
               'text-base font-bold',
-              isCurrentPlayer ? 'text-white' : 'text-purple-300'
+              isCurrentPlayer ? 'text-white' : 'text-purple-300',
+              isDisconnected && 'text-gray-400'
             )}
           >
             {player.name}
           </h3>
           {player.isLeader && <Crown className="w-4 h-4 text-yellow-400" />}
           {isDead && <Skull className="w-4 h-4 text-red-500" />}
+          {isDisconnected && <WifiOff className="w-4 h-4 text-gray-500" title="Player disconnected" />}
         </div>
       </div>
+
+      {/* Disconnected Status */}
+      {isDisconnected && (
+        <div className="mb-2 text-xs text-gray-500 italic">
+          Disconnected - can reconnect
+        </div>
+      )}
 
       {/* Player Stats */}
       <div className="flex justify-between items-center">
@@ -102,7 +113,7 @@ export function PlayerStats({
       </div>
 
       {/* Current Turn Indicator */}
-      {isCurrentTurn && !isDead && (
+      {isCurrentTurn && !isDead && !isDisconnected && (
         <div className="mt-2 text-sm font-medium text-center text-purple-300">
           <span className="bg-purple-600/20 px-2 py-1 rounded">Current Turn</span>
         </div>
@@ -117,3 +128,4 @@ export function PlayerStats({
     </div>
   );
 }
+
