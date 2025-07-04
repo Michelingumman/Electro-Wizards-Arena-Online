@@ -134,9 +134,9 @@ export function CardList({
                 </div>
               )}
 
-              {!card.requiresTarget && canPlay && (
+              {!isSelected && canPlay && (
                 <div className="mt-2 text-xs text-gray-400">
-                  Click to use
+                  {card.requiresTarget ? "Select to target an opponent" : "Click to use"}
                 </div>
               )}
             </div>

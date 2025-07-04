@@ -106,9 +106,12 @@ export function Game() {
       return;
     }
 
-    if (card.isChallenge || card.requiresTarget) {
+    if (card.isChallenge) {
       setSelectedCard(card);
-      console.log('Card selected for targeting or challenge:', card);
+      console.log('Card selected for challenge:', card);
+    } else if (card.requiresTarget) {
+      setSelectedCard(card);
+      console.log('Card selected for targeting:', card);
     } else {
       try {
         console.log('Playing non-targeted card:', card);
@@ -255,6 +258,13 @@ export function Game() {
         />
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {selectedCard && selectedCard.requiresTarget && (
+            <div className="lg:col-span-12 bg-purple-900/30 p-3 rounded-lg border border-purple-500/50 text-center mb-2">
+              <p className="text-purple-200 animate-pulse">
+                <span className="font-semibold">{selectedCard.name}</span> selected. Click on an opponent to target them.
+              </p>
+            </div>
+          )}
           <div className="lg:col-span-4 space-y-4">
           <div className="text-center">
             <h3 className="text-sm font-medium text-purple-200 uppercase tracking-wider">Opponents</h3>
@@ -266,11 +276,15 @@ export function Game() {
                 isCurrentPlayer={false}
                 isCurrentTurn={player.id === party.currentTurn}
                 isTargetable={Boolean(
-                  selectedCard?.requiresTarget &&
+                  selectedCard &&
+                  selectedCard.requiresTarget &&
                   player.health > 0 &&
+                  !(player.effects?.some(
+                    effect => effect.stackId === 'untargetable' && effect.type === 'untargetable'
+                  )) &&
                   (selectedCard.effect.type === 'heal' || player.id !== currentPlayer.id)
                 )}
-                onSelect={selectedCard && !selectedCard.isChallenge ? () => handleTargetSelect(player.id) : undefined}
+                onSelect={selectedCard && selectedCard.requiresTarget ? () => handleTargetSelect(player.id) : undefined}
               />
             ))}
 
