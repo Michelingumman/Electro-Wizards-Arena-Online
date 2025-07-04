@@ -7,12 +7,14 @@ import { auth, db } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { usePartyActions } from '../hooks/usePartyActions';
+import { CardTheme } from '../types/game';
 
 export function Home() {
   const navigate = useNavigate();
   const { createParty, joinParty } = usePartyActions();
   const [name, setName] = useState('');
   const [partyCode, setPartyCode] = useState('');
+  const [cardTheme, setCardTheme] = useState<CardTheme>('electrical');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export function Home() {
       const partyId = await createParty({
         id: userCredential.user.uid,
         name
-      });
+      }, { cardTheme });
       console.log('PartyID: ', partyId);
       navigate(`/game/${partyId}`);
     } catch (err) {
@@ -121,6 +123,43 @@ export function Home() {
             />
 
             <div className="space-y-4">
+              {/* Card Theme Selection */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Card Theme
+                </label>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setCardTheme('original')}
+                    disabled={loading}
+                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                      cardTheme === 'original'
+                        ? 'bg-purple-600 text-white border-2 border-purple-400'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-2 border-transparent'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-sm font-semibold">Original Party</div>
+                      <div className="text-xs opacity-75">Classic party cards</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setCardTheme('electrical')}
+                    disabled={loading}
+                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                      cardTheme === 'electrical'
+                        ? 'bg-purple-600 text-white border-2 border-purple-400'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-2 border-transparent'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-sm font-semibold">Electrical Engineering</div>
+                      <div className="text-xs opacity-75">Engineering themed cards</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <Button
                 onClick={handleCreateParty}
                 disabled={loading || !name}

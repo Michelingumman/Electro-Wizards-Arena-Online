@@ -1,7 +1,8 @@
 import { CardBase, CardRarity } from '../types/cards';
-import { CARD_POOL, generateCardId } from '../config/cards';
+import { CARD_POOL, generateCardId, getCardPoolByTheme, getNonLegendaryCardsByTheme } from '../config/cards';
 import { RARITY_WEIGHTS } from '../config/cards/rarities';
 import { GAME_CONFIG } from '../config/gameConfig';
+import { CardTheme } from '../types/game';
 
 
 
@@ -139,14 +140,15 @@ function getRandomRarity(): CardRarity {
 /**
  * Filters the card pool to retrieve cards of a specific rarity.
  */
-function getCardByRarity(rarity: CardRarity): CardBase[] {
-  return CARD_POOL.filter(card => card.rarity === rarity);
+function getCardByRarity(rarity: CardRarity, theme: CardTheme = 'electrical'): CardBase[] {
+  const cardPool = getCardPoolByTheme(theme);
+  return cardPool.filter(card => card.rarity === rarity);
 }
 
 /**
  * Generates the initial hand of cards for a player.
  */
-export function generateInitialCards(): CardBase[] {
+export function generateInitialCards(theme: CardTheme = 'electrical'): CardBase[] {
   const cards: CardBase[] = [];
   const stats = {
     common: 0,
@@ -157,7 +159,7 @@ export function generateInitialCards(): CardBase[] {
   };
 
   while (cards.length < GAME_CONFIG.CARDS_PER_HAND) {
-    const card = drawNewCard(); // Use the weighted draw logic
+    const card = drawNewCard(theme); // Use the weighted draw logic
     cards.push(card);
 
     if (card.rarity) {
@@ -173,16 +175,15 @@ export function generateInitialCards(): CardBase[] {
 /**
  * Draws a new card based on weighted rarity.
  */
-export function drawNewCard(): CardBase {
+export function drawNewCard(theme: CardTheme = 'electrical'): CardBase {
   const rarity = getRandomRarity(); // Determine card rarity based on weights
-  const pool = getCardByRarity(rarity); // Get cards of that rarity
+  const pool = getCardByRarity(rarity, theme); // Get cards of that rarity
 
   if (pool.length === 0) {
     throw new Error(`No cards available for rarity: ${rarity}`);
   }
 
   const card = pool[Math.floor(Math.random() * pool.length)];
-
 
    // Check if the drawn card is the Charader!!! card and update its description
   if (card.name === 'Charader!!!') {
@@ -203,8 +204,8 @@ export function drawNewCard(): CardBase {
 /**
  * Draws a legendary card.
  */
-export function drawLegendaryCard(): CardBase {
-  const legendaryCards = getCardByRarity(CardRarity.LEGENDARY);
+export function drawLegendaryCard(theme: CardTheme = 'electrical'): CardBase {
+  const legendaryCards = getCardByRarity(CardRarity.LEGENDARY, theme);
   if (legendaryCards.length === 0) {
     throw new Error('No legendary cards available');
   }

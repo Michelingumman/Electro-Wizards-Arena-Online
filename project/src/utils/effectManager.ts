@@ -108,7 +108,87 @@ export class EffectManager {
     // Return a function that applies the total effect to the given value
     return (value: number) => (value + additive) * multiplier;
   }
+
+  calculateDamageReduction(baseDamage: number): number {
+    let finalDamage = baseDamage;
+    let isImmune = false;
+
+    // Check for defensive effects
+    this.effects.potions.forEach(effect => {
+      if (effect.type === 'buff') {
+        // Check for damage reduction effects
+        if (effect.stackId === 'noise_filter' || 
+            effect.stackId === 'impedance_protection') {
+          finalDamage *= (1 - effect.value); // Reduce damage by percentage
+        }
+        // Check for immunity effects
+        else if (effect.stackId === 'isolation_immunity') {
+          isImmune = true;
+        }
+      }
+    });
+
+    return isImmune ? 0 : Math.max(0, finalDamage);
+  }
+
+  // Add method to handle next turn effects
+  addNextTurnEffect(effect: Omit<PotionEffect, 'id'> & { triggerOnTurnStart?: boolean }): void {
+    const newEffect = {
+      ...effect,
+      id: generateCardId(),
+      triggerOnTurnStart: true
+    };
+    
+    this.effects.potions.push(newEffect);
+  }
+
+  // Process effects that trigger at turn start
+  processTurnStartEffects(playerId: string): { manaGain: number } {
+    let manaGain = 0;
+    
+    // Find and process next turn mana effects
+    this.effects.potions = this.effects.potions.filter(effect => {
+      if (effect.stackId === 'next_turn_mana' && effect.duration.turnsLeft === 1) {
+        manaGain += effect.value;
+        return false; // Remove the effect
+      }
+      return true;
+    });
+
+    return { manaGain };
+  }
   
+  // Convert effect manager effects to player effects for persistence
+  toPlayerEffects(): Array<{
+    stackId: string;
+    type: 'buff' | 'debuff' | 'untargetable';
+    value: number;
+    duration: number;
+  }> {
+    return this.effects.potions.map(effect => ({
+      stackId: effect.stackId || effect.id,
+      type: effect.type,
+      value: effect.value,
+      duration: effect.duration.turnsLeft
+    }));
+  }
+
+  // Load effects from player effects for persistence
+  fromPlayerEffects(playerEffects: Array<{
+    stackId: string;
+    type: 'buff' | 'debuff' | 'untargetable';
+    value: number;
+    duration: number;
+  }>): void {
+    this.effects.potions = playerEffects.map(effect => ({
+      id: generateCardId(),
+      stackId: effect.stackId,
+      type: effect.type,
+      value: effect.value,
+      duration: { turnsLeft: effect.duration, initialDuration: effect.duration },
+      source: 'loaded'
+    }));
+  }
 
   getActiveEffects(): ActiveEffects {
     return {

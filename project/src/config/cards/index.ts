@@ -1,25 +1,39 @@
 import { CardBase } from '../../types/cards';
-import { COMMON_CARDS } from './pools/common';
-import { RARE_CARDS } from './pools/rare';
-import { EPIC_CARDS } from './pools/epic';
-import { LEGENDARY_CARDS } from './pools/legendary';
+import { ORIGINAL_CARD_POOL, ORIGINAL_NON_LEGENDARY_CARDS } from './pools/original';
+import { ELECTRICAL_CARD_POOL, ELECTRICAL_NON_LEGENDARY_CARDS } from './pools/electrical';
+import { CardTheme } from '../../types/game';
 
-export * from './pools/common';
-export * from './pools/rare';
-export * from './pools/epic';
-export * from './pools/legendary';
-export * from './rarities';
+// Export both card pools for theme selection
+export { ORIGINAL_CARD_POOL, ORIGINAL_NON_LEGENDARY_CARDS };
+export { ELECTRICAL_CARD_POOL, ELECTRICAL_NON_LEGENDARY_CARDS };
 
-// Combine all cards into a single pool
-export const CARD_POOL: CardBase[] = [
-  ...COMMON_CARDS,
-  ...RARE_CARDS,
-  ...EPIC_CARDS,
-  ...LEGENDARY_CARDS
-];
+// Default to electrical theme for backward compatibility
+export const CARD_POOL: CardBase[] = ELECTRICAL_CARD_POOL;
+export const NON_LEGENDARY_CARDS: CardBase[] = ELECTRICAL_NON_LEGENDARY_CARDS;
 
-// Separate non-legendary cards for initial card generation
-export const NON_LEGENDARY_CARDS = CARD_POOL.filter(card => !card.isLegendary);
+// Function to get card pool based on theme
+export function getCardPoolByTheme(theme: CardTheme): CardBase[] {
+  switch (theme) {
+    case 'original':
+      return ORIGINAL_CARD_POOL;
+    case 'electrical':
+      return ELECTRICAL_CARD_POOL;
+    default:
+      return ELECTRICAL_CARD_POOL;
+  }
+}
+
+// Function to get non-legendary cards based on theme
+export function getNonLegendaryCardsByTheme(theme: CardTheme): CardBase[] {
+  switch (theme) {
+    case 'original':
+      return ORIGINAL_NON_LEGENDARY_CARDS;
+    case 'electrical':
+      return ELECTRICAL_NON_LEGENDARY_CARDS;
+    default:
+      return ELECTRICAL_NON_LEGENDARY_CARDS;
+  }
+}
 
 // Card utility functions
 export function generateCardId(): string {

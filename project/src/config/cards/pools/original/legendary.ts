@@ -1,34 +1,8 @@
-import { CardBase, CardRarity } from '../../../types/cards';
-import { GAME_CONFIG } from '../../gameConfig';
-import { RARITY_COLORS } from '../rarities';
+import { CardBase, CardRarity } from '../../../../types/cards';
+import { GAME_CONFIG } from '../../../gameConfig';
+import { RARITY_COLORS } from '../../rarities';
 
-export const LEGENDARY_CARDS: CardBase[] = [
-  // {
-  //   id: 'infinite-void',
-  //   name: "Gojo's: Infinite Void",
-  //   description: "For the next turn, all opponents' mana costs are doubled, and their card effects are reduced by half.",
-  //   manaCost: 5.0,
-  //   rarity: CardRarity.LEGENDARY,
-  //   type: 'legendary',
-  //   effect: { type: 'infiniteVoid', value: 1.0 },
-  //   requiresTarget: false,
-  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
-  //   isLegendary: true,
-  //   flavorText: 'Throughout Heaven and Earth, I alone am the honored one.'
-  // },
-  // {
-  //   id: 'titan-form',
-  //   name: "Eren Jaeger's: Titan",
-  //   description: 'Transform into a Titan for 3 turns. Gain +10 HP, deal +3 damage with all cards, and become immune to single-target effects.',
-  //   manaCost: 6.0,
-  //   rarity: CardRarity.LEGENDARY,
-  //   type: 'legendary',
-  //   effect: { type: 'titan', value: 3.0 },
-  //   requiresTarget: false,
-  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
-  //   isLegendary: true,
-  //   flavorText: "If you win, you live. If you lose, you die. If you don't fight, you can't win!"
-  // },
+export const ORIGINAL_LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'oskar',
     name: "EYY JAG KOMMER LACKA UR ASSÅ",
@@ -92,20 +66,6 @@ export const LEGENDARY_CARDS: CardBase[] = [
     isLegendary: true,
     flavorText: "--- Markus: Va fan göru mannen... "
   },
-  // // {
-  // //   id: 'sam',
-  // //   name: "SORRY I'M LATE",
-  // //   description: 'Leave the group temporarily. Opponents cant target you for 2 turns.',
-  // //   manaCost: 5.0,
-  // //   rarity: CardRarity.LEGENDARY,
-  // //   type: 'legendary',
-  // //   effect: { type: 'sam', value: 3.0 },
-  // //   requiresTarget: false,
-  // //   color: RARITY_COLORS[CardRarity.LEGENDARY],
-  // //   isChallenge: false,
-  // //   isLegendary: true,
-  // //   flavorText: "--- Sam: Kan inte komma"
-  // // },
   {
     id: 'adam',
     name: "GULD",
@@ -120,19 +80,4 @@ export const LEGENDARY_CARDS: CardBase[] = [
     isLegendary: true,
     flavorText: ""
   }
-  // ,
-  // {
-  //   id: 'said',
-  //   name: "BORGMÄSTAREN",
-  //   description: 'set all opponents helath and mana to 1',
-  //   manaCost: 5.0,
-  //   rarity: CardRarity.LEGENDARY,
-  //   type: 'legendary',
-  //   effect: { type: 'said', value: 3.0 },
-  //   requiresTarget: false,
-  //   color: RARITY_COLORS[CardRarity.LEGENDARY],
-  //   isChallenge: false,
-  //   isLegendary: true,
-  //   flavorText: ""
-  // }
-];
+]; 

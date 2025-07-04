@@ -100,11 +100,31 @@ export function PlayerStats({
                   'flex items-center px-2 py-0.5 rounded text-xs',
                   effect.stackId === 'untargetable'
                     ? 'bg-blue-700 text-blue-300'
+                    : effect.type === 'buff' 
+                    ? 'bg-green-700/60 text-green-300'
+                    : effect.type === 'debuff'
+                    ? 'bg-red-700/60 text-red-300'
                     : 'bg-gray-800/60'
                 )}
-                title={`${effect.type} (${effect.duration} turns left)`}
+                title={`${effect.stackId} (${effect.duration.turnsLeft} turns left)`}
               >
-                {effect.stackId === 'untargetable' ? '🛡️ Untargetable' : effect.type}
+                {effect.stackId === 'untargetable' 
+                  ? '🛡️ Untargetable' 
+                  : effect.stackId === 'noise_filter'
+                  ? '🔇 Filter'
+                  : effect.stackId === 'impedance_protection'
+                  ? '⚡ Shield'
+                  : effect.stackId === 'isolation_immunity'
+                  ? '🛡️ Immune'
+                  : effect.stackId === 'signal_boost'
+                  ? '📡 Boost'
+                  : effect.stackId === 'next_turn_mana'
+                  ? '💎 Next Turn'
+                  : effect.type
+                }
+                <span className="ml-1 text-xs opacity-75">
+                  {effect.duration.turnsLeft}
+                </span>
               </div>
             ))}
           </div>

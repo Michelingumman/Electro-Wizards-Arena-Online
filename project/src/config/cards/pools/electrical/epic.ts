@@ -1,11 +1,11 @@
-import { CardBase, CardRarity } from '../../../types/cards';
-import { RARITY_COLORS } from '../rarities';
+import { CardBase, CardRarity } from '../../../../types/cards';
+import { RARITY_COLORS } from '../../rarities';
 
-export const EPIC_CARDS: CardBase[] = [
+export const ELECTRICAL_EPIC_CARDS: CardBase[] = [
   {
-    id: 'beer-havf',
-    name: 'Öl Hävf',
-    description: "Challenge the person to your RIGHT then swap seats: Chug the drink the fastest, gain 2 HP, Loser loses 2 HP",
+    id: 'circuit-design-challenge',
+    name: 'Circuit Design Showdown',
+    description: "Challenge person to your RIGHT: Design a basic amplifier circuit fastest! Winner gets +2 HP, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -22,9 +22,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'got-big-muscles',
-    name: 'Got Big Muscles?',
-    description: "Challenge the person to your LEFT then swap seats: Pushup constest to restore all Mana, Loser loses 5 Mana",
+    id: 'power-calculation-duel',
+    name: 'Power Calculation Duel',
+    description: "Challenge person to your LEFT: Calculate P=VI fastest! Winner restores all Mana, loser loses -5 Mana",
     manaCost: 5.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -41,9 +41,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'car-brands',
-    name: 'Name the most: CAR BRANDS',
-    description: "Challenge the person to your RIGHT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'component-naming',
+    name: 'Name Electronic Components',
+    description: "Challenge person to your RIGHT: Name the most electronic components! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -60,9 +60,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'football-teams',
-    name: 'Name the most: FOOTBALL TEAMS',
-    description: "Challenge the second person to your LEFT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'engineering-schools',
+    name: 'Name Engineering Universities',
+    description: "Challenge 2nd person to your LEFT: Name the most engineering schools! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -79,9 +79,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'beer-brands',
-    name: 'Name the most: BEER BRANDS',
-    description: "Challenge the second person to your RIGHT then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'microcontroller-brands',
+    name: 'Name Microcontroller Brands',
+    description: "Challenge 2nd person to your RIGHT: Name the most microcontroller brands! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -98,9 +98,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'alko-brands',
-    name: 'Name the most: LIQUOR BRANDS',
-    description: "Challenge the MOST drunk person here, determined by last man standing in a single leg blindfold then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'oscilloscope-reading',
+    name: 'Oscilloscope Signal Analysis',
+    description: "Challenge the most technically skilled person: Analyze this waveform! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -117,9 +117,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'countries',
-    name: 'Name the most: COUNTRIES',
-    description: "Challenge the 3rd person to your right then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'coding-challenge',
+    name: 'Embedded Programming Challenge',
+    description: "Challenge 3rd person to your right: Write Arduino code snippet! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -136,9 +136,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'porn-types',
-    name: 'Name the most: TYPES OF PORN',
-    description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'pcb-design-race',
+    name: 'PCB Layout Speed Contest',
+    description: "Challenge ANYONE: Design PCB layout fastest! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -155,9 +155,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'breath-challenge',
-    name: 'Wim Hoff Wannabe',
-    description: "Challenge ANYONE then swap seats: Winner gets the Mana cost back, looser lose 2 HP",
+    id: 'signal-processing',
+    name: 'Signal Processing Master',
+    description: "Challenge ANYONE: Explain FFT in 30 seconds! Winner gets Mana cost back, loser loses -2 HP",
     manaCost: 2.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -174,9 +174,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'strip-tease',
-    name: 'STRIP TEASE TIME!!!',
-    description: "Pick two to perform a strip tease, then swap seats: Winner gets +5 Mana, looser has to drop one piece of clothing (socks dont count)",
+    id: 'project-demo',
+    name: 'PROJECT DEMO TIME!!!',
+    description: "Pick two to demo their latest engineering project! Winner gets +5 Mana, loser explains their debugging fails",
     manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -193,9 +193,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'armwrestling',
-    name: 'King of the Table #KingsMove!Allowed',
-    description: "Armwrestle the person won the previous challenge then swap seats: Winner gets +3 Mana and +3 HP, looser take 2 shots",
+    id: 'lab-equipment-master',
+    name: 'Lab Equipment Operation #ProEngineer',
+    description: "Challenge the last person who won: Operate this multimeter correctly! Winner gets +3 Mana and +3 HP, loser takes 2 shots",
     manaCost: 4.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -212,9 +212,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'charades',
-    name: 'Charader!!!',
-    description: "Make everybody guess the word, the person who guesses it first gets +5 Mana and the rest takes a shot",
+    id: 'engineering-charades',
+    name: 'Engineering Charades!!!',
+    description: "Act out engineering concepts! The person who guesses first gets +5 Mana, others take a shot",
     manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -231,9 +231,9 @@ export const EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'clashroyale',
-    name: 'Clash Royale 1v1',
-    description: "When this card is played, your opponent will be named in the action log (random). Winner gets to see the oppenents hand, looser takes a shot",
+    id: 'simulation-battle',
+    name: 'SPICE Simulation Battle',
+    description: "Your opponent will be chosen randomly. Winner gets to see opponent's hand, loser takes a shot",
     manaCost: 3.0,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -248,5 +248,16 @@ export const EPIC_CARDS: CardBase[] = [
     isChallenge: false,
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.EPIC]
+  },
+  {
+    id: 'electromagnetic-warfare',
+    name: 'EMP - Electromagnetic Pulse',
+    description: "Nuclear-level EMP! Wipes ALL mana from EVERY player (including you) and deals +3 damage to all",
+    manaCost: 8.0,
+    rarity: CardRarity.EPIC,
+    type: 'utility',
+    effect: { type: 'electromagnetic_pulse', value: 3.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.EPIC]
   }
-];
+]; 

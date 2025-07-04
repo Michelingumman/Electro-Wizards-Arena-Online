@@ -30,7 +30,11 @@ export interface PlayerEffect {
   stackId: string; // Unique identifier for stacking effects
   type: 'buff' | 'debuff' | 'untargetable'; // Add 'untargetable' as a valid effect type
   value: number; // Optional, not used for untargetable
-  duration: number; // Number of turns the effect lasts
+  duration: {
+    turnsLeft: number;
+    initialDuration: number;
+  }; // Updated to match EffectManager structure
+  source: string; // Source card or effect that created this
 }
 
 
@@ -65,6 +69,7 @@ export interface GameAction {
   cardDescription: string; // Description of the card
 }
 
+export type CardTheme = 'original' | 'electrical';
 
 export interface GameSettings {
   maxHealth: number;
@@ -72,6 +77,7 @@ export interface GameSettings {
   manaDrinkAmount: number;
   initialHealth: number;
   initialMana: number;
+  cardTheme: CardTheme;
 }
 
 

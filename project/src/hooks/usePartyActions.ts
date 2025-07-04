@@ -9,8 +9,22 @@ import { GAME_CONFIG } from '../config/gameConfig';
 export function usePartyActions() {
 
 
-  const createParty = useCallback(async (player: Pick<Player, 'id' | 'name'>) => {
+  const createParty = useCallback(async (
+    player: Pick<Player, 'id' | 'name'>,
+    gameSettings?: Partial<GameSettings>
+  ) => {
     const code = generatePartyCode();
+    
+    const defaultSettings: GameSettings = {
+      maxHealth: GAME_CONFIG.MAX_HEALTH,
+      maxMana: GAME_CONFIG.MAX_MANA,
+      manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,
+      initialHealth: GAME_CONFIG.INITIAL_HEALTH,
+      initialMana: GAME_CONFIG.INITIAL_MANA,
+      cardTheme: 'electrical'
+    };
+
+    const finalSettings = { ...defaultSettings, ...gameSettings };
   
     // Prepare initial party data with an empty partyId placeholder
     const partyData: Omit<Party, 'id'> = {
@@ -19,25 +33,19 @@ export function usePartyActions() {
       players: [
         {
           ...player,
-          health: GAME_CONFIG.INITIAL_HEALTH,
-          mana: GAME_CONFIG.INITIAL_MANA,
-          cards: generateInitialCards(),
+          health: finalSettings.initialHealth,
+          mana: finalSettings.initialMana,
+          cards: generateInitialCards(finalSettings.cardTheme),
           isLeader: true,
           connectionStatus: 'connected',
           lastSeen: Date.now(),
+          effects: [], // Initialize effects array
         },
       ],
       currentTurn: player.id,
       leaderId: player.id,
-      settings: {
-        maxHealth: GAME_CONFIG.MAX_HEALTH,
-        maxMana: GAME_CONFIG.MAX_MANA,
-        manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,
-        initialHealth: GAME_CONFIG.INITIAL_HEALTH,
-        initialMana: GAME_CONFIG.INITIAL_MANA,
-        partyId: '', // Placeholder for now
-        playerId: player.id,
-      },
+      settings: finalSettings,
+      createdAt: new Date(),
     };
   
     try {
@@ -108,7 +116,8 @@ export function usePartyActions() {
                 ...p,
                 id: player.id, // Update to new Firebase UID
                 connectionStatus: 'connected' as const,
-                lastSeen: Date.now()
+                lastSeen: Date.now(),
+                effects: p.effects || [], // Ensure effects array exists
               };
               // Remove disconnectedAt field by not including it
               delete (reconnectedPlayer as any).disconnectedAt;
@@ -147,14 +156,16 @@ export function usePartyActions() {
           // NEW PLAYER LOGIC: No existing player with this name, create new player
           console.log(`✅ New player "${player.name}" joining party`);
           
+          const cardTheme = party.settings?.cardTheme ?? 'electrical';
           const newPlayer = {
             ...player,
             health: party.settings?.initialHealth ?? GAME_CONFIG.INITIAL_HEALTH,
             mana: party.settings?.initialMana ?? GAME_CONFIG.INITIAL_MANA,
-            cards: generateInitialCards(),
+            cards: generateInitialCards(cardTheme),
             isLeader: false,
             connectionStatus: 'connected' as const,
-            lastSeen: Date.now()
+            lastSeen: Date.now(),
+            effects: [], // Initialize effects array
           };
 
           transaction.update(partyRef, {

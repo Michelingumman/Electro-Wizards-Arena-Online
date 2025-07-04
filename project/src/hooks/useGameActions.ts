@@ -10,10 +10,6 @@ import { EffectManager } from '../utils/effectManager';
 
 export function useGameActions(partyId: string) {
 
-
-  const effectManager = new EffectManager();
-  const cardEnhancer = new CardEnhancer(effectManager);
-
   // Apply a card effect
   const applyCardEffect = useCallback(async (playerId: string, targetId: string, card: Card) => {
     console.debug('applyCardEffect invoked', { playerId, targetId, card });
@@ -32,16 +28,37 @@ export function useGameActions(partyId: string) {
         const player = updatedPlayers.find(p => p.id === playerId);
         const target = updatedPlayers.find(p => p.id === targetId);
 
-
         if (!player || player.health <= 0) throw new Error('Player is dead');
         if (!target) throw new Error('Target not found');
         
         if (card.effect.type === 'damage' && target.health <= 0) throw new Error('Target is dead');
 
+        // Create effect managers for each player and load their existing effects
+        const playerEffectManagers = new Map<string, EffectManager>();
+        updatedPlayers.forEach(p => {
+          const effectManager = new EffectManager();
+          if (p.effects && p.effects.length > 0) {
+            effectManager.fromPlayerEffects(p.effects);
+          }
+          playerEffectManagers.set(p.id, effectManager);
+        });
+
+        const playerEffectManager = playerEffectManagers.get(playerId)!;
+        const targetEffectManager = playerEffectManagers.get(targetId)!;
+        const cardEnhancer = new CardEnhancer(playerEffectManager);
+
+        // Process turn start effects for the current player
+        const turnStartResults = playerEffectManager.processTurnStartEffects(playerId);
+        if (turnStartResults.manaGain > 0) {
+          player.mana = Math.min(
+            party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+            player.mana + turnStartResults.manaGain
+          );
+          console.debug('Applied turn start mana gain:', turnStartResults.manaGain);
+        }
 
         // Enhance the card before applying the effect
         const enhancedCard = cardEnhancer.enhanceCard(card);
-
 
         // Apply mana cost
         player.mana = Math.max(0, player.mana - enhancedCard.manaCost);
@@ -51,36 +68,32 @@ export function useGameActions(partyId: string) {
         const cardIndex = player.cards.findIndex(c => c.id === enhancedCard.id);
         if (cardIndex !== -1) {
           console.debug('Replacing used card at index:', cardIndex);
-          player.cards[cardIndex] = drawNewCard();
+          const cardTheme = party.settings?.cardTheme ?? 'electrical';
+          player.cards[cardIndex] = drawNewCard(cardTheme);
         }
 
-
-        if(card.name === "Clash Royale 1v1"){
-          console.log("Trying to play audio files");
-
-          const targetEnemies = updatedPlayers.filter(p => p.id !== playerId);
-          const randomOpponent = targetEnemies[Math.floor(Math.random() * targetEnemies.length)];
-
-          if (!randomOpponent) {
-            console.warn('No valid opponents found for "Clash Royale 1v1" card');
-            return;
-          }
-
-          // Update the targetId to the random opponent
-          targetId = randomOpponent.id;
-
-
-          // Play audio
-          const audioFile1 = "/audio/clash-royale-laugh.mp3";
-          const audio1 = new Audio(audioFile1); // Initialize first audio object
-          audio1.volume = 1;
-          
-          audio1.play().catch((error) => {
+        // Check if the card is a special clash royale 1v1 one
+        if (card.id === 'clash_royale_1v1') {
+          // special card...
+          try {
+            const audio = new Audio('/sounds/card_played.mp3');
+            audio.play().catch(error => {
+              console.error("Audio playback failed:", error);
+            });
+          } catch (error) {
             console.error("Audio playback failed:", error);
-          });
+          }
         } 
         
         else {
+
+          // Helper function to apply damage with reduction
+          const applyDamageToPlayer = (targetPlayer: any, damage: number, targetPlayerEffectManager: EffectManager) => {
+            const reducedDamage = targetPlayerEffectManager.calculateDamageReduction(damage);
+            targetPlayer.health = Math.max(0, targetPlayer.health - reducedDamage);
+            console.debug('Applied damage:', { original: damage, reduced: reducedDamage, targetId: targetPlayer.id });
+            return reducedDamage;
+          };
 
           // Apply the card effect
           switch (enhancedCard.effect.type) {
@@ -88,22 +101,20 @@ export function useGameActions(partyId: string) {
             // --------------------------------------------------------------------------------------
 
             case 'damage':
-              target.health = Math.max(0, target.health - enhancedCard.effect.value);
+              applyDamageToPlayer(target, enhancedCard.effect.value, targetEffectManager);
               break;
 
-
-              // --------------------------------------------------------------------------------------
+            // --------------------------------------------------------------------------------------
 
             case 'aoeDamage':
               // Apply damage to all players in the game, including the player using the card
               updatedPlayers.forEach(p => {
-                p.health = Math.max(0, p.health - enhancedCard.effect.value);
+                const pEffectManager = playerEffectManagers.get(p.id)!;
+                applyDamageToPlayer(p, enhancedCard.effect.value, pEffectManager);
               });
               break;
 
-              
             // --------------------------------------------------------------------------------------
-
 
             case 'heal':
               const maxHealth = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
@@ -111,9 +122,7 @@ export function useGameActions(partyId: string) {
               target.health = Math.min(maxHealth, target.health + enhancedCard.effect.value);
               break;
 
-
             // --------------------------------------------------------------------------------------
-
 
             case 'life-steal':
               let enemyHealth = target.health;
@@ -121,9 +130,7 @@ export function useGameActions(partyId: string) {
               player.health = enemyHealth;
               break;
 
-
             // --------------------------------------------------------------------------------------
-
 
             case 'manaDrain':
               const drainAmount = Math.min(target.mana, enhancedCard.effect.value);
@@ -135,15 +142,13 @@ export function useGameActions(partyId: string) {
               );
               break;
 
-
             // --------------------------------------------------------------------------------------
             
             case 'manaBurn':
               const burnDamage = target.mana / 2;
               console.debug('Applying manaBurn effect:', { targetId, burnDamage });
-              target.health = Math.max(0, target.health - burnDamage);
+              applyDamageToPlayer(target, burnDamage, targetEffectManager);
               break;
-
 
             // --------------------------------------------------------------------------------------
             
@@ -152,9 +157,7 @@ export function useGameActions(partyId: string) {
                 , player.health + target.health / 2);
               break;
 
-
             // --------------------------------------------------------------------------------------
-
 
             case 'manaRefill':
               console.debug('Applying manaRefill:', { playerId });
@@ -163,9 +166,21 @@ export function useGameActions(partyId: string) {
 
             // --------------------------------------------------------------------------------------
             
+            case 'manaRefillNextTurn':
+              console.debug('Applying next turn mana refill:', { playerId, amount: enhancedCard.effect.value });
+              playerEffectManager.addNextTurnEffect({
+                stackId: 'next_turn_mana',
+                type: 'buff',
+                value: enhancedCard.effect.value,
+                duration: { turnsLeft: 2, initialDuration: 2 }, // Will trigger on next turn
+                source: card.id,
+              });
+              break;
+
+            // --------------------------------------------------------------------------------------
             
             case 'potionBuff':
-              effectManager.addPotionEffect({
+              playerEffectManager.addPotionEffect({
                 type: 'buff',
                 value: enhancedCard.effect.value,
                 duration: { turnsLeft: 3, initialDuration: 3 },
@@ -173,11 +188,10 @@ export function useGameActions(partyId: string) {
               });
               break;
               
-                
             // --------------------------------------------------------------------------------------
             
             case 'debuff':
-              effectManager.addPotionEffect({
+              targetEffectManager.addPotionEffect({
                 type: 'debuff',
                 value: enhancedCard.effect.value,
                 duration: { turnsLeft: 3, initialDuration: 3 },
@@ -185,220 +199,186 @@ export function useGameActions(partyId: string) {
               });
               break;
               
-                
             // --------------------------------------------------------------------------------------
 
-
             case 'roulette':
-              target.health = Math.max(0, target.health - enhancedCard.effect.value);
+              applyDamageToPlayer(target, enhancedCard.effect.value, targetEffectManager);
               // Apply random targeting logic
               const randomTarget = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
-              randomTarget.health = Math.max(0, randomTarget.health - enhancedCard.effect.value);
+              const randomTargetEffectManager = playerEffectManagers.get(randomTarget.id)!;
+              applyDamageToPlayer(randomTarget, enhancedCard.effect.value, randomTargetEffectManager);
               break;
-
 
             // --------------------------------------------------------------------------------------
 
             case 'forceDrink':
               console.debug('Applying forceDrink effect:', { targetId });
-
               break;
-
-
 
             case 'energi_i_rummet':
               console.debug('Någon har inte matchat energin i rummet... -->', { targetId });
-              target.health = target.health - card.effect.value;
-              player.health = player.health - card.effect.value;
+              applyDamageToPlayer(target, card.effect.value, targetEffectManager);
+              applyDamageToPlayer(player, card.effect.value, playerEffectManager);
               break;
               
-                
-                
-  // ------------ CUSTOM LEGENDARY CARDS --------------------------------------------------------------------------
+            // --------------------------------------------------------------------------------------
+            // NEW ELECTRICAL ENGINEERING EFFECTS
+            // --------------------------------------------------------------------------------------
+
+            case 'impedance':
+              console.debug('Applying impedance effect (voltage divider):', { playerId });
+              // Add defensive buff that reduces damage but costs mana
+              playerEffectManager.addPotionEffect({
+                stackId: 'impedance_protection',
+                type: 'buff',
+                value: enhancedCard.effect.value, // 0.5 = 50% damage reduction
+                duration: { turnsLeft: 2, initialDuration: 2 },
+                source: card.id,
+              });
+              // Cost 1 mana for using resistor network
+              player.mana = Math.max(0, player.mana - 1);
+              break;
+
+            case 'frequency_response':
+              console.debug('Applying AC waveform (frequency response):', { targetId });
+              // Deal damage twice like AC current
+              applyDamageToPlayer(target, enhancedCard.effect.value, targetEffectManager);
+              applyDamageToPlayer(target, enhancedCard.effect.value, targetEffectManager);
+              break;
+
+            case 'power_factor':
+              console.debug('Applying power factor correction:', { targetId });
+              // Efficiency calculation - damage based on target's mana/health ratio
+              const efficiency = target.mana / Math.max(target.health, 1);
+              const powerDamage = enhancedCard.effect.value * (1 + efficiency);
+              applyDamageToPlayer(target, powerDamage, targetEffectManager);
+              break;
+
+            case 'electromagnetic_pulse':
+              console.debug('Applying EMP effect to all players');
+              // Wipe out all mana from all players (like EMP destroying electronics)
+              // Also deal damage to all players
+              updatedPlayers.forEach(p => {
+                p.mana = 0;
+                const pEffectManager = playerEffectManagers.get(p.id)!;
+                applyDamageToPlayer(p, enhancedCard.effect.value, pEffectManager);
+              });
+              break;
+
+            case 'signal_amplify':
+              console.debug('Applying signal amplification buff:', { playerId });
+              // Next card effect is amplified
+              playerEffectManager.addPotionEffect({
+                stackId: 'signal_boost',
+                type: 'buff',
+                value: enhancedCard.effect.value, // 1.5 = 150% amplification
+                duration: { turnsLeft: 1, initialDuration: 1 },
+                source: card.id,
+              });
+              break;
+
+            case 'noise_filter':
+              console.debug('Applying noise filtering (damage reduction):', { playerId });
+              // Reduce incoming damage for multiple turns
+              playerEffectManager.addPotionEffect({
+                stackId: 'noise_filter',
+                type: 'buff',
+                value: enhancedCard.effect.value, // 0.5 = 50% damage reduction
+                duration: { turnsLeft: 3, initialDuration: 3 },
+                source: card.id,
+              });
+              break;
+
+            case 'resonance':
+              console.debug('Applying resonance effect:', { targetId });
+              // Resonant frequency causes oscillating damage
+              const resonanceDamage = enhancedCard.effect.value;
+              applyDamageToPlayer(target, resonanceDamage, targetEffectManager);
+              // Also affects random adjacent player
+              const adjacentTarget = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
+              const adjacentTargetEffectManager = playerEffectManagers.get(adjacentTarget.id)!;
+              applyDamageToPlayer(adjacentTarget, resonanceDamage / 2, adjacentTargetEffectManager);
+              break;
+
+            case 'transformer_isolation':
+              console.debug('Applying transformer isolation protection:', { playerId });
+              // Complete immunity for 1 turn
+              playerEffectManager.addPotionEffect({
+                stackId: 'isolation_immunity',
+                type: 'buff',
+                value: 1.0, // 100% damage immunity
+                duration: { turnsLeft: Math.floor(enhancedCard.effect.value), initialDuration: Math.floor(enhancedCard.effect.value) },
+                source: card.id,
+              });
+              break;
+
+            // --------------------------------------------------------------------------------------
+            // LEGENDARY CARDS
+            // --------------------------------------------------------------------------------------
 
             case 'oskar':
-              console.debug('Applying oskars legendary to:', { targetId });
-              // Deal damage to all other players and half their mana
+              console.debug('Applying Oskar legendary effect');
               updatedPlayers.forEach(p => {
-                if (p.id !== playerId) {
-                  // Deal damage
-                  p.health = Math.max(0, p.health - enhancedCard.effect.value);
-
-                  // Half their mana
-                  p.mana = p.mana / 2;
-                }
+                const pEffectManager = playerEffectManagers.get(p.id)!;
+                applyDamageToPlayer(p, enhancedCard.effect.value, pEffectManager);
+                p.mana = Math.max(0, p.mana / 2);
               });
-
-
-
-              const audioFile1 = "/audio/oskar2.mp3";
-              const audioFile2 = "/audio/oskar.mp3";
-              
-              const audio1 = new Audio(audioFile1); // Initialize first audio object
-              const audio2 = new Audio(audioFile2); // Initialize second audio object
-              
-              audio1.volume = 1;
-              audio2.volume = 1;
-
-              audio1.play().catch((error) => {
-                console.error("Audio playback failed:", error);
-              });
-              audio2.play().catch((error) => {
-                console.error("Audio playback failed:", error);
-              });
-
-
-
               break;
 
-              // -----------------------------------------------------------------------------------
-
-              case 'jesper': {
-                // Generate a random number to determine success (15% chance)
-              
-                if (Math.random() <= 0.80) {
-                  // Fully restore the player's stats
-                  player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
-                  player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
-                }
-
-
-                const audioFile1 = "/audio/jesper.mp3";
-                const audioFile2 = "/audio/jesper2.mp3";
-                
-                const audio1 = new Audio(audioFile1); // Initialize first audio object
-                const audio2 = new Audio(audioFile2); // Initialize second audio object
-                
-                audio1.volume = 1;
-                audio2.volume = 1;
-                
-                Promise.all([audio1.play(), audio2.play()])
-                  .then(() => {
-                    console.log("Both audio files are playing");
-                  })
-                  .catch((error) => {
-                    console.error("Audio playback failed:", error);
-                  });
-
-              
-                break;
+            case 'jesper':
+              console.debug('Applying Jesper legendary effect - 80% success rate');
+              const success = Math.random() < 0.8;
+              if (success) {
+                console.debug('Jesper effect succeeded!');
+                player.health = party.settings?.maxHealth ?? GAME_CONFIG.MAX_HEALTH;
+                player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+              } else {
+                console.debug('Jesper effect failed!');
+                // Player takes the consequence instead
               }
+              break;
 
+            case 'markus':
+              console.debug('Applying Markus legendary effect');
+              break;
 
-              // ---------------FELLAN IS PLACED AS A CHALLENGE CARD, LOOK IN challengeEffects.ts--------------------------------------------------------------------
+            case 'sam': {
+              const alivePlayersCount = updatedPlayers.filter(p => p.health > 0).length;
+              playerEffectManager.addPotionEffect({
+                stackId: 'untargetable',
+                type: 'untargetable',
+                value: 0,
+                duration: { turnsLeft: alivePlayersCount * 2, initialDuration: alivePlayersCount * 2 },
+                source: card.id,
+              });
+              break;
+            }
 
+            case 'adam':
+              console.debug('Applying Adam legendary effect');
+              // Add specific logic for Adam's effect
+              break;
 
-              case 'markus': {
-                // Draw 2 legendary cards for the player using the card
-                const legendaryCard1 = drawLegendaryCard();
-                const legendaryCard2 = drawLegendaryCard();
-                const legendaryCard3 = drawLegendaryCard();
-                
-                // Add the drawn cards to the player's hand
-                player.cards.push(legendaryCard1, legendaryCard2, legendaryCard3);
+            case 'card-draw':
+              console.debug('Applying card draw effect:', { targetId });
+              const cardTheme = party.settings?.cardTheme ?? 'electrical';
+              target.cards.push(drawNewCard(cardTheme));
+              break;
 
-                player.health = player.health / 2;
-                
-                console.log("Trying to play audio files");
-
-                const audioFile1 = "/audio/hub.mp3";
-                const audioFile2 = "/audio/vafangorumannen.mp3";
-                
-                const audio1 = new Audio(audioFile1); // Initialize first audio object
-                const audio2 = new Audio(audioFile2); // Initialize second audio object
-                
-                audio1.volume = 1;
-                audio2.volume = 1;
-                
-                Promise.all([audio1.play(), audio2.play()])
-                  .then(() => {
-                    console.log("Both audio files are playing");
-                  })
-                  .catch((error) => {
-                    console.error("Audio playback failed:", error);
-                  });
-
-                  
-
-                break;
-              }
-
-              // -----------------------------------------------------------------------------------
-
-              case 'sam': {
-                const alivePlayersCount = updatedPlayers.filter(p => p.health > 0).length;
-                effectManager.addPotionEffect({
-                  stackId: 'untargetable',
-                  type: 'untargetable',
-                  value: 0,
-                  duration: { turnsLeft: alivePlayersCount * 2, initialDuration: alivePlayersCount * 2 },
-                  source: card.id,
-                });
-              
-                break;
-              }
-              
-              
-              
-              // -----------------------------------------------------------------------------------
-
-              
-              case 'adam': {
-                const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
-
-                targetEnemies.forEach(enemy => {
-                  const legendaryCards = enemy.cards.filter(card => card.isLegendary);
-
-                  // Remove legendary cards and replace each with a new random card
-                  enemy.cards = enemy.cards.filter(card => !card.isLegendary);
-                  legendaryCards.forEach(() => {
-                    enemy.cards.push(drawNewCard());
-                  });
-
-                  // Deal damage equal to the number of legendary cards the player has
-                  const playerLegendaryCount = player.cards.filter(card => card.isLegendary).length;
-                  enemy.health = Math.max(0, enemy.health - (playerLegendaryCount + 1)); //include the card just played as one
-                });
-
-
-
-
-                console.log("Trying to play auido file");
-                const audioFile = "/audio/meow.mp3";
-                const audio = new Audio(audioFile); // Initialize audio object
-                audio.volume = 1;
-                audio.play().catch((error) => {
-                  console.error("Audio playback failed:", error);
-                });
-
-
-              
-                break;
-              }
-
-
-              case 'said': {
-                const targetEnemies = updatedPlayers.filter(p => p.id !== playerId); // Exclude the player using the card
-
-                targetEnemies.forEach(enemy => {
-                  enemy.health = 1;
-                  enemy.mana = 1;
-                });
-              
-                break;
-              }
-
-              
+            default:
+              console.warn('Unknown effect type:', enhancedCard.effect.type);
+              break;
           }
-
-         } // end of switch statement if card not clash royale 1v1
-
+        }
 
         console.debug('Updating players state after effect:', updatedPlayers);
         
-         // Update effects and cooldowns
-        effectManager.updateEffects();
-        effectManager.checkLegendaryTriggers(player.health, player.mana, player.cards.length);
+        // Update effects for all players and sync to player state
+        updatedPlayers.forEach(p => {
+          const effectManager = playerEffectManagers.get(p.id)!;
+          effectManager.updateEffects();
+          p.effects = effectManager.toPlayerEffects();
+        });
 
         // Calculate next turn and game status - skip disconnected players
         const alivePlayers = updatedPlayers.filter(p => p.health > 0);
@@ -429,11 +409,17 @@ export function useGameActions(partyId: string) {
           }
         }
 
-        // Save to Firestore
+        // Set winner if game finished
+        const winner = status === 'finished' && connectedAlivePlayers.length === 1 
+          ? connectedAlivePlayers[0] 
+          : undefined;
+
+        // Update Firestore
         transaction.update(partyRef, {
           players: updatedPlayers,
           status,
           currentTurn: nextPlayerId,
+          winner: winner || null,
           lastAction: {
             playerId,
             targetId,
@@ -446,21 +432,12 @@ export function useGameActions(partyId: string) {
         });
       });
 
-
-
       console.info('Card effect applied successfully');
     } catch (error) {
       console.error('Error applying card effect:', error);
       throw error;
     }
   }, [partyId]);
-
-
-
-
-
-
-
 
   // Resolve a challenge card
   const resolveChallengeCard = useCallback(async (playerId: string, card: Card, winnerId: string, loserId: string) => {
