@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow reads on everything for now
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // Tower Defense matches
+    match /td_matches/{matchId} {
+      allow create: if request.auth != null;
+      allow read: if true;
+      allow update: if request.auth != null;
+    }
+
+    // Optional nested events subcollection (future use)
+    match /td_matches/{matchId}/events/{eventId} {
+      allow create: if request.auth != null;
+      allow read: if true;
+    }
+
+    // Existing card-battle parties (keep permissive behavior similar to app)
+    match /parties/{partyId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+  }
+}
+
+

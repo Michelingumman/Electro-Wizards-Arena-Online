@@ -13,6 +13,8 @@ export function usePartyActions() {
     player: Pick<Player, 'id' | 'name'>,
     gameSettings?: Partial<GameSettings>
   ) => {
+    console.log('🔍 Creating party for player:', player);
+    
     const code = generatePartyCode();
     
     const defaultSettings: GameSettings = {
@@ -25,6 +27,15 @@ export function usePartyActions() {
     };
 
     const finalSettings = { ...defaultSettings, ...gameSettings };
+    
+    console.log('🔍 Party settings:', finalSettings);
+    
+    // Check Firebase configuration
+    console.log('🔍 Firebase DB config:', {
+      app: db.app.name,
+      projectId: db.app.options.projectId,
+      authDomain: db.app.options.authDomain
+    });
   
     // Prepare initial party data with an empty partyId placeholder
     const partyData: Omit<Party, 'id'> = {
@@ -47,24 +58,44 @@ export function usePartyActions() {
       settings: finalSettings,
       createdAt: new Date(),
     };
+    
+    console.log('🔍 Party data prepared:', { 
+      code, 
+      playersCount: partyData.players.length,
+      leaderId: partyData.leaderId 
+    });
   
     try {
+      console.log('🔍 Adding document to Firestore...');
+      console.log('🔍 Collection reference:', collection(db, 'parties'));
+      
       // Add the party to the Firestore collection
       const partyRef = await addDoc(collection(db, 'parties'), partyData);
+      console.log('✅ Party document created with ID:', partyRef.id);
+      console.log('🔍 Document path:', partyRef.path);
   
       // Update the `partyId` field in the settings after creating the document
+      console.log('🔍 Updating partyId in settings...');
       await runTransaction(db, async (transaction) => {
         const docRef = doc(db, 'parties', partyRef.id);
+        console.log('🔍 Transaction updating document:', docRef.path);
         transaction.update(docRef, {
           'settings.partyId': partyRef.id, // Set the `partyId` field in the settings
         });
       });
-  
-      console.log(`Party created successfully with ID: ${partyRef.id}`);
+      
+      console.log('🔍 Transaction completed successfully');
+      console.log(`✅ Party created successfully with ID: ${partyRef.id}`);
       return partyRef.id;
     } catch (error) {
-      console.error('usePartyActions.ts --> Error creating party:', error);
-      throw new Error('Failed to create party');
+      console.error('❌ usePartyActions.ts --> Error creating party:', error);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      if (error.cause) {
+        console.error('❌ Error cause:', error.cause);
+      }
+      throw new Error(`Failed to create party: ${error.message}`);
     }
   }, []);
   
@@ -76,13 +107,17 @@ export function usePartyActions() {
 
 
   const joinParty = useCallback(async (partyId: string, player: Pick<Player, 'id' | 'name'>) => {
+    console.log('🔍 Attempting to join party:', { partyId, player });
+    
     const partyRef = doc(db, 'parties', partyId);
     
     try {
       await runTransaction(db, async (transaction) => {
+        console.log('🔍 Getting party document...');
         const partyDoc = await transaction.get(partyRef);
         
         if (!partyDoc.exists()) {
+          console.log('❌ Party document not found');
           throw new Error('Party not found');
         }
 
@@ -129,6 +164,7 @@ export function usePartyActions() {
           // Update party leader if the reconnecting player was the leader
           const newLeaderId = existingPlayerByName.isLeader ? player.id : party.leaderId;
 
+          console.log('🔍 Updating party with reconnected player data');
           transaction.update(partyRef, {
             players: updatedPlayers,
             leaderId: newLeaderId
@@ -168,16 +204,20 @@ export function usePartyActions() {
             effects: [], // Initialize effects array
           };
 
+          console.log('🔍 Adding new player to party');
           transaction.update(partyRef, {
             players: [...party.players, newPlayer]
           });
+          
+          console.log(`✅ New player "${player.name}" successfully added to party`);
         }
       });
 
       // Save the partyId and playerId to localStorage for session persistence
       localStorage.setItem('partyId', partyId);
       localStorage.setItem('playerId', player.id);
-            
+      
+      console.log('✅ Party join completed successfully');
       return partyId;
     } catch (error) {
       console.error('❌ Error joining party:', error);

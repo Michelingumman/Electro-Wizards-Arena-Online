@@ -222,7 +222,7 @@ export const ORIGINAL_EPIC_CARDS: CardBase[] = [
       type: 'challenge',
       value: 0.0,
       challengeEffects: {
-        winner: { type: 'heal', value: 5.0 },
+        winner: { type: 'manaRefill', value: 5.0 },
         loser: { type: 'damage', value: 0.0 }
       }
     },
@@ -231,7 +231,7 @@ export const ORIGINAL_EPIC_CARDS: CardBase[] = [
     color: RARITY_COLORS[CardRarity.EPIC]
   },
   {
-    id: 'clashroyale',
+    id: 'clash_royale_1v1',
     name: 'Clash Royale 1v1',
     description: "When this card is played, your opponent will be named in the action log (random). Winner gets to see the oppenents hand, looser takes a shot",
     manaCost: 3.0,

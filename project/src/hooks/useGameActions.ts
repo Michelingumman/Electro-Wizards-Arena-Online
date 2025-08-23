@@ -72,8 +72,8 @@ export function useGameActions(partyId: string) {
           player.cards[cardIndex] = drawNewCard(cardTheme);
         }
 
-        // Check if the card is a special clash royale 1v1 one
-        if (card.id === 'clash_royale_1v1') {
+        // Check if the card is a special clash royale 1v1 one (support both ids)
+        if (card.id === 'clash_royale_1v1' || card.id === 'clashroyale') {
           // special card...
           try {
             const audio = new Audio('/sounds/card_played.mp3');
@@ -148,6 +148,7 @@ export function useGameActions(partyId: string) {
               const burnDamage = target.mana / 2;
               console.debug('Applying manaBurn effect:', { targetId, burnDamage });
               applyDamageToPlayer(target, burnDamage, targetEffectManager);
+              target.mana = 0;
               break;
 
             // --------------------------------------------------------------------------------------
@@ -340,6 +341,12 @@ export function useGameActions(partyId: string) {
 
             case 'markus':
               console.debug('Applying Markus legendary effect');
+              // Player draws 3 legendary cards and loses half of current health
+              for (let i = 0; i < 3; i++) {
+                const legendaryCard = drawLegendaryCard(party.settings?.cardTheme);
+                player.cards.push(legendaryCard);
+              }
+              player.health = Math.max(0, Math.floor(player.health / 2));
               break;
 
             case 'sam': {
@@ -356,7 +363,20 @@ export function useGameActions(partyId: string) {
 
             case 'adam':
               console.debug('Applying Adam legendary effect');
-              // Add specific logic for Adam's effect
+              // Remove all legendary cards from enemies' hands
+              updatedPlayers.forEach(p => {
+                if (p.id !== player.id) {
+                  p.cards = p.cards.filter(c => !c.isLegendary);
+                }
+              });
+              // Deal damage equal to number of legendary cards in the player's hand to all enemies
+              const legendaryCount = player.cards.filter(c => c.isLegendary).length;
+              updatedPlayers.forEach(p => {
+                if (p.id !== player.id) {
+                  const pEffectManager = playerEffectManagers.get(p.id)!;
+                  applyDamageToPlayer(p, legendaryCount, pEffectManager);
+                }
+              });
               break;
 
             case 'card-draw':
@@ -409,17 +429,17 @@ export function useGameActions(partyId: string) {
           }
         }
 
-        // Set winner if game finished
-        const winner = status === 'finished' && connectedAlivePlayers.length === 1 
-          ? connectedAlivePlayers[0] 
-          : undefined;
+        // Set winner if game finished (store only the player ID)
+        const winnerId = status === 'finished' && connectedAlivePlayers.length === 1 
+          ? connectedAlivePlayers[0].id 
+          : null;
 
         // Update Firestore
         transaction.update(partyRef, {
           players: updatedPlayers,
           status,
           currentTurn: nextPlayerId,
-          winner: winner || null,
+          winner: winnerId,
           lastAction: {
             playerId,
             targetId,
@@ -574,6 +594,7 @@ export function useGameActions(partyId: string) {
           players: updatedPlayers,
           status,
           currentTurn: nextPlayerId,
+          winner: status === 'finished' && connectedAlivePlayers.length === 1 ? connectedAlivePlayers[0].id : null,
           lastAction: {
             playerId: winnerId,
             targetId: loserId,
