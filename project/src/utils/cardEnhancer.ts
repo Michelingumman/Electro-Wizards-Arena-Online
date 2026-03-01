@@ -9,15 +9,15 @@ export class CardEnhancer {
   }
 
 
-  
+
   enhanceCard(card: Card): Card {
     const enhancedCard = { ...card };
 
     // Enhance card based on effect type
     switch (card.effect.type) {
       case 'damage':
-        case 'aoeDamage':
-        case 'roulette':
+      case 'aoeDamage':
+      case 'roulette':
         const calculateDamage = this.effectManager.calculateTotalEffect('damage');
         enhancedCard.effect.value = calculateDamage(card.effect.value);
         break;
@@ -62,10 +62,5 @@ export class CardEnhancer {
     }
 
     return enhancedCard;
-    }
-
-  enhancePotion(value: number): number {
-    const calculatePotion = this.effectManager.calculateTotalEffect('potion');
-    return calculatePotion(value);
   }
 }

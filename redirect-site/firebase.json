@@ -1,0 +1,1 @@
+{"hosting":{"public":".","ignore":["firebase.json",".firebaserc"],"redirects":[{"source":"**","destination":"https://electro-wizards-arena---online.web.app","type":301}]}}

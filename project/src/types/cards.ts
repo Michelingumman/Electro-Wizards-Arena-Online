@@ -5,21 +5,21 @@ export enum CardRarity {
   LEGENDARY = 'legendary'
 }
 
-export type EffectType = 
-  'damage' | 
-  'aoe-damage' | 
-  'healing' | 
-  'aoe-healing' | 
-  'life-steal' | 
-  'challenge' | 
-  'manaDrain' | 
-  'manaBurn' | 
-  'manaRefill' | 
-  'potionBuff' | 
-  'debuff' | 
-  'roulette' | 
-  'forceDrink' | 
-  'reversed-curse-tech' | 
+export type EffectType =
+  'damage' |
+  'aoe-damage' |
+  'healing' |
+  'aoe-healing' |
+  'life-steal' |
+  'challenge' |
+  'manaDrain' |
+  'manaBurn' |
+  'manaRefill' |
+  'potionBuff' |
+  'debuff' |
+  'roulette' |
+  'forceDrink' |
+  'reversed-curse-tech' |
   'heal' |
   // New mana/drunk effects
   'manaOverload' |
@@ -83,11 +83,6 @@ export interface CardBase {
   flavorText?: string;
 }
 
-export interface EnhancedCard extends CardBase {
-  enhancedManaCost: number;
-  enhancedEffect: CardEffect;
-}
-
 export interface CardStats {
   common: number;
   rare: number;
@@ -100,5 +95,3 @@ export interface PlayerHand {
   cards: CardBase[];
   stats: CardStats;
 }
-
-export { CardRarity as default };

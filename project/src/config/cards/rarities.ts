@@ -1,23 +1,6 @@
 import { CardRarity } from '../../types/cards';
 
-// testing legendary
-// export const RARITY_WEIGHTS = {
-//   [CardRarity.COMMON]: 0.0, //basic damage etc
-//   [CardRarity.RARE]: 0.0,  //heal, mana drain grejor
-//   [CardRarity.EPIC]: 0.0, //challenge kort, utmaningar etc
-//   [CardRarity.LEGENDARY]: 1.0, //go craxy
-// } as const;
 
-// // Testing Challenge cards
-// export const RARITY_WEIGHTS = {
-//   [CardRarity.COMMON]: 0.0, //basic damage etc
-//   [CardRarity.RARE]: 0.0,  //heal, mana drain grejor
-//   [CardRarity.EPIC]: 1, //challenge kort, utmaningar etc
-//   [CardRarity.LEGENDARY]: 0.0, //go craxy
-// } as const;
-
-
-// Most Balanced so far
 export const RARITY_WEIGHTS = {
   [CardRarity.COMMON]: 0.325, //basic damage etc
   [CardRarity.RARE]: 0.325,  //heal, mana drain grejor

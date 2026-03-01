@@ -18,9 +18,6 @@ export const CARD_POOL: CardBase[] = [
   ...LEGENDARY_CARDS
 ];
 
-// Separate non-legendary cards for initial card generation
-export const NON_LEGENDARY_CARDS = CARD_POOL.filter(card => !card.isLegendary);
-
 // Card utility functions
 export function generateCardId(): string {
   return `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

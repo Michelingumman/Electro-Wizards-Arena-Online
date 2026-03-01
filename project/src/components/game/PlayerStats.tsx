@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import { GAME_CONFIG } from '../../config/gameConfig';
 import { useGameStore } from '../../store/gameStore';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PlayerStatsProps {
   player: Player;
@@ -14,76 +14,76 @@ interface PlayerStatsProps {
   onSelect?: () => void;
 }
 
-export function PlayerStats({ 
-  player, 
-  isCurrentPlayer, 
+function formatSoberTime(totalSeconds: number): string {
+  if (totalSeconds <= 0) return 'Sober';
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = Math.floor(totalSeconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+export function PlayerStats({
+  player,
+  isCurrentPlayer,
   isCurrentTurn,
   isTargetable,
-  onSelect 
+  onSelect
 }: PlayerStatsProps) {
-  // Get the current player to check if *they* are drunk (not the displayed player)
   const { currentPlayer, party } = useGameStore();
   const isCurrentPlayerDrunk = currentPlayer?.isDrunk || false;
-  
-  // Get decay rate from party settings or default
+
   const decayRate = party?.settings?.manaIntakeDecayRate ?? GAME_CONFIG.MANA_INTAKE_DECAY_RATE;
-  
-  // Calculate drunk threshold using party settings if available
   const drunkThreshold = party?.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
-  
-  // Calculate drunk percentage (how close to drunk threshold)
   const drunkPercentage = Math.min(100, Math.floor((player.manaIntake / drunkThreshold) * 100));
-  
-  // Position for the drunk indicator line (80% of threshold)
   const drunkIndicatorPosition = 80;
-  
-  // Should we scramble text for current player (when drunk and viewing themselves)
   const shouldScrambleText = isCurrentPlayer && isCurrentPlayerDrunk;
-  
-  // Determine if the player is drunk (using isDrunk from player data)
   const isDrunk = player.isDrunk || false;
 
-  // Format numbers to be more readable
-  const formatNumber = (num: number): string => {
-    return num.toFixed(1);
-  };
+  // --- Local countdown timer (m:ss) ---
+  // Track the snapshot time so we can calculate elapsed locally
+  const snapshotTimeRef = useRef<number>(Date.now());
+  const snapshotIntakeRef = useRef<number>(player.manaIntake);
+  const [displaySeconds, setDisplaySeconds] = useState<number>(() => {
+    if (player.manaIntake <= 0 || decayRate <= 0) return 0;
+    return (player.manaIntake / decayRate) * 60;
+  });
 
-  // Add visualization of decay rate
-  const calculateDecayTime = () => {
-    if (player.manaIntake <= 0 || decayRate <= 0) return null;
-    
-    // Calculate time to fully sober (assuming no additional intake)
-    const minutesToSober = player.manaIntake / decayRate;
-    
-    // For display purposes, we'll show as seconds if < 60 seconds, otherwise as minutes
-    return minutesToSober < 1 
-      ? `${Math.round(minutesToSober * 60)}s` 
-      : `${minutesToSober.toFixed(1)}m`;
-  };
-  
-  const soberTime = calculateDecayTime();
+  // When Firestore pushes a new manaIntake value, reset the snapshot
+  useEffect(() => {
+    snapshotTimeRef.current = Date.now();
+    snapshotIntakeRef.current = player.manaIntake;
+    if (player.manaIntake <= 0 || decayRate <= 0) {
+      setDisplaySeconds(0);
+    } else {
+      setDisplaySeconds((player.manaIntake / decayRate) * 60);
+    }
+  }, [player.manaIntake, decayRate]);
 
-  // Store scrambled text in refs to prevent re-scrambling on every render
+  // Tick the countdown locally every second (no Firestore writes)
+  useEffect(() => {
+    if (snapshotIntakeRef.current <= 0 || decayRate <= 0) return;
+
+    const timer = setInterval(() => {
+      const elapsedSec = (Date.now() - snapshotTimeRef.current) / 1000;
+      const currentIntake = Math.max(0, snapshotIntakeRef.current - (decayRate / 60) * elapsedSec);
+      const remainingSec = (currentIntake / decayRate) * 60;
+      setDisplaySeconds(Math.max(0, remainingSec));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [player.manaIntake, decayRate]);
+
+  // --- Scramble text for drunk view ---
   const scrambledNameRef = useRef<string>("");
   const scrambledTurnTextRef = useRef<string>("Current Turn");
   const scrambledTargetTextRef = useRef<string>("Click to Target");
-  
-  // Track when we should update the scrambled text (every few seconds)
   const [scrambleCounter, setScrambleCounter] = useState(0);
-  
-  // Update scrambled text periodically instead of every render
+
   useEffect(() => {
     if (!shouldScrambleText) return;
-    
-    // Set up an interval to update scrambled text every few seconds
-    const interval = setInterval(() => {
-      setScrambleCounter(prev => prev + 1);
-    }, 2500); // Change scrambled text every 2.5 seconds
-    
+    const interval = setInterval(() => setScrambleCounter(prev => prev + 1), 2500);
     return () => clearInterval(interval);
   }, [shouldScrambleText]);
-  
-  // Update scrambled text when counter changes or when drunk status changes
+
   useEffect(() => {
     if (shouldScrambleText) {
       scrambledNameRef.current = randomizeText(player.name);
@@ -92,30 +92,16 @@ export function PlayerStats({
     }
   }, [scrambleCounter, shouldScrambleText, player.name]);
 
-  // Random text effect for drunk players - this function remains the same
-  // but now we call it less frequently
   const randomizeText = (text: string): string => {
-    // Similar randomization logic as in the CardList
     const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    
     return text.split('').map(char => {
       if (char === ' ') return ' ';
-      
-      // Chance to replace with a completely different character
-      if (Math.random() < 0.3) {
-        return alphabet[Math.floor(Math.random() * alphabet.length)];
-      }
-      
-      // Chance to switch case
-      if (Math.random() < 0.5) {
-        return char.toLowerCase();
-      }
-      
+      if (Math.random() < 0.3) return alphabet[Math.floor(Math.random() * alphabet.length)];
+      if (Math.random() < 0.5) return char.toLowerCase();
       return char.toUpperCase();
     }).join('');
   };
 
-  // Determine the text to display (scrambled or normal)
   const displayName = shouldScrambleText ? scrambledNameRef.current : player.name;
   const displayTurnText = shouldScrambleText ? scrambledTurnTextRef.current : "Current Turn";
   const displayTargetText = shouldScrambleText ? scrambledTargetTextRef.current : "Click to Target";
@@ -145,7 +131,6 @@ export function PlayerStats({
       )}
 
       <div className="flex items-center justify-between mb-1">
-        {/* Player Name */}
         <div className="flex items-center space-x-1">
           <h3
             className={clsx(
@@ -166,51 +151,43 @@ export function PlayerStats({
         {/* Mana */}
         <div className="flex items-center space-x-1">
           <Droplet className="w-3 h-3 text-blue-400" />
-          <span className="text-xs">{formatNumber(player.mana)}</span>
+          <span className="text-xs">{player.mana.toFixed(1)}</span>
         </div>
 
-        {/* Drunk meter */}
+        {/* Drunk meter — m:ss countdown */}
         <div className="flex flex-col space-y-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1">
               <Wine className={clsx('w-3 h-3', isDrunk ? 'text-amber-400' : 'text-amber-600')} />
-              <span className="text-xs">{isDrunk ? "Drunk" : "Drunk"}: {drunkPercentage}%</span>
+              <span className={clsx('text-xs font-mono', isDrunk && 'text-amber-300 font-bold')}>
+                {displaySeconds > 0 ? formatSoberTime(displaySeconds) : 'Sober'}
+              </span>
             </div>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-400">{formatNumber(player.manaIntake)}/{drunkThreshold}</span>
-            </div>
+            <span className="text-xs text-gray-400">
+              {player.manaIntake.toFixed(1)}/{drunkThreshold}
+            </span>
           </div>
-          
-          {/* Drunk progress bar with container */}
+
+          {/* Drunk progress bar */}
           <div className="relative h-1.5 bg-gray-700 rounded-full overflow-hidden w-full">
-            {/* Colored fill based on drunk percentage */}
-            <div 
+            <div
               className={clsx(
-                "h-full transition-all duration-300", 
-                drunkPercentage >= 80 ? "bg-red-500" : 
-                drunkPercentage >= 50 ? "bg-amber-500" : 
-                "bg-green-500"
+                "h-full transition-all duration-300",
+                drunkPercentage >= 80 ? "bg-red-500" :
+                  drunkPercentage >= 50 ? "bg-amber-500" :
+                    "bg-green-500"
               )}
               style={{ width: `${drunkPercentage}%` }}
             />
-            
-            {/* Threshold indicator line positioned at 80% of drunk threshold (when player becomes drunk) */}
-            <div 
+            <div
               className="absolute h-1.5 w-0.5 bg-white/70 top-0"
               style={{ left: `${drunkIndicatorPosition}%` }}
               aria-label="Drunk Threshold at 80%"
             />
           </div>
-          
-          {/* Sober time display (only for current player or if they're drunk) */}
-          {(isCurrentPlayer || isDrunk) && soberTime && (
-            <div className="text-xs text-gray-400 text-right">
-              Time to sober: ~{soberTime}
-            </div>
-          )}
         </div>
 
-        {/* Effects - only show for current player for space reasons */}
+        {/* Effects */}
         {isCurrentPlayer && player.effects && player.effects.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {player.effects.map((effect, index) => (
