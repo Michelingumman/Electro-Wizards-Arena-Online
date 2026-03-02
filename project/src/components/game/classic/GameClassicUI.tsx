@@ -15,6 +15,7 @@ interface GameClassicUIProps {
     isLeader: boolean;
     canStart: boolean;
     isCurrentTurn: boolean;
+    showNoValidPlayersWarning: boolean;
     onPlayCard: (card: Card) => Promise<void>;
     onTargetSelect: (targetId: string) => Promise<void>;
     onChallengeResolve: (winnerId: string, loserId: string) => Promise<void>;
@@ -32,6 +33,7 @@ export function GameClassicUI({
     isLeader,
     canStart,
     isCurrentTurn,
+    showNoValidPlayersWarning,
     onPlayCard,
     onTargetSelect,
     onChallengeResolve,
@@ -99,6 +101,7 @@ export function GameClassicUI({
                         winner={party.winner}
                         players={party.players}
                         isLeader={isLeader}
+                        showNoValidPlayersWarning={showNoValidPlayersWarning}
                     />
 
                     {party.status === 'playing' && (

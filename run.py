@@ -54,13 +54,13 @@ def do_deploy():
     print(f"\n  🚀 Deploying to Firebase ({FIREBASE_PROJECT})...")
     print(f"     Firebase CLI: {check.stdout.strip()}\n")
 
-    code = run(f"firebase deploy --only hosting --project {FIREBASE_PROJECT}")
+    code = run(f"firebase deploy --only hosting:live --project {FIREBASE_PROJECT}")
     if code != 0:
         print("\n  ❌ Deploy failed! Try running:  firebase login")
         return
 
     print(f"\n  ✅ Deployed!")
-    print(f"     https://{FIREBASE_PROJECT}.web.app")
+    print(f"     https://earena.web.app")
 
 
 def do_preview():

@@ -1,5 +1,5 @@
 import { Player } from '../../../types/game';
-import { Crown, Wine } from 'lucide-react';
+import { Wine } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 
@@ -10,6 +10,8 @@ interface ModernPlayerAvatarProps {
     isDrunk?: boolean;
     drunkThreshold?: number;
     onSelect?: () => void;
+    isYou?: boolean;
+    compact?: boolean;
 }
 
 export function ModernPlayerAvatar({
@@ -18,7 +20,9 @@ export function ModernPlayerAvatar({
     isTargetable,
     isDrunk = false,
     drunkThreshold = 20,
-    onSelect
+    onSelect,
+    isYou = false,
+    compact = false,
 }: ModernPlayerAvatarProps) {
     const drunkPercent = Math.min(100, Math.floor((player.manaIntake / drunkThreshold) * 100));
     const initial = player.name.charAt(0).toUpperCase();
@@ -36,20 +40,18 @@ export function ModernPlayerAvatar({
         >
             {/* Avatar Circle */}
             <div className={clsx(
-                "relative w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300",
-                isCurrentTurn
-                    ? "bg-purple-600 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-gray-900 shadow-lg shadow-purple-500/30"
-                    : isDrunk
-                        ? "bg-amber-800 text-amber-200 ring-1 ring-amber-500/50"
-                        : "bg-gray-700 text-gray-300 ring-1 ring-gray-600",
+                "relative rounded-full flex items-center justify-center font-bold transition-all duration-300",
+                compact ? "w-10 h-10 text-xs" : "w-11 h-11 text-sm",
+                isYou
+                    ? "bg-cyan-700 text-white ring-2 ring-cyan-400 ring-offset-2 ring-offset-gray-900 shadow-lg shadow-cyan-500/30"
+                    : isCurrentTurn
+                        ? "bg-purple-600 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-gray-900 shadow-lg shadow-purple-500/30"
+                        : isDrunk
+                            ? "bg-amber-800 text-amber-200 ring-1 ring-amber-500/50"
+                            : "bg-gray-700 text-gray-300 ring-1 ring-gray-600",
                 isTargetable && "ring-2 ring-red-400 ring-offset-2 ring-offset-gray-900"
             )}>
                 {initial}
-
-                {/* Leader crown */}
-                {player.isLeader && (
-                    <Crown className="absolute -top-1.5 -right-1.5 w-3 h-3 text-yellow-400" />
-                )}
 
                 {/* Drunk indicator */}
                 {isDrunk && (

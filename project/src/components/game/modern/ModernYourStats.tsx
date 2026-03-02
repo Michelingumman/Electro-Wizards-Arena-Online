@@ -1,8 +1,7 @@
 import { Player } from '../../../types/game';
-import { Droplet, Wine, Crown, Shield } from 'lucide-react';
+import { Droplet, Wine, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { GAME_CONFIG } from '../../../config/gameConfig';
-import { useGameStore } from '../../../store/gameStore';
 
 interface ModernYourStatsProps {
     player: Player;
@@ -40,7 +39,6 @@ export function ModernYourStats({
                 <div className="min-w-0">
                     <div className="flex items-center gap-1">
                         <span className="text-xs font-bold text-white truncate">{player.name}</span>
-                        {player.isLeader && <Crown className="w-3 h-3 text-yellow-400 shrink-0" />}
                         {isDrunk && <Wine className="w-3 h-3 text-amber-400 shrink-0" />}
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px]">

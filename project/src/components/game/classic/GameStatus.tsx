@@ -5,9 +5,10 @@ interface GameStatusProps {
   winner: string | null | undefined;
   players: Party['players'];
   isLeader: boolean;
+  showNoValidPlayersWarning?: boolean;
 }
 
-export function GameStatus({ status, winner, players, isLeader }: GameStatusProps) {
+export function GameStatus({ status, winner, players, isLeader, showNoValidPlayersWarning }: GameStatusProps) {
   if (status === 'finished') {
     return (
       <div className="text-center p-8 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20">
@@ -30,6 +31,13 @@ export function GameStatus({ status, winner, players, isLeader }: GameStatusProp
         <p className="text-xl text-purple-200">
           Waiting for {isLeader ? 'more players to join...' : 'the game to start...'}
         </p>
+        {showNoValidPlayersWarning && (
+          <div className="mt-4 px-4 py-3 bg-amber-900/30 border border-amber-500/30 rounded-lg">
+            <p className="text-sm text-amber-300">
+              ⚠️ None of the players have a recognized name. At least one player must use an allowed name to start the game.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

@@ -12,6 +12,87 @@ export function useGameActions(partyId: string) {
   const effectManager = new EffectManager();
   const cardEnhancer = new CardEnhancer(effectManager);
 
+  const toRounded = (value: number) => Number(value.toFixed(2));
+
+  const snapshotPlayerStats = (players: Party['players']) =>
+    new Map(players.map((player) => [
+      player.id,
+      {
+        mana: toRounded(player.mana),
+        manaIntake: toRounded(player.manaIntake || 0),
+      },
+    ]));
+
+  const buildLastActionPayload = ({
+    beforeStats,
+    updatedPlayers,
+    playerId,
+    targetId,
+    cardId,
+    cardName,
+    cardType,
+    cardRarity,
+    cardDescription,
+    manaCost,
+  }: {
+    beforeStats: Map<string, { mana: number; manaIntake: number }>;
+    updatedPlayers: Party['players'];
+    playerId: string;
+    targetId?: string;
+    cardId: string;
+    cardName: string;
+    cardType: string;
+    cardRarity: string;
+    cardDescription: string;
+    manaCost?: number;
+  }) => {
+    const attackerBefore = beforeStats.get(playerId);
+    const attackerAfter = updatedPlayers.find((player) => player.id === playerId);
+    const targetBefore = targetId ? beforeStats.get(targetId) : undefined;
+    const targetAfter = targetId ? updatedPlayers.find((player) => player.id === targetId) : undefined;
+
+    const attackerManaDelta = attackerBefore && attackerAfter
+      ? toRounded(attackerAfter.mana - attackerBefore.mana)
+      : undefined;
+    const targetManaDelta = targetBefore && targetAfter
+      ? toRounded(targetAfter.mana - targetBefore.mana)
+      : undefined;
+    const targetManaIntakeDelta = targetBefore && targetAfter
+      ? toRounded((targetAfter.manaIntake || 0) - targetBefore.manaIntake)
+      : undefined;
+    const targetDamage = targetBefore && targetAfter
+      ? Math.max(0, toRounded(targetBefore.mana - targetAfter.mana))
+      : undefined;
+
+    const affectedPlayerIds = updatedPlayers
+      .filter((player) => {
+        const before = beforeStats.get(player.id);
+        if (!before) return false;
+        return (
+          Math.abs((player.mana || 0) - before.mana) > 0.001 ||
+          Math.abs((player.manaIntake || 0) - before.manaIntake) > 0.001
+        );
+      })
+      .map((player) => player.id);
+
+    return {
+      playerId,
+      targetId,
+      cardId,
+      cardName,
+      cardType,
+      cardRarity,
+      cardDescription,
+      manaCost,
+      attackerManaDelta,
+      targetManaDelta,
+      targetDamage,
+      targetManaIntakeDelta,
+      affectedPlayerIds: affectedPlayerIds.length > 0 ? affectedPlayerIds : undefined,
+      timestamp: Date.now(),
+    };
+  };
+
   // End turn and advance to next player
   const endTurn = useCallback(async (playerId: string) => {
     const partyRef = doc(db, 'parties', partyId);
@@ -25,7 +106,7 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
 
         const updatedPlayers = [...party.players];
-        
+
         // Find next player's turn
         const currentPlayerIndex = updatedPlayers.findIndex(p => p.id === playerId);
         const nextTurnIndex = (currentPlayerIndex + 1) % updatedPlayers.length;
@@ -56,12 +137,13 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
 
         const updatedPlayers = [...party.players];
+        const beforeStats = snapshotPlayerStats(updatedPlayers);
         const player = updatedPlayers.find(p => p.id === playerId);
         const target = updatedPlayers.find(p => p.id === targetId);
 
         if (!player) throw new Error('Player not found');
         if (!target) throw new Error('Target not found');
-        
+
         // Enhance the card before applying the effect
         const enhancedCard = cardEnhancer.enhanceCard(card);
 
@@ -115,7 +197,7 @@ export function useGameActions(partyId: string) {
               target.mana = Math.max(0, target.mana - burnAmount);
               target.manaIntake = (target.manaIntake || 0) + burnAmount;
               break;
-            
+
             case 'reversed-curse-tech':
               player.mana = Math.min(party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA, player.mana + target.mana / 2);
               break;
@@ -124,7 +206,7 @@ export function useGameActions(partyId: string) {
             case 'manaRefill':
               player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
               break;
-            
+
 
             case 'potionBuff':
               effectManager.addPotionEffect({
@@ -347,18 +429,18 @@ export function useGameActions(partyId: string) {
               // Get all current mana and intake values
               const allMana = updatedPlayers.map(p => p.mana);
               const allIntake = updatedPlayers.map(p => p.manaIntake || 0);
-              
+
               // Shuffle them
               for (let i = allMana.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allMana[i], allMana[j]] = [allMana[j], allMana[i]];
               }
-              
+
               for (let i = allIntake.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allIntake[i], allIntake[j]] = [allIntake[j], allIntake[i]];
               }
-              
+
               // Reassign them
               updatedPlayers.forEach((p, index) => {
                 p.mana = allMana[index];
@@ -370,21 +452,23 @@ export function useGameActions(partyId: string) {
               // Handled in the UI with a custom modal
               break;
           }
-          
+
         } catch (effectError) {
           console.error('Error applying card effect:', effectError);
           throw new Error('Failed to apply card effect');
         }
-        
+
         // Check if any player is drunk (over the threshold)
         const drunkThreshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
         updatedPlayers.forEach(p => {
           p.isDrunk = (p.manaIntake || 0) >= drunkThreshold * 0.8;
         });
-        
+
         transaction.update(partyRef, {
           players: updatedPlayers,
-          lastAction: {
+          lastAction: buildLastActionPayload({
+            beforeStats,
+            updatedPlayers,
             playerId,
             targetId,
             cardId: card.id,
@@ -392,13 +476,14 @@ export function useGameActions(partyId: string) {
             cardType: enhancedCard.effect.type,
             cardRarity: card.rarity,
             cardDescription: card.description,
-          }
+            manaCost: enhancedCard.manaCost,
+          }),
         });
       });
-      
+
       // End turn and decay mana intake
       await endTurn(playerId);
-      
+
       return true;
     } catch (error) {
       console.error('Error applying card effect:', error);
@@ -408,10 +493,10 @@ export function useGameActions(partyId: string) {
 
   // Resolve a challenge card
   const resolveChallengeCard = useCallback(async (playerId: string, winnerId: string, loserId: string, card: Card) => {
-    
+
     // Check if challenge effects are defined in any of the supported formats
-    if (!card.effect.challengeEffects && !card.effect.winnerEffect && !card.effect.loserEffect && !card.name.includes('Name the most') && 
-        card.name !== 'Öl Hävf' && card.name !== 'Got Big Muscles?' && card.name !== 'Shot Contest' && card.name !== 'SHOT MASTER') {
+    if (!card.effect.challengeEffects && !card.effect.winnerEffect && !card.effect.loserEffect && !card.name.includes('Name the most') &&
+      card.name !== 'Öl Hävf' && card.name !== 'Got Big Muscles?' && card.name !== 'Shot Contest' && card.name !== 'SHOT MASTER') {
       console.error('Challenge effects not defined for this card:', card);
       throw new Error('Challenge effects not defined for this card: ' + card.name);
     }
@@ -429,13 +514,14 @@ export function useGameActions(partyId: string) {
         if (!partyDoc.exists()) {
           throw new Error('Party not found');
         }
-        
+
         const party = partyDoc.data() as Party;
         if (party.currentTurn !== playerId) {
           throw new Error('Not player\'s turn');
         }
 
         const updatedPlayers = [...party.players];
+        const beforeStats = snapshotPlayerStats(updatedPlayers);
         const winner = updatedPlayers.find(p => p.id === winnerId);
         const loser = updatedPlayers.find(p => p.id === loserId);
 
@@ -493,7 +579,7 @@ export function useGameActions(partyId: string) {
           }
 
           // Apply effects to winner and loser
-          
+
           const winnerResult = applyChallengeEffect(winner, winnerEffect, maxMana, card);
           const loserResult = applyChallengeEffect(loser, loserEffect, maxMana, card);
 
@@ -524,7 +610,9 @@ export function useGameActions(partyId: string) {
         // Update Firestore with challenge results
         transaction.update(partyRef, {
           players: updatedPlayers,
-          lastAction: {
+          lastAction: buildLastActionPayload({
+            beforeStats,
+            updatedPlayers,
             playerId: winnerId,
             targetId: loserId,
             cardId: card.id,
@@ -532,9 +620,10 @@ export function useGameActions(partyId: string) {
             cardType: card.effect.type,
             cardRarity: card.rarity,
             cardDescription: card.description,
-          }
+            manaCost: card.manaCost,
+          }),
         });
-        
+
 
       });
 
@@ -558,17 +647,17 @@ export function useGameActions(partyId: string) {
         if (!partyDoc.exists()) throw new Error('Party not found');
         const party = partyDoc.data() as Party;
 
-
+        const beforeStats = snapshotPlayerStats(party.players);
 
         const updatedPlayers = party.players.map(player => {
           if (player.id === playerId) {
-            const manaGain = (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT) * 
+            const manaGain = (party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT) *
               (player.potionMultiplier?.value ?? 1);
-            
+
             // Add mana intake tracking
             const newManaIntake = (player.manaIntake || 0) + manaGain;
             const drunkThreshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
-            
+
             return {
               ...player,
               mana: Math.min(
@@ -585,14 +674,18 @@ export function useGameActions(partyId: string) {
 
         transaction.update(partyRef, {
           players: updatedPlayers,
-          lastAction: {
+          lastAction: buildLastActionPayload({
+            beforeStats,
+            updatedPlayers,
             playerId,
+            targetId: playerId,
             cardId: 'drink',
             cardName: 'Drink Potion',
             cardType: 'forceDrink',
             cardRarity: 'common',
             cardDescription: `Drink ${party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT} mana.`,
-          }
+            manaCost: 0,
+          }),
         });
       });
       return true;

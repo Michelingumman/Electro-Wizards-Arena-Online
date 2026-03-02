@@ -1,14 +1,13 @@
 import { Card, Party, Player } from '../../../types/game';
 import { GAME_CONFIG } from '../../../config/gameConfig';
-import { LogOut, Play, Hash } from 'lucide-react';
+import { LogOut, Play, Hash, Wine } from 'lucide-react';
 
 import { ChallengeModal } from '../classic/ChallengeModal';
 import { GameSettings } from '../classic/GameSettings';
 import { GameStatus } from '../classic/GameStatus';
 import { ModernCardHand } from './ModernCardHand';
-import { ModernPlayerAvatar } from './ModernPlayerAvatar';
-import { ModernYourStats } from './ModernYourStats';
-import { ArenaActionDisplay } from './ArenaActionDisplay';
+import { ArenaCircle } from './ArenaCircle';
+import { AttackBanner } from './AttackBanner';
 
 interface GameModernUIProps {
     party: Party;
@@ -16,6 +15,7 @@ interface GameModernUIProps {
     isLeader: boolean;
     canStart: boolean;
     isCurrentTurn: boolean;
+    showNoValidPlayersWarning: boolean;
     onPlayCard: (card: Card) => Promise<void>;
     onTargetSelect: (targetId: string) => Promise<void>;
     onChallengeResolve: (winnerId: string, loserId: string) => Promise<void>;
@@ -33,6 +33,7 @@ export function GameModernUI({
     isLeader,
     canStart,
     isCurrentTurn,
+    showNoValidPlayersWarning,
     onPlayCard,
     onTargetSelect,
     onChallengeResolve,
@@ -44,10 +45,10 @@ export function GameModernUI({
     setSelectedCard
 }: GameModernUIProps) {
     const drunkThreshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
-    const opponents = party.players.filter(p => p.id !== currentPlayer.id);
+    const manaDrinkAmount = party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT;
 
     return (
-        <div className="w-full min-h-screen min-h-[100dvh] flex flex-col relative bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950">
+        <div className="w-full h-screen h-[100dvh] flex flex-col relative bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
             {/* ─── Header ─── */}
             <div className="flex items-center justify-between px-3 py-2 bg-black/40 border-b border-gray-800/40 backdrop-blur-sm shrink-0 z-30">
                 <div className="flex items-center gap-2 min-w-0">
@@ -70,83 +71,66 @@ export function GameModernUI({
                 </div>
             </div>
 
-            {/* ─── Scrollable Arena Content ─── */}
-            <div className="flex-1 flex flex-col overflow-y-auto pb-48 z-20">
-                {/* Waiting state */}
-                {party.status === 'waiting' && (
-                    <div className="flex-1 flex items-center justify-center px-4">
-                        <div className="text-center">
-                            <GameStatus status={party.status} winner={party.winner} players={party.players} isLeader={isLeader} />
-                        </div>
+            {/* ─── Waiting State ─── */}
+            {party.status === 'waiting' && (
+                <div className="flex-1 flex items-center justify-center px-4">
+                    <div className="text-center">
+                        <GameStatus status={party.status} winner={party.winner} players={party.players} isLeader={isLeader} showNoValidPlayersWarning={showNoValidPlayersWarning} />
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Playing state: Arena layout */}
-                {party.status !== 'waiting' && (
-                    <>
-                        {/* Opponent Avatars */}
-                        <div className="px-4 pt-4 pb-2">
-                            <div className="flex justify-center gap-4 flex-wrap">
-                                {opponents.map(player => (
-                                    <ModernPlayerAvatar
-                                        key={player.id}
-                                        player={player}
-                                        isCurrentTurn={player.id === party.currentTurn}
-                                        isTargetable={Boolean(
-                                            selectedCard?.requiresTarget &&
-                                            (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
-                                        )}
-                                        isDrunk={player.isDrunk}
-                                        drunkThreshold={drunkThreshold}
-                                        onSelect={selectedCard && !selectedCard.isChallenge ? () => onTargetSelect(player.id) : undefined}
-                                    />
-                                ))}
+            {/* ─── Playing State: 3-Zone Layout ─── */}
+            {party.status !== 'waiting' && (
+                <>
+                    {/* Zone 1: Attack Banner */}
+                    <div className="shrink-0 pt-1 z-20">
+                        {party.lastAction && (
+                            <AttackBanner lastAction={party.lastAction} players={party.players} />
+                        )}
+                    </div>
+
+                    {/* Zone 2: Arena Circle (fills space between header+banner and card fan) */}
+                    <div className="flex-1 relative z-10" style={{ marginBottom: '340px' }}>
+                        {party.status === 'finished' ? (
+                            <div className="flex items-center justify-center h-full">
+                                <GameStatus status={party.status} winner={party.winner} players={party.players} isLeader={isLeader} />
                             </div>
-                        </div>
-
-                        {/* Arena Center — Visual Action Display */}
-                        <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 min-h-[180px]">
-                            {party.lastAction ? (
-                                <ArenaActionDisplay lastAction={party.lastAction} players={party.players} />
-                            ) : (
-                                <div className="text-center">
-                                    <div className="text-xs text-gray-600">
-                                        {isCurrentTurn ? 'Your turn — play a card!' : 'Waiting for opponent...'}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Winner */}
-                            {party.status === 'finished' && (
-                                <div className="mt-4">
-                                    <GameStatus status={party.status} winner={party.winner} players={party.players} isLeader={isLeader} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Your Stats Bar */}
-                        <div className="px-3 pb-3">
-                            <ModernYourStats
-                                player={currentPlayer}
+                        ) : (
+                            <ArenaCircle
+                                players={party.players}
+                                currentPlayer={currentPlayer}
+                                currentTurn={party.currentTurn}
+                                selectedCard={selectedCard}
+                                lastAction={party.lastAction}
                                 isCurrentTurn={isCurrentTurn}
                                 drunkThreshold={drunkThreshold}
-                                onDrink={onDrink}
-                                manaDrinkAmount={party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT}
+                                onTargetSelect={onTargetSelect}
                             />
-                        </div>
-                    </>
-                )}
-            </div>
+                        )}
+                    </div>
 
-            {/* ─── Card Fan (fixed bottom) ─── */}
-            {party.status === 'playing' && (
-                <ModernCardHand
-                    cards={currentPlayer.cards}
-                    onPlayCard={onPlayCard}
-                    disabled={!isCurrentTurn}
-                    currentMana={currentPlayer.mana}
-                    selectedCard={selectedCard}
-                />
+                    {/* Zone 3: Card Fan (fixed bottom, 240px) */}
+                    {party.status === 'playing' && (
+                        <ModernCardHand
+                            cards={currentPlayer.cards}
+                            onPlayCard={onPlayCard}
+                            disabled={!isCurrentTurn}
+                            currentMana={currentPlayer.mana}
+                            selectedCard={selectedCard}
+                        />
+                    )}
+
+                    {party.status === 'playing' && (
+                        <button
+                            onClick={onDrink}
+                            className="fixed bottom-[210px] right-4 z-[70] flex items-center gap-2 rounded-xl border border-blue-400/40 bg-blue-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.35)] transition-all hover:bg-blue-500 active:scale-95"
+                        >
+                            <Wine className="h-4 w-4 text-blue-100" />
+                            Drink +{manaDrinkAmount}
+                        </button>
+                    )}
+                </>
             )}
 
             {/* ─── Challenge Modal ─── */}

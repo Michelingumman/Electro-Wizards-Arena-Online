@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "electroarenagames"
-  }
+  },
+  "targets": {
+    "electroarenagames": {
+      "hosting": {
+        "main": [
+          "electro-arena"
+        ],
+        "live": [
+          "earena"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

@@ -82,16 +82,23 @@ export function Game() {
     'master', 'master1', 'master2', 'master3', 'slave', 'slave1', 'slave2', 'slave3',
     'SB', 'limpan_döda_mig_inte', 'ollanbollan', 'ollan', 'The_Boss',
     'The_Frowning_Friends', 'The_Smiling_Friends', 'papis', 'left', 'pc', 'inco',
-    'right', 'phone', 'fellan', 'felix'
+    'right', 'phone', 'fellan', 'felix', 'top', 'bot', 'test'
   ];
 
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
   const isLeader = Boolean(currentPlayer?.isLeader);
+  const hasValidPlayer = party?.players.some((player) => validPlayers.includes(player.name.toLowerCase())) ?? false;
   const canStart = Boolean(
     party?.status === 'waiting' &&
     isLeader &&
     (party?.players.length ?? 0) >= 2 &&
-    party.players.some((player) => validPlayers.includes(player.name.toLowerCase()))
+    hasValidPlayer
+  );
+  const showNoValidPlayersWarning = Boolean(
+    party?.status === 'waiting' &&
+    isLeader &&
+    (party?.players.length ?? 0) >= 2 &&
+    !hasValidPlayer
   );
 
   const handlePlayCard = async (card: Card) => {
@@ -174,7 +181,7 @@ export function Game() {
     }
 
     try {
-      await resolveChallengeCard(currentPlayer.id, selectedCard, finalWinnerId, finalLoserId);
+      await resolveChallengeCard(currentPlayer.id, finalWinnerId, finalLoserId, selectedCard);
       setSelectedCard(null);
     } catch (error) {
       console.error('Error resolving challenge:', error);
@@ -246,6 +253,7 @@ export function Game() {
     isLeader,
     canStart,
     isCurrentTurn,
+    showNoValidPlayersWarning,
     onPlayCard: handlePlayCard,
     onTargetSelect: handleTargetSelect,
     onChallengeResolve: handleChallengeResolve,

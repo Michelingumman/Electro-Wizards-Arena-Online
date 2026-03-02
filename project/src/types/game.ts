@@ -57,6 +57,13 @@ export interface GameAction {
   cardType: string;
   cardRarity: string;
   cardDescription: string;
+  manaCost?: number;
+  attackerManaDelta?: number;
+  targetManaDelta?: number;
+  targetDamage?: number;
+  targetManaIntakeDelta?: number;
+  affectedPlayerIds?: string[];
+  timestamp?: number;
 }
 
 export interface GameSettings {
