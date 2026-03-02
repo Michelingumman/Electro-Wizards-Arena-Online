@@ -1,4 +1,4 @@
-import { Party } from '../../types/game';
+import { Party } from '../../../types/game';
 import { Sword, Heart, Star, Shield, Crown, Droplet, Wine, ArrowDown, Shuffle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -19,8 +19,8 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
   if (!attacker) return null;
 
   const isSelfTarget = lastAction.playerId === lastAction.targetId;
-  const isRandomTarget = lastAction.cardDescription?.toLowerCase().includes('randomly select') || 
-                         lastAction.cardDescription?.toLowerCase().includes('random player');
+  const isRandomTarget = lastAction.cardDescription?.toLowerCase().includes('randomly select') ||
+    lastAction.cardDescription?.toLowerCase().includes('random player');
 
   // Helper to get card color class based on card rarity
   const getCardColorClass = (rarity: string, type: string) => {
@@ -28,7 +28,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
     if (type === 'challenge') {
       return 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-500/40';
     }
-    
+
     if (type === 'forceDrink') {
       return 'bg-gradient-to-br from-amber-600 to-amber-800 border-amber-400 shadow-amber-500/40';
     }
@@ -85,7 +85,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
       manaValue: null as number | null,
       intakeValue: null as number | null,
     };
-    
+
     // Card mana cost from description if available
     if (lastAction.cardDescription) {
       // Check for mana gain patterns
@@ -93,14 +93,14 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
       if (manaMatch && manaMatch[2]) {
         effects.manaValue = parseInt(manaMatch[2]) * (manaMatch[1] === '-' ? -1 : 1);
       }
-      
+
       // Check for intake patterns
       const intakeMatch = lastAction.cardDescription.match(/(\+|\-)\s*(\d+)\s*[Ii]ntake/);
       if (intakeMatch && intakeMatch[2]) {
         effects.intakeValue = parseInt(intakeMatch[2]) * (intakeMatch[1] === '-' ? -1 : 1);
       }
     }
-    
+
     // If we have numeric card ID that might be a mana cost
     if (lastAction.cardId && /^\d+$/.test(lastAction.cardId)) {
       effects.manaCost = parseInt(lastAction.cardId);
@@ -110,20 +110,20 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
     if (!effects.manaCost && lastAction.cardName && /^\d+$/.test(lastAction.cardName)) {
       effects.manaCost = parseInt(lastAction.cardName);
     }
-    
+
     return effects;
   };
 
   const { manaCost, manaValue, intakeValue } = extractEffectValues();
   const cardColorClass = getCardColorClass(lastAction.cardRarity, lastAction.cardType);
-  
+
   // Check if it's a drinking action
   const isDrinkAction = lastAction.cardType === 'forceDrink' || lastAction.cardId === 'drink';
-  
+
   // Extract intake value from description for random cards
   const getIntakeValueFromDescription = () => {
     if (!lastAction.cardDescription) return null;
-    
+
     const match = lastAction.cardDescription.match(/gain\s+(\d+)\s+mana\s+intake/i);
     if (match && match[1]) {
       return parseInt(match[1]);
@@ -170,7 +170,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
           {/* Decorative card patterns */}
           <div className="absolute top-0 right-0 w-16 h-16 opacity-10 rounded-bl-3xl bg-white"></div>
           <div className="absolute bottom-0 left-0 w-8 h-8 opacity-10 rounded-tr-xl bg-white"></div>
-          
+
           {/* Card Icon and Name */}
           <div className="flex items-center space-x-2 z-10">
             <div className="bg-black/30 p-1 rounded-full">
@@ -191,22 +191,22 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
                 <Droplet className="w-3 h-3 ml-1 text-blue-300" />
               </div>
             )}
-            
+
             {/* Mana Effect */}
             {manaValue !== null && (
               <div className="flex items-center bg-emerald-900/70 px-2 py-1 rounded-full">
                 <span className="text-xs text-white font-medium">
-                  {manaValue > 0 ? `+${manaValue}` : manaValue} 
+                  {manaValue > 0 ? `+${manaValue}` : manaValue}
                 </span>
                 <Droplet className="w-3 h-3 ml-1 text-emerald-300" />
               </div>
             )}
-            
+
             {/* Intake Effect */}
             {(intakeValue !== null || randomIntakeValue !== null) && (
               <div className="flex items-center bg-amber-900/70 px-2 py-1 rounded-full">
                 <span className="text-xs text-white font-medium">
-                  {intakeValue !== null 
+                  {intakeValue !== null
                     ? (intakeValue > 0 ? `+${intakeValue}` : intakeValue)
                     : (randomIntakeValue !== null ? `+${randomIntakeValue}` : null)}
                 </span>
@@ -220,7 +220,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
         <div className="text-xs text-gray-300 text-center max-w-full px-2 py-1 bg-gray-900/50 rounded-md">
           {lastAction.cardDescription}
         </div>
-        
+
         {/* Random selection indicator */}
         {isRandomTarget && (
           <div className="flex items-center space-x-1 text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-full">
@@ -253,7 +253,7 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
             </div>
           </div>
         )}
-        
+
         {/* Self-target case but shown clearly */}
         {isSelfTarget && !defender && (
           <div className="flex flex-col items-center space-y-1">

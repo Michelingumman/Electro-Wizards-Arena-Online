@@ -1,9 +1,9 @@
-import { Player } from '../../types/game';
+import { Player } from '../../../types/game';
 import { Droplet, Crown, Wine } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import { GAME_CONFIG } from '../../config/gameConfig';
-import { useGameStore } from '../../store/gameStore';
+import { GAME_CONFIG } from '../../../config/gameConfig';
+import { useGameStore } from '../../../store/gameStore';
 import { useState, useEffect, useRef } from 'react';
 
 interface PlayerStatsProps {

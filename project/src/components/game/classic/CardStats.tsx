@@ -1,4 +1,4 @@
-import { PlayerHand } from '../../types/cards';
+import { PlayerHand } from '../../../types/cards';
 import { Crown, Shield, Sword, Sparkles } from 'lucide-react';
 
 interface CardStatsProps {

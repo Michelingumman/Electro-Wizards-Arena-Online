@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, Player } from '../../types/game';
+import { Card, Player } from '../../../types/game';
 import { Trophy, Droplet, Wine, X } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Button } from '../../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GAME_CONFIG } from '../../config/gameConfig';
+import { GAME_CONFIG } from '../../../config/gameConfig';
 
 interface ChallengeModalProps {
   card: Card;
@@ -59,31 +59,31 @@ export function ChallengeModal({
         };
       }
       // Handle specific card cases by name
-      else if (card.name === 'Öl Hävf'){ //non standard challenge
+      else if (card.name === 'Öl Hävf') { //non standard challenge
         return {
           winEffect: `+ 5 Mana`,
           loseEffect: `+ 10 Mana Intake`
         };
       }
-      else if (card.name === 'Got Big Muscles?'){ // non standrad challenge
+      else if (card.name === 'Got Big Muscles?') { // non standrad challenge
         return {
           winEffect: `+ 3 Mana`,
           loseEffect: `- 4 Mana`
         };
       }
-      else if (card.name === 'Shot Contest'){ // non standard challenge
+      else if (card.name === 'Shot Contest') { // non standard challenge
         return {
           winEffect: `+ 2 Mana`,
           loseEffect: `+ 6 Mana Intake`
         };
       }
-      else if (card.name === 'SHOT MASTER'){ // non standard challenge
+      else if (card.name === 'SHOT MASTER') { // non standard challenge
         return {
           winEffect: `Mana intake reset to 0`,
           loseEffect: `Mana intake doubled`
         };
       }
-      else if (card.name.includes('Name the most')){ // Naming challenges
+      else if (card.name.includes('Name the most')) { // Naming challenges
         const value = card.effect.winnerEffect?.value || 5;
         return {
           winEffect: `Steal ${value} mana from loser`,
@@ -106,7 +106,7 @@ export function ChallengeModal({
   // Helper to get human-readable description of an effect
   const getEffectDescription = (effect: any) => {
     if (!effect) return 'No effect';
-    
+
     try {
       switch (effect.type) {
         case 'mana':
@@ -141,12 +141,12 @@ export function ChallengeModal({
       setError('Please select both a winner and loser');
       return;
     }
-    
+
     if (winnerId === loserId) {
       setError('Winner and loser cannot be the same player');
       return;
     }
-    
+
     try {
       onConfirm(winnerId, loserId);
     } catch (error) {
@@ -157,10 +157,10 @@ export function ChallengeModal({
 
   const canConfirm = winnerId && loserId && winnerId !== loserId;
   const effects = getChallengeEffects();
-  
+
   // Enhanced card styling based on its color
-  const cardColorClass = card.color ? 
-    `from-${card.color}-600 to-${card.color}-800` : 
+  const cardColorClass = card.color ?
+    `from-${card.color}-600 to-${card.color}-800` :
     'from-purple-600 to-purple-900';
 
   return (
@@ -231,8 +231,8 @@ export function ChallengeModal({
               >
                 <option value="">Select loser...</option>
                 {players.map(player => (
-                  <option 
-                    key={player.id} 
+                  <option
+                    key={player.id}
                     value={player.id}
                     disabled={player.id === winnerId}
                   >

@@ -10,13 +10,17 @@ import { auth } from '../lib/firebase';
 export function usePartyActions() {
 
 
-  const createParty = useCallback(async (player: Pick<Player, 'id' | 'name'>) => {
+  const createParty = useCallback(async (
+    player: Pick<Player, 'id' | 'name'>,
+    gameMode: 'classic' | 'modern' = 'classic'
+  ) => {
     const code = generatePartyCode();
 
     // Prepare initial party data with an empty partyId placeholder
     const partyData: Omit<Party, 'id'> = {
       code,
       status: 'waiting',
+      gameMode,
       players: [
         {
           ...player,

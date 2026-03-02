@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { GameSettings as GameSettingsType } from '../../types/game';
-import { GAME_CONFIG } from '../../config/gameConfig';
-import { useGameStore } from '../../store/gameStore';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
+import { GameSettings as GameSettingsType } from '../../../types/game';
+import { GAME_CONFIG } from '../../../config/gameConfig';
+import { useGameStore } from '../../../store/gameStore';
 
 interface GameSettingsProps {
   onSave: (settings: GameSettingsType) => void;
@@ -51,7 +51,7 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl p-4 z-50 border border-purple-500/20">
           <h3 className="text-lg font-semibold mb-4 text-purple-100">Game Settings</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Initial Mana</label>

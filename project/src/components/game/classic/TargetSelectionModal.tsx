@@ -1,6 +1,6 @@
-import { Player, Card } from '../../types/game';
+import { Player, Card } from '../../../types/game';
 import { X } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Button } from '../../ui/Button';
 import { PlayerStats } from './PlayerStats';
 
 interface TargetSelectionModalProps {

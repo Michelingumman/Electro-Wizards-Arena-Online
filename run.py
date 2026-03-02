@@ -4,7 +4,7 @@ import sys
 import os
 
 PROJECT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "project")
-FIREBASE_PROJECT = "electro-wizards-arena---online"
+FIREBASE_PROJECT = "electroarenagames"
 
 
 def run(cmd, cwd=PROJECT_DIR):
@@ -64,10 +64,9 @@ def do_deploy():
 
 
 def do_preview():
-    if not os.path.isdir(os.path.join(PROJECT_DIR, "dist")):
-        print("\n  No dist/ found, building first...")
-        if not do_build():
-            return
+    print("\n  🔄 Rebuilding before preview...")
+    if not do_build():
+        return
     print("\n  👀 Previewing production build (Ctrl+C to stop)...\n")
     run("npm run preview")
 

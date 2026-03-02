@@ -1,7 +1,7 @@
-import { Button } from '../ui/Button';
+import { Button } from '../../ui/Button';
 import { LogOut } from 'lucide-react';
 import { GameSettings } from './GameSettings';
-import { Party } from '../../types/game';
+import { Party } from '../../../types/game';
 
 interface GameHeaderProps {
   party: Party;

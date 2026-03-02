@@ -1,7 +1,7 @@
-import { Button } from '../ui/Button';
+import { Button } from '../../ui/Button';
 import { Beaker, Wine } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { GAME_CONFIG } from '../../config/gameConfig';
+import { GAME_CONFIG } from '../../../config/gameConfig';
 
 interface GameControlsProps {
   gameStatus: string;

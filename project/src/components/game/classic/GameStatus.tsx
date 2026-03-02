@@ -1,4 +1,4 @@
-import { Party } from '../../types/game';
+import { Party } from '../../../types/game';
 
 interface GameStatusProps {
   status: Party['status'];

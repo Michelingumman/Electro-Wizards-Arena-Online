@@ -1,8 +1,8 @@
-import { Card as CardType } from '../../types/game';
+import { Card as CardType } from '../../../types/game';
 import { Sword, Heart, Droplet, Zap, Crown, Star } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import { useGameStore } from '../../store/gameStore';
+import { useGameStore } from '../../../store/gameStore';
 
 interface CardListProps {
   cards: CardType[];
@@ -12,10 +12,10 @@ interface CardListProps {
   selectedCard: CardType | null;
 }
 
-export function CardList({ 
-  cards, 
+export function CardList({
+  cards,
   onPlayCard,
-  disabled, 
+  disabled,
   currentMana,
   selectedCard,
 }: CardListProps) {
@@ -62,28 +62,28 @@ export function CardList({
   const randomizeText = (text: string): string => {
     // Create a mapping of characters to use for scrambling
     const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    
+
     // For some words, completely replace them with nonsense
     if (Math.random() < 0.3) {
-      return Array.from({ length: text.length }).map(() => 
+      return Array.from({ length: text.length }).map(() =>
         alphabet[Math.floor(Math.random() * alphabet.length)]
       ).join('');
     }
-    
+
     // For other words, scramble individual characters
     return text.split('').map(char => {
       if (char === ' ') return ' ';
-      
+
       // Chance to replace with a completely different character
       if (Math.random() < 0.3) {
         return alphabet[Math.floor(Math.random() * alphabet.length)];
       }
-      
+
       // Chance to switch case
       if (Math.random() < 0.5) {
         return char.toLowerCase();
       }
-      
+
       return char.toUpperCase();
     }).join('');
   };
@@ -156,9 +156,9 @@ export function CardList({
         const canPlay = !disabled && card.manaCost <= currentMana;
         const rarityStyles = getRarityStyles(card);
         const colorGradient = getColorStyles(card);
-        
+
         // For drunk players, randomly adjust displayed mana cost (visual only, not functional)
-        const displayedManaCost = isDrunk 
+        const displayedManaCost = isDrunk
           ? formatNumber(card.manaCost + (Math.random() > 0.5 ? Math.floor(Math.random() * 3) : 0))
           : formatNumber(card.manaCost);
 
@@ -179,7 +179,7 @@ export function CardList({
               {
                 'cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30': canPlay,
                 'cursor-not-allowed opacity-75': !canPlay,
-                'opacity-75 filter saturate-50': disabled, 
+                'opacity-75 filter saturate-50': disabled,
                 'ring-2 ring-purple-400 shadow-lg shadow-purple-500/30': isSelected,
                 'hover:border-white': !isSelected && canPlay,
                 'bg-gradient-to-br': true,
@@ -189,7 +189,7 @@ export function CardList({
             )}
           >
             {isSelected && (
-              <motion.div 
+              <motion.div
                 className="absolute inset-0 bg-purple-500/10 animate-pulse"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

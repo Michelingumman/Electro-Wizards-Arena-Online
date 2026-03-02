@@ -38,6 +38,7 @@ export interface Party {
   currentTurn: string;
   status: 'waiting' | 'playing' | 'finished';
   leaderId: string;
+  gameMode?: 'classic' | 'modern';
   winner?: string | null;
   settings?: GameSettings;
   lastAction?: GameAction;
