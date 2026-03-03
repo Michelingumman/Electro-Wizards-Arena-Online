@@ -14,4 +14,7 @@ export const GAME_CONFIG = {
   DRUNK_THRESHOLD: 20.0,
   MANA_INTAKE_DECAY_RATE: 1.0, // Amount of mana intake that decays per minute (will be divided for per-second updates)
 
+  // Can Cup mode
+  CAN_CUP_SIPS_PER_CAN: 10,
+
 } as const;

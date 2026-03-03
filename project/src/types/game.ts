@@ -1,10 +1,21 @@
 import { CardBase } from './cards';
 
+export type GameMode = 'classic' | 'modern' | 'can-cup';
+
+export interface CanCupState {
+  sipsLeft: number;
+  waterSips: number;
+  deflectCharges: number;
+  emptyCans: number;
+  pendingResolution?: boolean;
+}
+
 export interface Player {
   id: string;
   name: string;
   mana: number;
   manaIntake: number;
+  canCup?: CanCupState;
   cards: Card[];
   isLeader?: boolean;
   effects?: PlayerEffect[];
@@ -34,7 +45,33 @@ export type Card = CardBase;
 export interface PendingChallenge {
   playerId: string;
   card: Card;
+  duelistOneId?: string;
+  duelistTwoId?: string;
+  reactionGame?: {
+    mode: 'reaction';
+    phase: 'waiting' | 'countdown' | 'resolved';
+    readyPlayerIds: string[];
+    countdownStartedAt?: number;
+    redAt?: number;
+    yellowAt?: number;
+    greenAt?: number;
+    winnerId?: string;
+    loserId?: string;
+    resolvedAt?: number;
+  };
   createdAt: number;
+}
+
+export interface PendingCanCupSipResolution {
+  targetPlayerId: string;
+  totalSips: number;
+  beerSipsToConsume: number;
+  waterSipsToConsume: number;
+  deflectSipsToConsume: number;
+  sourcePlayerId?: string;
+  sourceCardId?: string;
+  sourceCardName?: string;
+  updatedAt: number;
 }
 
 export interface Party {
@@ -44,11 +81,12 @@ export interface Party {
   currentTurn: string;
   status: 'waiting' | 'playing' | 'finished';
   leaderId: string;
-  gameMode?: 'classic' | 'modern';
+  gameMode?: GameMode;
   winner?: string | null;
   settings?: GameSettings;
   lastAction?: GameAction;
   pendingChallenge?: PendingChallenge | null;
+  pendingCanCupSips?: Record<string, PendingCanCupSipResolution> | null;
   previousState?: {
     players: Player[];
     currentTurn: string;
@@ -79,4 +117,7 @@ export interface GameSettings {
   initialMana: number;
   drunkThreshold: number;
   manaIntakeDecayRate: number;
+  canCupSipsPerCan?: number;
+  canCupCansToWin?: number;
+  godMode?: boolean;
 }

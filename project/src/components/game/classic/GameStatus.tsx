@@ -5,10 +5,11 @@ interface GameStatusProps {
   winner: string | null | undefined;
   players: Party['players'];
   isLeader: boolean;
+  code: string;
   showNoValidPlayersWarning?: boolean;
 }
 
-export function GameStatus({ status, winner, players, isLeader, showNoValidPlayersWarning }: GameStatusProps) {
+export function GameStatus({ status, winner, players, isLeader, code, showNoValidPlayersWarning }: GameStatusProps) {
   if (status === 'finished') {
     return (
       <div className="text-center p-8 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20">
@@ -28,6 +29,15 @@ export function GameStatus({ status, winner, players, isLeader, showNoValidPlaye
   if (status === 'waiting') {
     return (
       <div className="text-center p-6 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20 max-w-md w-full">
+        {players.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-purple-500/10">
+            <p className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-1">Room Code</p>
+            <div className="text-4xl font-black text-white tracking-[0.2em] font-mono bg-purple-950/40 py-3 rounded-xl border border-purple-500/20 shadow-inner">
+              {code || 'JOIN'}
+            </div>
+            <p className="text-[10px] text-purple-300/50 mt-2">Share this code with your friends</p>
+          </div>
+        )}
         <p className="text-xl text-purple-200">
           Waiting for {isLeader ? 'more players to join...' : 'the game to start...'}
         </p>

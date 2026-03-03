@@ -1,0 +1,147 @@
+import { GAME_CONFIG } from '../config/gameConfig';
+import { CanCupState, Player } from '../types/game';
+
+export interface SipResolution {
+  appliedSips: number;
+  blockedByWater: number;
+  blockedByDeflect: number;
+  emptiedCans: number;
+}
+
+export const sanitizeSipsPerCan = (sipsPerCan?: number): number => {
+  if (!Number.isFinite(sipsPerCan) || (sipsPerCan ?? 0) <= 0) {
+    return GAME_CONFIG.CAN_CUP_SIPS_PER_CAN;
+  }
+  return Math.max(1, Math.round(sipsPerCan as number));
+};
+
+export const ensureCanCupState = (player: Player, sipsPerCan?: number): CanCupState => {
+  const normalizedSipsPerCan = sanitizeSipsPerCan(sipsPerCan);
+  if (!player.canCup) {
+    player.canCup = {
+      sipsLeft: normalizedSipsPerCan,
+      waterSips: 0,
+      deflectCharges: 0,
+      emptyCans: 0,
+    };
+  }
+
+  player.canCup.sipsLeft = Math.min(
+    normalizedSipsPerCan,
+    Math.max(0, Math.round(player.canCup.sipsLeft ?? normalizedSipsPerCan))
+  );
+  if (player.canCup.sipsLeft === 0) {
+    player.canCup.sipsLeft = normalizedSipsPerCan;
+  }
+  player.canCup.waterSips = Math.max(0, Math.round(player.canCup.waterSips ?? 0));
+  player.canCup.deflectCharges = Math.max(0, Math.round(player.canCup.deflectCharges ?? 0));
+  player.canCup.emptyCans = Math.max(0, Math.round(player.canCup.emptyCans ?? 0));
+
+  return player.canCup;
+};
+
+export const applyForcedSips = (
+  player: Player,
+  sipCount: number,
+  sipsPerCan?: number
+): SipResolution => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  const normalizedSipsPerCan = sanitizeSipsPerCan(sipsPerCan);
+  const total = Math.max(0, Math.round(sipCount));
+
+  const result: SipResolution = {
+    appliedSips: 0,
+    blockedByWater: 0,
+    blockedByDeflect: 0,
+    emptiedCans: 0,
+  };
+
+  for (let i = 0; i < total; i += 1) {
+    if (state.deflectCharges > 0) {
+      state.deflectCharges -= 1;
+      result.blockedByDeflect += 1;
+      continue;
+    }
+
+    if (state.waterSips > 0) {
+      state.waterSips -= 1;
+      result.blockedByWater += 1;
+      continue;
+    }
+
+    state.sipsLeft = Math.max(0, state.sipsLeft - 1);
+    result.appliedSips += 1;
+
+    if (state.sipsLeft === 0) {
+      state.emptyCans += 1;
+      result.emptiedCans += 1;
+      state.sipsLeft = normalizedSipsPerCan;
+    }
+  }
+
+  return result;
+};
+
+export const applyDirectSips = (
+  player: Player,
+  sipCount: number,
+  sipsPerCan?: number
+): SipResolution => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  const normalizedSipsPerCan = sanitizeSipsPerCan(sipsPerCan);
+  const total = Math.max(0, Math.round(sipCount));
+
+  const result: SipResolution = {
+    appliedSips: 0,
+    blockedByWater: 0,
+    blockedByDeflect: 0,
+    emptiedCans: 0,
+  };
+
+  for (let i = 0; i < total; i += 1) {
+    state.sipsLeft = Math.max(0, state.sipsLeft - 1);
+    result.appliedSips += 1;
+
+    if (state.sipsLeft === 0) {
+      state.emptyCans += 1;
+      result.emptiedCans += 1;
+      state.sipsLeft = normalizedSipsPerCan;
+    }
+  }
+
+  return result;
+};
+
+export const addWaterSips = (player: Player, amount: number, sipsPerCan?: number): CanCupState => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  state.waterSips = Math.max(0, state.waterSips + Math.max(0, Math.round(amount)));
+  return state;
+};
+
+export const addDeflectCharges = (player: Player, amount: number, sipsPerCan?: number): CanCupState => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  state.deflectCharges = Math.max(0, state.deflectCharges + Math.max(0, Math.round(amount)));
+  return state;
+};
+
+export const topUpSips = (player: Player, amount: number, sipsPerCan?: number): CanCupState => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  const normalizedSipsPerCan = sanitizeSipsPerCan(sipsPerCan);
+  state.sipsLeft = Math.min(normalizedSipsPerCan, state.sipsLeft + Math.max(0, Math.round(amount)));
+  return state;
+};
+
+export const swapSipsLeft = (first: Player, second: Player, sipsPerCan?: number): void => {
+  const firstState = ensureCanCupState(first, sipsPerCan);
+  const secondState = ensureCanCupState(second, sipsPerCan);
+  const firstSips = firstState.sipsLeft;
+  firstState.sipsLeft = secondState.sipsLeft;
+  secondState.sipsLeft = firstSips;
+};
+
+export const setSipsLeft = (player: Player, nextSipsLeft: number, sipsPerCan?: number): CanCupState => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  const normalizedSipsPerCan = sanitizeSipsPerCan(sipsPerCan);
+  state.sipsLeft = Math.min(normalizedSipsPerCan, Math.max(0, Math.round(nextSipsLeft)));
+  return state;
+};

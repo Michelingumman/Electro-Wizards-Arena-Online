@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
-import { Card } from '../types/game';
+import { Card, PendingCanCupSipResolution } from '../types/game';
 import { useGameActions } from '../hooks/useGameActions';
 import { useGameState } from '../hooks/useGameState';
 import { usePartyActions } from '../hooks/usePartyActions';
@@ -11,13 +11,24 @@ import { GAME_CONFIG } from '../config/gameConfig';
 import clsx from 'clsx';
 import { GameClassicUI } from '../components/game/classic/GameClassicUI';
 import { GameModernUI } from '../components/game/modern/GameModernUI';
+import { isCanCupReactionChallengeCard } from '../utils/canCupChallengeHelpers';
 
 export function Game() {
   const { partyId = '' } = useParams<{ partyId: string }>();
   const navigate = useNavigate();
   const { party, currentPlayer, loading, error } = useGameStore();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const { applyCardEffect, startChallengeCard, drinkMana, resolveChallengeCard } = useGameActions(partyId);
+  const [challengeSetupCard, setChallengeSetupCard] = useState<Card | null>(null);
+  const {
+    applyCardEffect,
+    startChallengeCard,
+    setReactionChallengeReady,
+    pressReactionChallenge,
+    drinkMana,
+    resolveChallengeCard,
+    resolveCanCupSips,
+    godModeSwapCard,
+  } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
 
   useGameState(partyId);
@@ -25,6 +36,7 @@ export function Game() {
   // Drunkness decay sync — updates Firestore in 30s batches
   useEffect(() => {
     if (!party || party.status !== 'playing') return;
+    if (party.gameMode === 'can-cup') return;
 
     const SYNC_INTERVAL_MS = 30_000;
     let isUpdating = false;
@@ -74,7 +86,7 @@ export function Game() {
     }, SYNC_INTERVAL_MS);
 
     return () => clearInterval(decayInterval);
-  }, [partyId, party?.status]);
+  }, [partyId, party?.status, party?.gameMode]);
 
   const validPlayers = [
     'adam', 'madde', 'markus', 'oskar', 'jesper', 'said', 'BORGMÄSTAREN',
@@ -88,6 +100,11 @@ export function Game() {
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
   const isLeader = Boolean(currentPlayer?.isLeader);
   const gameMode = party?.gameMode || 'classic';
+  const usesArenaLayout = gameMode !== 'classic';
+  const pendingCanCupSipForCurrentPlayer: PendingCanCupSipResolution | null = currentPlayer
+    ? party?.pendingCanCupSips?.[currentPlayer.id] ?? null
+    : null;
+  const hasPendingCanCupSipForCurrentPlayer = Boolean(pendingCanCupSipForCurrentPlayer);
   const hasValidPlayer = party?.players.some((player) => validPlayers.includes(player.name.toLowerCase())) ?? false;
   const canStart = Boolean(
     party?.status === 'waiting' &&
@@ -105,6 +122,7 @@ export function Game() {
   const handlePlayCard = async (card: Card) => {
     if (!currentPlayer || !isCurrentTurn) return;
     if (party?.pendingChallenge) return;
+    if (hasPendingCanCupSipForCurrentPlayer) return;
 
     const isDrunk = currentPlayer.isDrunk;
     const isMiss = isDrunk && Math.random() < 0.2;
@@ -127,12 +145,24 @@ export function Game() {
       card.effect.challengeEffects;
 
     if (isChallenge) {
-      if (gameMode === 'modern') {
-        try {
-          await startChallengeCard(currentPlayer.id, card);
+      const isCircleChallengeWithoutParticipantSetup =
+        gameMode === 'can-cup' &&
+        (card.id === 'cc-category-random' ||
+          /go around the circle/i.test(card.description) ||
+          /category/i.test(card.name));
+
+      if (usesArenaLayout) {
+        if (isCircleChallengeWithoutParticipantSetup) {
+          try {
+            await startChallengeCard(currentPlayer.id, card);
+            setSelectedCard(null);
+            setChallengeSetupCard(null);
+          } catch (error) {
+            console.error('Error starting challenge:', error);
+          }
+        } else {
           setSelectedCard(null);
-        } catch (error) {
-          console.error('Error starting challenge:', error);
+          setChallengeSetupCard(card);
         }
       } else {
         card.isChallenge = true;
@@ -152,6 +182,7 @@ export function Game() {
 
   const handleTargetSelect = async (targetId: string) => {
     if (!currentPlayer || !selectedCard || !isCurrentTurn) return;
+    if (hasPendingCanCupSipForCurrentPlayer) return;
 
     const targetPlayer = party?.players.find(p => p.id === targetId);
     if (!targetPlayer) return;
@@ -181,6 +212,7 @@ export function Game() {
   const handleChallengeResolve = async (winnerId: string, loserId: string) => {
     const challengeCard = party?.pendingChallenge?.card || selectedCard;
     if (!currentPlayer || !challengeCard || !isCurrentTurn) return;
+    if (hasPendingCanCupSipForCurrentPlayer) return;
 
     let finalWinnerId = winnerId;
     let finalLoserId = loserId;
@@ -201,10 +233,45 @@ export function Game() {
     }
   };
 
+  const handleChallengeSetupConfirm = async (duelistOneId: string, duelistTwoId: string) => {
+    if (!currentPlayer || !challengeSetupCard) return;
+
+    try {
+      await startChallengeCard(currentPlayer.id, challengeSetupCard, duelistOneId, duelistTwoId);
+      setChallengeSetupCard(null);
+      setSelectedCard(null);
+    } catch (error) {
+      console.error('Error starting challenge:', error);
+    }
+  };
+
+  const handleChallengeSetupCancel = () => {
+    setChallengeSetupCard(null);
+  };
+
   const handleOpenPendingChallenge = () => {
     if (!party?.pendingChallenge || !currentPlayer) return;
     if (party.pendingChallenge.playerId !== currentPlayer.id) return;
+    if (isCanCupReactionChallengeCard(party.pendingChallenge.card)) return;
     setSelectedCard(party.pendingChallenge.card);
+  };
+
+  const handleSetReactionChallengeReady = async () => {
+    if (!currentPlayer) return;
+    try {
+      await setReactionChallengeReady(currentPlayer.id);
+    } catch (error) {
+      console.error('Error setting reaction ready state:', error);
+    }
+  };
+
+  const handlePressReactionChallenge = async () => {
+    if (!currentPlayer) return;
+    try {
+      await pressReactionChallenge(currentPlayer.id);
+    } catch (error) {
+      console.error('Error pressing reaction challenge:', error);
+    }
   };
 
   const handleDrink = async () => {
@@ -213,6 +280,15 @@ export function Game() {
       await drinkMana(currentPlayer.id);
     } catch (error) {
       console.error('Error drinking mana:', error);
+    }
+  };
+
+  const handleResolvePendingCanCupSips = async () => {
+    if (!currentPlayer || !pendingCanCupSipForCurrentPlayer) return;
+    try {
+      await resolveCanCupSips(currentPlayer.id);
+    } catch (error) {
+      console.error('Error resolving pending Can Cup sips:', error);
     }
   };
 
@@ -279,14 +355,22 @@ export function Game() {
     onUpdateSettings: handleUpdateSettings,
     onDrink: handleDrink,
     onOpenPendingChallenge: handleOpenPendingChallenge,
+    pendingCanCupSipForCurrentPlayer,
+    onResolvePendingCanCupSips: handleResolvePendingCanCupSips,
+    onSetReactionChallengeReady: handleSetReactionChallengeReady,
+    onPressReactionChallenge: handlePressReactionChallenge,
+    challengeSetupCard,
+    onChallengeSetupConfirm: handleChallengeSetupConfirm,
+    onChallengeSetupCancel: handleChallengeSetupCancel,
     selectedCard,
     setSelectedCard,
+    onGodModeSwapCard: godModeSwapCard,
   };
 
   return (
     <div className={clsx(
       "bg-gradient-to-b from-gray-900 to-purple-900 relative",
-      gameMode === 'modern' ? "h-screen h-[100dvh] overflow-hidden" : "min-h-screen overflow-auto",
+      usesArenaLayout ? "h-screen h-[100dvh] overflow-hidden" : "min-h-screen overflow-auto",
       isPlayerDrunk && "drunk-player-view"
     )}>
       {isPlayerDrunk && (

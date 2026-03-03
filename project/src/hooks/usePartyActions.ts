@@ -1,18 +1,39 @@
 import { useCallback } from 'react';
 import { collection, addDoc, doc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Party, Player, GameSettings } from '../types/game';
+import { Party, Player, GameMode, GameSettings } from '../types/game';
 import { generateInitialCards } from '../utils/cardGeneration';
 import { generatePartyCode } from '../utils/party';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { auth } from '../lib/firebase';
 
-export function usePartyActions() {
+const createInitialPlayer = (
+  player: Pick<Player, 'id' | 'name'>,
+  gameMode: GameMode,
+  isLeader: boolean,
+  initialMana: number
+): Player => ({
+  ...player,
+  mana: initialMana,
+  manaIntake: 0,
+  isDrunk: false,
+  cards: generateInitialCards(gameMode),
+  isLeader,
+  canCup: gameMode === 'can-cup'
+    ? {
+      sipsLeft: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
+      waterSips: 0,
+      deflectCharges: 0,
+      emptyCans: 0,
+    }
+    : undefined,
+});
 
+export function usePartyActions() {
 
   const createParty = useCallback(async (
     player: Pick<Player, 'id' | 'name'>,
-    gameMode: 'classic' | 'modern' = 'classic'
+    gameMode: GameMode = 'classic'
   ) => {
     const code = generatePartyCode();
 
@@ -22,14 +43,7 @@ export function usePartyActions() {
       status: 'waiting',
       gameMode,
       players: [
-        {
-          ...player,
-          mana: GAME_CONFIG.INITIAL_MANA,
-          manaIntake: 0,
-          isDrunk: false,
-          cards: generateInitialCards(),
-          isLeader: true,
-        },
+        createInitialPlayer(player, gameMode, true, GAME_CONFIG.INITIAL_MANA),
       ],
       currentTurn: player.id,
       leaderId: player.id,
@@ -40,6 +54,7 @@ export function usePartyActions() {
         initialMana: GAME_CONFIG.INITIAL_MANA,
         drunkThreshold: GAME_CONFIG.DRUNK_THRESHOLD,
         manaIntakeDecayRate: GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+        canCupSipsPerCan: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
       },
     };
 
@@ -96,14 +111,12 @@ export function usePartyActions() {
         }
 
         // Create a new player if the player doesn't exist in the party
-        const newPlayer = {
-          ...player,
-          mana: party.settings?.initialMana ?? GAME_CONFIG.INITIAL_MANA,
-          manaIntake: 0,
-          isDrunk: false,
-          cards: generateInitialCards(),
-          isLeader: false
-        };
+        const newPlayer = createInitialPlayer(
+          player,
+          party.gameMode ?? 'classic',
+          false,
+          party.settings?.initialMana ?? GAME_CONFIG.INITIAL_MANA
+        );
 
         transaction.update(partyRef, {
           players: [...party.players, newPlayer]
@@ -228,6 +241,7 @@ export function usePartyActions() {
           initialMana: GAME_CONFIG.INITIAL_MANA,
           drunkThreshold: GAME_CONFIG.DRUNK_THRESHOLD,
           manaIntakeDecayRate: GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+          canCupSipsPerCan: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
         };
 
         // Merge current settings with new settings

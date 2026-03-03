@@ -2,17 +2,46 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Zap, Users, Layers, Sparkles, ArrowRight, Hash } from 'lucide-react';
+import { Zap, Users, Layers, Sparkles, ArrowRight, Hash, Beer } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { Input } from '../components/ui/Input';
 import { usePartyActions } from '../hooks/usePartyActions';
+import { GameMode } from '../types/game';
+
+interface ModeOption {
+  id: GameMode;
+  title: string;
+  description: string;
+  icon: JSX.Element;
+}
+
+const MODE_OPTIONS: ModeOption[] = [
+  {
+    id: 'classic',
+    title: 'Classic Duel',
+    description: 'Standard board UI',
+    icon: <Layers className="w-4 h-4 mb-1.5" />,
+  },
+  {
+    id: 'modern',
+    title: 'Modern',
+    description: 'Arena + hand fan',
+    icon: <Sparkles className="w-4 h-4 mb-1.5" />,
+  },
+  {
+    id: 'can-cup',
+    title: 'Can Cup',
+    description: 'Real-time sip tracking',
+    icon: <Beer className="w-4 h-4 mb-1.5" />,
+  },
+];
 
 export function Home() {
   const navigate = useNavigate();
   const { createParty, joinParty } = usePartyActions();
   const [name, setName] = useState('');
   const [partyCode, setPartyCode] = useState('');
-  const [gameMode, setGameMode] = useState<'classic' | 'modern'>('classic');
+  const [gameMode, setGameMode] = useState<GameMode>('classic');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,29 +145,28 @@ export function Home() {
             {/* Mode Selector */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Game Mode</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setGameMode('classic')}
-                  className={`relative p-3 rounded-xl border text-left transition-all duration-200 ${gameMode === 'classic'
-                    ? 'bg-gray-800 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.15)]'
-                    : 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
-                    }`}
-                >
-                  <Layers className={`w-4 h-4 mb-1.5 ${gameMode === 'classic' ? 'text-purple-400' : 'text-gray-600'}`} />
-                  <div className={`text-sm font-semibold ${gameMode === 'classic' ? 'text-white' : 'text-gray-500'}`}>Classic</div>
-                  <div className="text-[10px] text-gray-600">Standard UI</div>
-                </button>
-                <button
-                  onClick={() => setGameMode('modern')}
-                  className={`relative p-3 rounded-xl border text-left transition-all duration-200 ${gameMode === 'modern'
-                    ? 'bg-gray-800 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.15)]'
-                    : 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
-                    }`}
-                >
-                  <Sparkles className={`w-4 h-4 mb-1.5 ${gameMode === 'modern' ? 'text-purple-400' : 'text-gray-600'}`} />
-                  <div className={`text-sm font-semibold ${gameMode === 'modern' ? 'text-white' : 'text-gray-500'}`}>Modern</div>
-                  <div className="text-[10px] text-gray-600">Card hand view</div>
-                </button>
+              <div className="grid grid-cols-1 gap-2">
+                {MODE_OPTIONS.map((mode) => {
+                  const selected = gameMode === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => setGameMode(mode.id)}
+                      className={`relative p-3 rounded-xl border text-left transition-all duration-200 ${selected
+                        ? 'bg-gray-800 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.15)]'
+                        : 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
+                        }`}
+                    >
+                      <div className={`${selected ? 'text-purple-400' : 'text-gray-600'}`}>
+                        {mode.icon}
+                      </div>
+                      <div className={`text-sm font-semibold ${selected ? 'text-white' : 'text-gray-500'}`}>
+                        {mode.title}
+                      </div>
+                      <div className="text-[10px] text-gray-600">{mode.description}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

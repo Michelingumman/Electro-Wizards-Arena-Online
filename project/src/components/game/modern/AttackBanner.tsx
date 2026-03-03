@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Party } from '../../../types/game';
+import { GameMode, Party } from '../../../types/game';
 import { Sword, Heart, Zap, Wine, Target, Sparkles, ChevronDown, ChevronUp, Droplets } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -7,9 +7,10 @@ import { clsx } from 'clsx';
 interface AttackBannerProps {
     lastAction: Party['lastAction'];
     players: Party['players'];
+    gameMode?: GameMode;
 }
 
-export function AttackBanner({ lastAction, players }: AttackBannerProps) {
+export function AttackBanner({ lastAction, players, gameMode = 'modern' }: AttackBannerProps) {
     const [expanded, setExpanded] = useState(false);
 
     if (!lastAction) return null;
@@ -28,7 +29,18 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
             case 'manaDrain': case 'manaBurn': return 'drained';
             case 'challenge': return 'challenged';
             case 'forceDrink': return 'forced drink on';
-            default: return 'used';
+            case 'canCupSip': return 'tvingade klunkar på';
+            case 'canCupAoESip': return 'skålade med';
+            case 'canCupWater': return 'tog vattenpaus';
+            case 'canCupDeflect': return 'skyddade sig med';
+            case 'canCupTopUp': return 'fyllde på med';
+            case 'canCupDoubleTrouble': return 'dubbelsmällde';
+            case 'canCupBottomsUpPrep': return 'pressade ner';
+            case 'canCupBottenUpp': return 'bottnade upp';
+            case 'canCupSwap': return 'bytte burk med';
+            case 'canCupVampire': return 'stal klunkar från';
+            case 'canCupReflect': return 'studsa klunkar till';
+            default: return 'spelade';
         }
     };
 
@@ -40,22 +52,48 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
             case 'manaDrain': case 'manaBurn': return <Zap className={clsx(cls, "text-yellow-400")} />;
             case 'challenge': return <Target className={clsx(cls, "text-orange-400")} />;
             case 'forceDrink': return <Wine className={clsx(cls, "text-amber-400")} />;
+            case 'canCupSip':
+            case 'canCupAoESip':
+            case 'canCupDoubleTrouble':
+            case 'canCupBottomsUpPrep':
+            case 'canCupBottenUpp':
+                return <Wine className={clsx(cls, "text-cyan-300")} />;
+            case 'canCupWater':
+            case 'canCupTopUp':
+                return <Droplets className={clsx(cls, "text-cyan-300")} />;
+            case 'canCupDeflect':
+            case 'canCupSwap':
+                return <Sparkles className={clsx(cls, "text-indigo-300")} />;
             default: return <Sparkles className={clsx(cls, "text-purple-400")} />;
         }
     };
 
     const getAccentColor = (type: string) => {
+        const defaultTone = gameMode === 'can-cup' ? 'border-cyan-500/30 bg-cyan-950/40' : 'border-purple-500/30 bg-purple-950/40';
         switch (type) {
             case 'damage': case 'aoeDamage': return 'border-red-500/30 bg-red-950/40';
             case 'heal': case 'manaRefill': case 'potionBuff': return 'border-green-500/30 bg-green-950/40';
             case 'manaDrain': case 'manaBurn': return 'border-yellow-500/30 bg-yellow-950/40';
             case 'challenge': return 'border-orange-500/30 bg-orange-950/40';
             case 'forceDrink': return 'border-amber-500/30 bg-amber-950/40';
-            default: return 'border-purple-500/30 bg-purple-950/40';
+            case 'canCupSip':
+            case 'canCupAoESip':
+            case 'canCupDoubleTrouble':
+            case 'canCupBottomsUpPrep':
+            case 'canCupBottenUpp':
+            case 'canCupWater':
+            case 'canCupDeflect':
+            case 'canCupTopUp':
+            case 'canCupSwap':
+            case 'canCupVampire':
+            case 'canCupReflect':
+                return 'border-cyan-500/30 bg-cyan-950/35';
+            default: return defaultTone;
         }
     };
 
     const verb = getActionVerb(lastAction.cardType);
+    const isCanCup = gameMode === 'can-cup';
     const affectedOthers = affectedIds.filter((id) => id !== attacker.id);
     const explicitGroupTypes = new Set([
         'aoeDamage',
@@ -76,15 +114,17 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
         targetText = includesAttacker ? 'all players' : 'all opponents';
     } else if (lastAction.targetId && !isSelf) {
         targetText = target?.name || 'target';
-    } else if (lastAction.targetId && isSelf && lastAction.cardType === 'forceDrink') {
-        targetText = 'self';
+    } else if (lastAction.targetId && isSelf && [
+        'forceDrink', 'canCupWater', 'canCupDeflect', 'canCupTopUp',
+    ].includes(lastAction.cardType)) {
+        targetText = '';
     } else if (lastAction.cardType === 'challenge') {
         targetText = 'challenge table';
     }
 
     const actionPrefix = targetText
         ? `${attacker.name} ${verb} ${targetText} with`
-        : `${attacker.name} used`;
+        : `${attacker.name} played`;
     const damageValue =
         typeof lastAction.targetDamage === 'number'
             ? lastAction.targetDamage
@@ -92,6 +132,13 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
                 ? Math.abs(lastAction.targetManaDelta)
                 : null;
     const manaCost = typeof lastAction.manaCost === 'number' ? lastAction.manaCost : null;
+    const damageLabel = isCanCup ? 'Sips' : 'Damage';
+    const resourceLabel = isCanCup ? 'Cost' : 'Mana';
+    const resourceValue = manaCost !== null
+        ? (isCanCup ? `${manaCost} sip${manaCost === 1 ? '' : 's'}` : `${manaCost}`)
+        : '--';
+    const cardNameTone = isCanCup ? 'text-amber-200' : 'text-purple-300';
+    const metaTone = isCanCup ? 'text-cyan-200/70' : 'text-gray-600';
 
     return (
         <AnimatePresence mode="wait">
@@ -113,7 +160,7 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
                     <span className="text-xs text-white/90 font-medium truncate flex-1">
                         <span className="font-bold">{actionPrefix}</span>
                         {' '}
-                        <span className="text-purple-300 italic">{lastAction.cardName}</span>
+                        <span className={`${cardNameTone} italic`}>{lastAction.cardName}</span>
                     </span>
                     {expanded
                         ? <ChevronUp className="w-3 h-3 text-gray-500 shrink-0" />
@@ -136,17 +183,20 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
                                     {lastAction.cardDescription}
                                 </div>
                                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-red-400/40 bg-red-950/40 px-2 py-0.5 text-[10px] text-red-200">
+                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] ${isCanCup
+                                        ? 'border border-amber-300/40 bg-amber-950/35 text-amber-100'
+                                        : 'border border-red-400/40 bg-red-950/40 text-red-200'
+                                        }`}>
                                         <Sword className="w-3 h-3" />
-                                        {damageValue !== null ? `Damage ${damageValue}` : 'Damage --'}
+                                        {damageValue !== null ? `${damageLabel} ${damageValue}` : `${damageLabel} --`}
                                     </span>
                                     <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/40 bg-blue-950/40 px-2 py-0.5 text-[10px] text-blue-200">
                                         <Droplets className="w-3 h-3" />
-                                        {manaCost !== null ? `Mana ${manaCost}` : 'Mana --'}
+                                        {`${resourceLabel} ${resourceValue}`}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 mt-1.5">
-                                    <span className="text-[9px] text-gray-600 uppercase tracking-wider">
+                                    <span className={`text-[9px] uppercase tracking-wider ${metaTone}`}>
                                         {lastAction.cardRarity} · {lastAction.cardType.replace(/([A-Z])/g, ' $1').trim()}
                                     </span>
                                 </div>

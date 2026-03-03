@@ -102,6 +102,7 @@ export function GameClassicUI({
                         winner={party.winner}
                         players={party.players}
                         isLeader={isLeader}
+                        code={party.code}
                         showNoValidPlayersWarning={showNoValidPlayersWarning}
                     />
 

@@ -8,6 +8,7 @@ export enum CardRarity {
 export type EffectType =
   'damage' |
   'aoe-damage' |
+  'aoeDamage' | // Compatibility
   'healing' |
   'aoe-healing' |
   'life-steal' |
@@ -21,6 +22,16 @@ export type EffectType =
   'forceDrink' |
   'reversed-curse-tech' |
   'heal' |
+  'energi_i_rummet' |
+  'oskar' |
+  'jesper' |
+  'markus' |
+  'sam' |
+  'adam' |
+  'said' |
+  'fellan' |
+  'infiniteVoid' |
+  'titan' |
   // New mana/drunk effects
   'manaOverload' |
   'manaShield' |
@@ -52,6 +63,18 @@ export type EffectType =
   'manaStealer' |
   'maxMana' |
   'mana' |
+  // Can Cup effect types
+  'canCupSip' |
+  'canCupAoESip' |
+  'canCupWater' |
+  'canCupDeflect' |
+  'canCupTopUp' |
+  'canCupDoubleTrouble' |
+  'canCupBottomsUpPrep' |
+  'canCupBottenUpp' |
+  'canCupSwap' |
+  'canCupReflect' |
+  'canCupVampire' |
   'null'; // For effects that don't do anything
 
 export interface Challenge {
@@ -66,6 +89,7 @@ export interface CardEffect {
   challenge?: Challenge;
   winnerEffect?: CardEffect;
   loserEffect?: CardEffect;
+  challengeEffects?: any; // Added to fix lint
 }
 
 export interface CardBase {
@@ -73,6 +97,7 @@ export interface CardBase {
   name: string;
   description: string;
   manaCost: number;
+  sipCost?: number;
   rarity: CardRarity;
   type: string;
   effect: CardEffect;

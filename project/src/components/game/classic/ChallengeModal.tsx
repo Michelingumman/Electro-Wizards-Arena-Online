@@ -9,6 +9,7 @@ interface ChallengeModalProps {
   card: Card;
   players: Player[];
   currentPlayerId: string;
+  eligiblePlayerIds?: string[];
   onConfirm: (winnerId: string, loserId: string) => void;
   onCancel: () => void;
 }
@@ -17,6 +18,7 @@ export function ChallengeModal({
   card,
   players,
   currentPlayerId,
+  eligiblePlayerIds,
   onConfirm,
   onCancel
 }: ChallengeModalProps) {
@@ -28,6 +30,10 @@ export function ChallengeModal({
   useEffect(() => {
     setError(null);
   }, [winnerId, loserId]);
+
+  const eligiblePlayers = eligiblePlayerIds && eligiblePlayerIds.length > 0
+    ? players.filter((player) => eligiblePlayerIds.includes(player.id))
+    : players;
 
   const challengeCardNames = [
     'Name the most: CAR BRANDS',
@@ -133,6 +139,16 @@ export function ChallengeModal({
           return `${effect.value > 0 ? '-' : ''}${effect.value} Mana`;
         case 'manaRefill':
           return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
+        case 'canCupSip':
+          return `${effect.value} Sip${effect.value === 1 ? '' : 's'}`;
+        case 'canCupWater':
+          return `+${effect.value} Water Sip${effect.value === 1 ? '' : 's'}`;
+        case 'canCupDeflect':
+          return `Deflect ${effect.value} forced sip${effect.value === 1 ? '' : 's'}`;
+        case 'canCupTopUp':
+          return `Top up ${effect.value} sip${effect.value === 1 ? '' : 's'}`;
+        case 'null':
+          return 'No direct effect';
         default:
           return `${effect.type}: ${effect.value}`;
       }
@@ -219,7 +235,7 @@ export function ChallengeModal({
                 className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="">Select winner...</option>
-                {players.map(player => (
+                {eligiblePlayers.map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name}
                   </option>
@@ -236,7 +252,7 @@ export function ChallengeModal({
                 className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="">Select loser...</option>
-                {players.map(player => (
+                {eligiblePlayers.map(player => (
                   <option
                     key={player.id}
                     value={player.id}
@@ -256,13 +272,13 @@ export function ChallengeModal({
                   <div className="flex items-center space-x-2">
                     <Trophy className="w-4 h-4 text-yellow-400" />
                     <p className="text-green-400">
-                      Winner {winnerId ? `(${players.find(p => p.id === winnerId)?.name})` : ''}: {effects.winEffect}
+                      Winner {winnerId ? `(${eligiblePlayers.find(p => p.id === winnerId)?.name})` : ''}: {effects.winEffect}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Wine className="w-4 h-4 text-red-400" />
                     <p className="text-red-400">
-                      Loser {loserId ? `(${players.find(p => p.id === loserId)?.name})` : ''}: {effects.loseEffect}
+                      Loser {loserId ? `(${eligiblePlayers.find(p => p.id === loserId)?.name})` : ''}: {effects.loseEffect}
                     </p>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
-import { Player } from '../../../types/game';
+import { GameMode, PendingCanCupSipResolution, Player } from '../../../types/game';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import { Beer, Droplets, FlaskConical, Shield } from 'lucide-react';
 
 interface ModernPlayerAvatarProps {
     player: Player;
@@ -14,6 +15,9 @@ interface ModernPlayerAvatarProps {
     onSelect?: () => void;
     isYou?: boolean;
     compact?: boolean;
+    gameMode?: GameMode;
+    canCupSipsPerCan?: number;
+    pendingCanCupSip?: PendingCanCupSipResolution;
 }
 
 function formatClock(seconds: number) {
@@ -35,12 +39,166 @@ export function ModernPlayerAvatar({
     onSelect,
     isYou = false,
     compact = false,
+    gameMode = 'modern',
+    canCupSipsPerCan = 10,
+    pendingCanCupSip,
 }: ModernPlayerAvatarProps) {
     const intakeValue = projectedManaIntake ?? player.manaIntake ?? 0;
     const intakePercent = Math.min(100, Math.max(0, (intakeValue / drunkThreshold) * 100));
-    const manaPercent = Math.min(100, Math.max(0, (player.mana / maxMana) * 100));
     const drunkLine = 80;
     const isDrunkState = isDrunk || intakePercent >= drunkLine;
+    const canCupCapacity = Math.max(1, Math.round(canCupSipsPerCan));
+    const canCupState = player.canCup ?? {
+        sipsLeft: canCupCapacity,
+        waterSips: 0,
+        deflectCharges: 0,
+        emptyCans: 0,
+    };
+    const beerSips = Math.max(0, Math.min(canCupCapacity, Math.round(canCupState.sipsLeft)));
+    const waterSips = Math.max(0, Math.round(canCupState.waterSips));
+    const beerPercent = Math.min(100, Math.max(0, (beerSips / canCupCapacity) * 100));
+    const waterPercent = Math.min(100, Math.max(0, (waterSips / canCupCapacity) * 100));
+    const totalLiquidPercent = Math.min(100, beerPercent + waterPercent);
+    const waterLayerPercent = Math.min(waterPercent, totalLiquidPercent);
+    const waterLayerBottomPercent = Math.max(0, totalLiquidPercent - waterLayerPercent);
+    const beerLayerPercent = Math.max(0, totalLiquidPercent - waterLayerPercent);
+    const pendingWaterSips = Math.max(0, Math.round(pendingCanCupSip?.waterSipsToConsume ?? 0));
+    const pendingBeerSips = Math.max(0, Math.round(pendingCanCupSip?.beerSipsToConsume ?? 0));
+    const pendingWaterPercent = Math.min(100, Math.max(0, (pendingWaterSips / canCupCapacity) * 100));
+    const pendingBeerPercent = Math.min(100, Math.max(0, (pendingBeerSips / canCupCapacity) * 100));
+    const pendingWaterLayerPercent = Math.min(pendingWaterPercent, waterLayerPercent);
+    const pendingWaterBottomPercent = Math.max(0, totalLiquidPercent - pendingWaterLayerPercent);
+    const pendingBeerLayerPercent = Math.min(pendingBeerPercent, beerLayerPercent);
+    const pendingBeerBottomPercent = Math.max(0, totalLiquidPercent - waterLayerPercent - pendingBeerLayerPercent);
+    const mugWidth = compact ? 40 : 48;
+    const mugHeight = compact ? 62 : 72;
+    const avatarSizeClass = compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]';
+
+    if (gameMode === 'can-cup') {
+        return (
+            <motion.div
+                layout
+                onClick={isTargetable && onSelect ? onSelect : undefined}
+                className={clsx(
+                    'flex flex-col items-center gap-1.5 transition-all duration-200',
+                    isTargetable && 'cursor-pointer'
+                )}
+                animate={isTargetable ? { scale: [1, 1.03, 1] } : undefined}
+                transition={isTargetable ? { repeat: Infinity, duration: 1.5 } : undefined}
+            >
+                <span
+                    className={clsx(
+                        compact ? 'text-[12px]' : 'text-[14px]',
+                        'font-semibold tracking-[0.02em] max-w-[130px] truncate text-center leading-tight drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]',
+                        isCurrentTurn ? 'text-indigo-100' : 'text-gray-200'
+                    )}
+                >
+                    {player.name}
+                </span>
+                <div className="relative flex flex-col items-center gap-1.5 pl-10">
+                    <div className="relative">
+                        {isCurrentTurn && (
+                            <motion.div
+                                className="absolute -inset-3 rounded-[20px] bg-indigo-400/30 blur-xl"
+                                animate={{ opacity: [0.35, 0.8, 0.35], scale: [1, 1.08, 1] }}
+                                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                            />
+                        )}
+
+                        <motion.div
+                            className={clsx(
+                                'relative rounded-[16px] border overflow-hidden bg-slate-950/45',
+                                isYou
+                                    ? 'border-cyan-300/80 shadow-[0_0_18px_rgba(34,211,238,0.35)]'
+                                    : isCurrentTurn
+                                        ? 'border-indigo-300/80 shadow-[0_0_18px_rgba(129,140,248,0.38)]'
+                                        : 'border-slate-400/70',
+                                isTargetable && 'ring-2 ring-rose-400/70 ring-offset-2 ring-offset-[#120d1f]'
+                            )}
+                            style={{ width: mugWidth, height: mugHeight }}
+                            animate={isCurrentTurn ? { scale: [1, 1.03, 1] } : undefined}
+                            transition={isCurrentTurn ? { repeat: Infinity, duration: 1.4 } : undefined}
+                        >
+                            <motion.div
+                                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-amber-700/95 via-amber-500/92 to-amber-300/85"
+                                style={{ height: `${beerLayerPercent}%` }}
+                                animate={{ height: `${beerLayerPercent}%` }}
+                                transition={{ type: 'spring', stiffness: 160, damping: 20 }}
+                            />
+
+                            {waterLayerPercent > 0 && (
+                                <motion.div
+                                    className="absolute inset-x-0 bg-gradient-to-b from-cyan-200/85 via-cyan-300/75 to-cyan-500/65"
+                                    style={{ bottom: `${waterLayerBottomPercent}%`, height: `${waterLayerPercent}%` }}
+                                    animate={{ bottom: `${waterLayerBottomPercent}%`, height: `${waterLayerPercent}%` }}
+                                    transition={{ type: 'spring', stiffness: 160, damping: 20 }}
+                                />
+                            )}
+
+                            {pendingWaterLayerPercent > 0 && (
+                                <motion.div
+                                    className="absolute inset-x-0 bg-slate-300/30 backdrop-saturate-0"
+                                    style={{ bottom: `${pendingWaterBottomPercent}%`, height: `${pendingWaterLayerPercent}%` }}
+                                    animate={{ bottom: `${pendingWaterBottomPercent}%`, height: `${pendingWaterLayerPercent}%` }}
+                                    transition={{ duration: 0.2 }}
+                                />
+                            )}
+
+                            {pendingBeerLayerPercent > 0 && (
+                                <motion.div
+                                    className="absolute inset-x-0 bg-slate-300/30 backdrop-saturate-0"
+                                    style={{ bottom: `${pendingBeerBottomPercent}%`, height: `${pendingBeerLayerPercent}%` }}
+                                    animate={{ bottom: `${pendingBeerBottomPercent}%`, height: `${pendingBeerLayerPercent}%` }}
+                                    transition={{ duration: 0.2 }}
+                                />
+                            )}
+
+                            <div className="absolute inset-x-1.5 top-1.5 bottom-1.5 pointer-events-none">
+                                {Array.from({ length: 9 }).map((_, index) => (
+                                    <div
+                                        key={`sip-line-${player.id}-${index}`}
+                                        className="absolute left-0 right-0 h-[1.5px] bg-white/75"
+                                        style={{ bottom: `${(index + 1) * 10}%` }}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent" />
+                        </motion.div>
+
+                        <div
+                            className="absolute rounded-r-full border-2 border-l-0 border-amber-200/45 bg-amber-950/25 shadow-[0_0_8px_rgba(251,191,36,0.2)]"
+                            style={{
+                                width: compact ? 8 : 10,
+                                height: compact ? 18 : 22,
+                                right: compact ? -6 : -8,
+                                top: compact ? 15 : 18,
+                            }}
+                        />
+                    </div>
+
+                    <div className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-950/60 px-1.5 py-0.5 text-[9px] font-semibold text-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+                            <Beer className="w-2.5 h-2.5" />
+                            x{canCupState.emptyCans}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/45 bg-indigo-900/75 px-1.5 py-0.5 text-[9px] text-indigo-100 shadow-[0_0_8px_rgba(129,140,248,0.25)]">
+                            <Shield className="w-2.5 h-2.5" />
+                            {canCupState.deflectCharges}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/45 bg-cyan-900/75 px-1.5 py-0.5 text-[9px] text-cyan-100 shadow-[0_0_8px_rgba(34,211,238,0.25)]">
+                            <Droplets className="w-2.5 h-2.5" />
+                            {canCupState.waterSips}
+                        </span>
+                    </div>
+                </div>
+
+                {isTargetable && (
+                    <span className="text-[8px] text-rose-400 font-semibold uppercase animate-pulse">Target</span>
+                )}
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -72,7 +230,7 @@ export function ModernPlayerAvatar({
                 <div
                     className={clsx(
                         'relative rounded-full overflow-hidden border',
-                        compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]',
+                        avatarSizeClass,
                         isYou
                             ? 'border-cyan-300/70 shadow-[0_0_16px_rgba(34,211,238,0.35)]'
                             : isCurrentTurn
@@ -85,9 +243,7 @@ export function ModernPlayerAvatar({
                         className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-500/70 to-blue-300/55 transition-all duration-300"
                         style={{ height: `${intakePercent}%` }}
                     />
-
                     <div className="absolute left-0 right-0 border-t border-dashed border-red-200/70" style={{ bottom: `${drunkLine}%` }} />
-
                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
 
                     {isCurrentTurn && (
@@ -105,18 +261,14 @@ export function ModernPlayerAvatar({
                     </div>
                 </div>
 
-                <div className="relative h-[58px] w-[26px] shrink-0">
-                    <div className="absolute left-1/2 top-0 h-2.5 w-3 -translate-x-1/2 rounded-t-md border border-blue-300/50 bg-blue-950/70" />
-                    <div className="absolute bottom-0 left-1/2 h-[49px] w-[24px] -translate-x-1/2 overflow-hidden rounded-[10px] border border-blue-300/50 bg-blue-950/70 shadow-[0_0_8px_rgba(56,189,248,0.28)]">
-                        <div
-                            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500 to-blue-400 transition-all duration-300"
-                            style={{ height: `${manaPercent}%` }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[9px] font-semibold text-blue-50 drop-shadow-[0_1px_4px_rgba(0,0,0,0.65)]">
-                                {player.mana.toFixed(1)}
-                            </span>
-                        </div>
+                <div className="relative h-8 min-w-[36px] shrink-0 rounded-lg border border-blue-300/45 bg-blue-950/65 px-1.5 shadow-[0_0_8px_rgba(56,189,248,0.22)]">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <FlaskConical className="w-4 h-4 text-cyan-200/30" />
+                    </div>
+                    <div className="relative z-10 flex h-full items-center justify-center">
+                        <span className="text-[9px] font-semibold text-blue-50">
+                            {Math.min(player.mana, maxMana).toFixed(1)}
+                        </span>
                     </div>
                 </div>
             </div>

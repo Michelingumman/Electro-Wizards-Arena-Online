@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Card } from '../../../types/game';
+import { Card, GameMode } from '../../../types/game';
 import clsx from 'clsx';
-import { Droplets, Flame, ScrollText, Sparkles, Target, Zap } from 'lucide-react';
+import { Beer, Droplets, Flame, Shield, ScrollText, Sparkles, Target, Wrench, Zap } from 'lucide-react';
 
 interface ModernCardHandProps {
     cards: Card[];
@@ -11,6 +11,11 @@ interface ModernCardHandProps {
     disabled: boolean;
     currentMana: number;
     selectedCard: Card | null;
+    gameMode?: GameMode;
+    godMode?: boolean;
+    onGodModePick?: (card: Card) => void;
+    canCupSipsLeft?: number;
+    canCupSipsPerCan?: number;
 }
 
 export function ModernCardHand({
@@ -20,6 +25,11 @@ export function ModernCardHand({
     disabled,
     currentMana,
     selectedCard,
+    gameMode = 'modern',
+    godMode = false,
+    onGodModePick,
+    canCupSipsLeft,
+    canCupSipsPerCan,
 }: ModernCardHandProps) {
     const [activeCardId, setActiveCardId] = useState<string | null>(null);
     const prevCardIdsRef = useRef<Set<string>>(new Set(cards.map((card) => card.id)));
@@ -57,8 +67,8 @@ export function ModernCardHand({
     const CENTER_INDEX = (cardCount - 1) / 2;
     const ANGLE_SPREAD = cardCount <= 4 ? 10 : cardCount === 5 ? 8 : 6;
     const X_SPREAD = cardCount <= 4 ? CARD_WIDTH * 0.5 : cardCount === 5 ? CARD_WIDTH * 0.45 : CARD_WIDTH * 0.38;
-    const BASE_Y = cardCount <= 4 ? 78 : 88;
-    const POPUP_Y = -144;
+    const BASE_Y = cardCount <= 4 ? 55 : 64;
+    const POPUP_Y = -160;
     const hasSelection = Boolean(activeCardId);
 
     const getEffectIcon = (type: string) => {
@@ -76,6 +86,21 @@ export function ModernCardHand({
                 return <Target className={cls} />;
             case 'manaDrain':
                 return <Zap className={cls} />;
+            case 'canCupSip':
+            case 'canCupAoESip':
+            case 'canCupDoubleTrouble':
+            case 'canCupBottomsUpPrep':
+            case 'canCupBottenUpp':
+                return <Flame className={cls} />;
+            case 'canCupWater':
+            case 'canCupTopUp':
+                return <Droplets className={cls} />;
+            case 'canCupDeflect':
+            case 'canCupSwap':
+            case 'canCupReflect':
+                return <Shield className={cls} />;
+            case 'canCupVampire':
+                return <Zap className={cls} />;
             case 'roulette':
                 return <ScrollText className={cls} />;
             default:
@@ -84,13 +109,20 @@ export function ModernCardHand({
     };
 
     const getRarityStyles = (rarity: string) => {
+        const canCup = gameMode === 'can-cup';
         switch (rarity) {
             case 'common':
-                return { bg: 'from-gray-800 to-gray-900', border: 'border-gray-700/60' };
+                return canCup
+                    ? { bg: 'from-slate-800 to-slate-900', border: 'border-cyan-600/35' }
+                    : { bg: 'from-gray-800 to-gray-900', border: 'border-gray-700/60' };
             case 'rare':
-                return { bg: 'from-blue-900/80 to-gray-900', border: 'border-blue-500/30' };
+                return canCup
+                    ? { bg: 'from-teal-900/80 to-slate-900', border: 'border-teal-500/35' }
+                    : { bg: 'from-blue-900/80 to-gray-900', border: 'border-blue-500/30' };
             case 'epic':
-                return { bg: 'from-purple-900/80 to-indigo-950', border: 'border-purple-500/30' };
+                return canCup
+                    ? { bg: 'from-indigo-900/80 to-violet-950', border: 'border-indigo-400/35' }
+                    : { bg: 'from-purple-900/80 to-indigo-950', border: 'border-purple-500/30' };
             case 'legendary':
                 return { bg: 'from-amber-900/70 to-red-950', border: 'border-amber-500/40' };
             default:
@@ -127,127 +159,158 @@ export function ModernCardHand({
                 <div className="relative w-full flex justify-center items-end" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
                     <AnimatePresence>
                         {cards.map((card, index) => {
-                        const isActive = activeCardId === card.id;
-                        const isTargetSelected = selectedCard?.id === card.id;
-                        const isNew = newCardIds.has(card.id);
-                        const canPlay = currentMana >= card.manaCost && !disabled && !selectedCard;
+                            const isActive = activeCardId === card.id;
+                            const isTargetSelected = selectedCard?.id === card.id;
+                            const isNew = newCardIds.has(card.id);
+                            const isTopUpAtMax = gameMode === 'can-cup'
+                                && card.effect.type === 'canCupTopUp'
+                                && typeof canCupSipsLeft === 'number'
+                                && typeof canCupSipsPerCan === 'number'
+                                && canCupSipsLeft >= canCupSipsPerCan;
+                            const canPlay = gameMode === 'can-cup'
+                                ? !disabled && !selectedCard && !isTopUpAtMax
+                                : currentMana >= card.manaCost && !disabled && !selectedCard;
 
-                        const offset = index - CENTER_INDEX;
-                        const angle = offset * ANGLE_SPREAD;
-                        const yDrop = Math.abs(offset) * 10 + BASE_Y;
-                        const rarity = getRarityStyles(card.rarity);
+                            const offset = index - CENTER_INDEX;
+                            const angle = offset * ANGLE_SPREAD;
+                            const yDrop = Math.abs(offset) * 10 + BASE_Y;
+                            const rarity = getRarityStyles(card.rarity);
 
-                        return (
-                            <motion.div
-                                key={card.id}
-                                layout
-                                initial={
-                                    isNew
-                                        ? { opacity: 0, y: 220, scale: 1.25, rotate: 0 }
-                                        : { opacity: 0, y: 220, rotate: angle }
-                                }
-                                animate={{
-                                    opacity: 1,
-                                    y: isActive ? POPUP_Y : yDrop,
-                                    x: isActive ? offset * 8 : offset * X_SPREAD,
-                                    rotate: isActive ? offset * 1.5 : angle,
-                                    scale: isActive ? 1.2 : 1,
-                                    zIndex: isActive ? 120 : 10 + index,
-                                }}
-                                exit={{ opacity: 0, scale: 0.6, y: -90 }}
-                                transition={{
-                                    type: 'spring',
-                                    stiffness: 300,
-                                    damping: 24,
-                                    mass: 0.7,
-                                }}
-                                className={clsx(
-                                    'absolute origin-bottom cursor-pointer pointer-events-auto touch-none select-none',
-                                    isTargetSelected &&
-                                        'ring-2 ring-yellow-400/90 ring-offset-1 ring-offset-gray-900 rounded-xl'
-                                )}
-                                style={{
-                                    width: CARD_WIDTH,
-                                    filter:
-                                        !canPlay && !isActive && !disabled
-                                            ? 'brightness(0.55) grayscale(0.25)'
-                                            : undefined,
-                                    boxShadow: isNew ? '0 0 20px rgba(250, 204, 21, 0.45)' : undefined,
-                                }}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    if (selectedCard) {
-                                        if (isTargetSelected && onCancelSelection) {
-                                            onCancelSelection();
-                                        }
-                                        return;
+                            return (
+                                <motion.div
+                                    key={card.id}
+                                    layout
+                                    initial={
+                                        isNew
+                                            ? { opacity: 0, y: 220, scale: 1.25, rotate: 0 }
+                                            : { opacity: 0, y: 220, rotate: angle }
                                     }
-
-                                    if (isActive) {
-                                        setActiveCardId(null);
-                                        return;
-                                    }
-
-                                    if (!isActive) {
-                                        setActiveCardId(card.id);
-                                    }
-                                }}
-                            >
-                                <div
+                                    animate={{
+                                        opacity: 1,
+                                        y: isActive ? POPUP_Y : yDrop,
+                                        x: isActive ? offset * 8 : offset * X_SPREAD,
+                                        rotate: isActive ? offset * 1.5 : angle,
+                                        scale: isActive ? 1.2 : 1,
+                                        zIndex: isActive ? 120 : 10 + index,
+                                    }}
+                                    exit={{ opacity: 0, scale: 0.6, y: -90 }}
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 300,
+                                        damping: 24,
+                                        mass: 0.7,
+                                    }}
                                     className={clsx(
-                                        'w-full rounded-xl overflow-hidden border backdrop-blur-sm',
-                                        `bg-gradient-to-b ${rarity.bg} ${rarity.border}`
+                                        'absolute origin-bottom cursor-pointer pointer-events-auto touch-none select-none',
+                                        isTargetSelected &&
+                                        'ring-2 ring-yellow-400/90 ring-offset-1 ring-offset-gray-900 rounded-xl'
                                     )}
+                                    style={{
+                                        width: CARD_WIDTH,
+                                        filter:
+                                            !canPlay && !isActive && !disabled
+                                                ? 'brightness(0.55) grayscale(0.25)'
+                                                : undefined,
+                                        boxShadow: isNew ? '0 0 20px rgba(250, 204, 21, 0.45)' : undefined,
+                                    }}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (selectedCard) {
+                                            if (isTargetSelected && onCancelSelection) {
+                                                onCancelSelection();
+                                            }
+                                            return;
+                                        }
+
+                                        if (isActive) {
+                                            setActiveCardId(null);
+                                            return;
+                                        }
+
+                                        if (!isActive) {
+                                            setActiveCardId(card.id);
+                                        }
+                                    }}
                                 >
-                                    <div className="px-3 py-2.5 flex items-start justify-between bg-black/45 gap-2">
-                                        <span className="font-bold text-[12px] leading-tight text-white/95 line-clamp-2">
-                                            {card.name}
-                                        </span>
-                                        <span className="shrink-0 mt-0.5 w-6 h-6 rounded-full bg-blue-600/90 flex items-center justify-center text-[10px] font-bold text-white">
-                                            {card.manaCost}
-                                        </span>
-                                    </div>
-
-                                    <div className="h-16 w-full bg-black/35 flex items-center justify-center">
-                                        {getEffectIcon(card.effect?.type || card.type)}
-                                    </div>
-
-                                    <div className="px-2.5 py-2 bg-black/35 space-y-1.5">
-                                        <p className={clsx(
-                                            'text-[10px] leading-snug text-gray-300',
-                                            isActive ? 'line-clamp-none' : 'line-clamp-4'
-                                        )}>
-                                            {card.description}
-                                        </p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[8px] text-gray-500 uppercase tracking-wider">
-                                                {card.rarity}
+                                    <div
+                                        className={clsx(
+                                            'w-full rounded-xl overflow-hidden border backdrop-blur-sm',
+                                            `bg-gradient-to-b ${rarity.bg} ${rarity.border}`
+                                        )}
+                                    >
+                                        <div className="px-3 py-2.5 flex items-start justify-between bg-black/45 gap-2">
+                                            <span className="font-bold text-[12px] leading-tight text-white/95 line-clamp-2">
+                                                {card.name}
                                             </span>
-                                            {isActive && (
-                                                <button
-                                                    type="button"
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        if (!canPlay) return;
-                                                        setActiveCardId(null);
-                                                        onPlayCard(card);
-                                                    }}
-                                                    disabled={!canPlay}
-                                                    className={clsx(
-                                                        'text-[9px] rounded-full px-2.5 py-1 font-semibold tracking-wide uppercase transition-all',
-                                                        canPlay
-                                                            ? 'bg-purple-600/90 text-white hover:bg-purple-500'
-                                                            : 'bg-gray-700/70 text-gray-400 cursor-not-allowed'
-                                                    )}
-                                                >
-                                                    {canPlay ? 'Play' : disabled ? 'Wait turn' : 'No mana'}
-                                                </button>
-                                            )}
+                                            <div
+                                                className={clsx(
+                                                    'shrink-0 mt-0.5 px-1.5 h-6 rounded-full flex items-center justify-center gap-1 text-[10px] font-bold text-white',
+                                                    gameMode === 'can-cup' ? 'bg-amber-600/90' : 'bg-blue-600/90'
+                                                )}
+                                            >
+                                                {gameMode === 'can-cup' && <Beer className="w-3 h-3" />}
+                                                {card.sipCost ?? card.manaCost}
+                                                {gameMode !== 'can-cup' && <Zap className="w-2.5 h-2.5 opacity-60" />}
+                                            </div>
+                                        </div>
+
+                                        <div className="h-16 w-full bg-black/35 flex items-center justify-center">
+                                            {getEffectIcon(card.effect?.type || card.type)}
+                                        </div>
+
+                                        <div className="px-2.5 py-2 bg-black/35 space-y-1.5">
+                                            <p className={clsx(
+                                                'text-[10px] leading-snug text-gray-300',
+                                                isActive ? 'line-clamp-none' : 'line-clamp-4'
+                                            )}>
+                                                {card.description}
+                                            </p>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[8px] text-gray-500 uppercase tracking-wider">
+                                                    {card.rarity}
+                                                </span>
+                                                {isActive && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        {godMode && onGodModePick && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    setActiveCardId(null);
+                                                                    onGodModePick(card);
+                                                                }}
+                                                                className="text-[9px] rounded-full px-2 py-1 font-semibold tracking-wide uppercase bg-amber-600/90 text-white hover:bg-amber-500 flex items-center gap-0.5"
+                                                            >
+                                                                <Wrench className="w-2.5 h-2.5" /> Swap
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                if (!canPlay) return;
+                                                                setActiveCardId(null);
+                                                                onPlayCard(card);
+                                                            }}
+                                                            disabled={!canPlay}
+                                                            className={clsx(
+                                                                'text-[9px] rounded-full px-2.5 py-1 font-semibold tracking-wide uppercase transition-all',
+                                                                canPlay
+                                                                    ? gameMode === 'can-cup'
+                                                                        ? 'bg-cyan-600/90 text-white hover:bg-cyan-500'
+                                                                        : 'bg-purple-600/90 text-white hover:bg-purple-500'
+                                                                    : 'bg-gray-700/70 text-gray-400 cursor-not-allowed'
+                                                            )}
+                                                        >
+                                                            {canPlay ? 'Play' : disabled ? 'Wait turn' : (gameMode === 'can-cup' ? 'Play' : 'No mana')}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        );
+                                </motion.div>
+                            );
                         })}
                     </AnimatePresence>
                 </div>
