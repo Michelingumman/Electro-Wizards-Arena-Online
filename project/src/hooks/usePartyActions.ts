@@ -33,6 +33,7 @@ export function usePartyActions() {
       ],
       currentTurn: player.id,
       leaderId: player.id,
+      pendingChallenge: null,
       settings: {
         maxMana: GAME_CONFIG.MAX_MANA,
         manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,

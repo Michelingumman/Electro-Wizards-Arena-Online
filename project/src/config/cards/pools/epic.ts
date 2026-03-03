@@ -5,7 +5,7 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'ol-havf',
     name: 'Öl Hävf',
-    description: 'Challenge another player to a chugging contest. Winner gains 5 mana, loser gains 10 mana intake',
+    description: 'Challenge another player to a chugging contest. Winner gains 5 mana, loser gains 10 Drunkness',
     manaCost: 4,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -103,7 +103,7 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'mana-explosion',
     name: 'Mana Explosion',
-    description: 'All players drink! Everyone gains 5 mana intake',
+    description: 'All players drink! Everyone gains 5 Drunkness',
     manaCost: 7,
     rarity: CardRarity.EPIC,
     type: 'aoe',
@@ -131,7 +131,7 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'breath-test',
     name: 'Breath Test',
-    description: 'Force the drunkest player (highest mana intake) to lose 7 mana',
+    description: 'Force the drunkest player (highest Drunkness) to lose 7 mana',
     manaCost: 5,
     rarity: CardRarity.EPIC,
     type: 'aoe',
@@ -145,7 +145,7 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'mana-roulette',
     name: 'Mana Roulette',
-    description: 'Randomly select a player (including yourself) to gain 8 mana intake',
+    description: 'Randomly select a player (including yourself) to gain 8 Drunkness',
     manaCost: 4,
     rarity: CardRarity.EPIC,
     type: 'aoe',
@@ -159,7 +159,7 @@ export const EPIC_CARDS: CardBase[] = [
   {
     id: 'potentiation',
     name: 'Potentiation',
-    description: 'Double your current mana intake (more effective when already drunk)',
+    description: 'Double your current Drunkness (more effective when already drunk)',
     manaCost: 3,
     rarity: CardRarity.EPIC,
     type: 'normal',

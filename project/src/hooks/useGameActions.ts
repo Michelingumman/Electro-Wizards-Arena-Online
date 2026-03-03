@@ -75,23 +75,29 @@ export function useGameActions(partyId: string) {
       })
       .map((player) => player.id);
 
-    return {
+    const payload: NonNullable<Party['lastAction']> = {
       playerId,
-      targetId,
       cardId,
       cardName,
       cardType,
       cardRarity,
       cardDescription,
-      manaCost,
-      attackerManaDelta,
-      targetManaDelta,
-      targetDamage,
-      targetManaIntakeDelta,
-      affectedPlayerIds: affectedPlayerIds.length > 0 ? affectedPlayerIds : undefined,
       timestamp: Date.now(),
     };
+
+    if (targetId) payload.targetId = targetId;
+    if (typeof manaCost === 'number') payload.manaCost = manaCost;
+    if (typeof attackerManaDelta === 'number') payload.attackerManaDelta = attackerManaDelta;
+    if (typeof targetManaDelta === 'number') payload.targetManaDelta = targetManaDelta;
+    if (typeof targetDamage === 'number') payload.targetDamage = targetDamage;
+    if (typeof targetManaIntakeDelta === 'number') payload.targetManaIntakeDelta = targetManaIntakeDelta;
+    if (affectedPlayerIds.length > 0) payload.affectedPlayerIds = affectedPlayerIds;
+
+    return payload;
   };
+
+  const sanitizeCardForFirestore = (card: Card): Card =>
+    JSON.parse(JSON.stringify(card)) as Card;
 
   // End turn and advance to next player
   const endTurn = useCallback(async (playerId: string) => {
@@ -124,6 +130,66 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId]);
 
+  const startChallengeCard = useCallback(async (playerId: string, card: Card) => {
+    const partyRef = doc(db, 'parties', partyId);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        if (!partyDoc.exists()) throw new Error('Party not found');
+        const party = partyDoc.data() as Party;
+
+        if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
+        if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
+        const isChallengeCard =
+          card.isChallenge ||
+          card.type === 'challenge' ||
+          card.effect.type === 'challenge' ||
+          card.effect.challenge ||
+          ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(card.name) ||
+          card.name.includes('Name the most') ||
+          card.effect.winnerEffect ||
+          card.effect.loserEffect ||
+          card.effect.challengeEffects;
+        if (!isChallengeCard) throw new Error('This card is not a challenge card');
+
+        const updatedPlayers = [...party.players];
+        const beforeStats = snapshotPlayerStats(updatedPlayers);
+        const player = updatedPlayers.find((entry) => entry.id === playerId);
+        if (!player) throw new Error('Player not found');
+
+        const hasCard = player.cards.some((entry) => entry.id === card.id);
+        if (!hasCard) throw new Error('Challenge card not found in hand');
+        if (player.mana < card.manaCost) throw new Error('Not enough mana for challenge card');
+        player.mana = Math.max(0, player.mana - card.manaCost);
+
+        transaction.update(partyRef, {
+          players: updatedPlayers,
+          pendingChallenge: {
+            playerId,
+            card: sanitizeCardForFirestore(card),
+            createdAt: Date.now(),
+          },
+          lastAction: buildLastActionPayload({
+            beforeStats,
+            updatedPlayers,
+            playerId,
+            cardId: card.id,
+            cardName: card.name,
+            cardType: card.effect.type,
+            cardRarity: card.rarity,
+            cardDescription: card.description,
+            manaCost: card.manaCost,
+          }),
+        });
+      });
+      return true;
+    } catch (error) {
+      console.error('Error starting challenge card:', error);
+      throw error;
+    }
+  }, [partyId]);
+
   // Apply a card effect
   const applyCardEffect = useCallback(async (playerId: string, targetId: string, card: Card) => {
     const partyRef = doc(db, 'parties', partyId);
@@ -135,6 +201,7 @@ export function useGameActions(partyId: string) {
         const party = partyDoc.data() as Party;
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
+        if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
@@ -175,6 +242,43 @@ export function useGameActions(partyId: string) {
               target.mana = Math.min(maxMana, target.mana + enhancedCard.effect.value);
               break;
 
+            case 'mana': {
+              const manaValue = enhancedCard.effect.value;
+              const manaCap = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+              const isAoeMana = enhancedCard.type === 'aoe' || enhancedCard.type === 'aoe-damage';
+
+              if (isAoeMana) {
+                updatedPlayers.forEach((entry) => {
+                  entry.mana = Math.min(manaCap, Math.max(0, entry.mana + manaValue));
+                });
+              } else {
+                target.mana = Math.min(manaCap, Math.max(0, target.mana + manaValue));
+              }
+              break;
+            }
+
+            case 'manaTransfer': {
+              const transferAmount = Math.min(player.mana, Math.max(0, enhancedCard.effect.value));
+              player.mana = Math.max(0, player.mana - transferAmount);
+              target.mana = Math.min(
+                party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                target.mana + transferAmount
+              );
+              break;
+            }
+
+            case 'manaIntake': {
+              const isAoeIntake = enhancedCard.type === 'aoe' || enhancedCard.type === 'aoe-damage';
+              if (isAoeIntake) {
+                updatedPlayers.forEach((entry) => {
+                  entry.manaIntake = Math.max(0, (entry.manaIntake || 0) + enhancedCard.effect.value);
+                });
+              } else {
+                target.manaIntake = Math.max(0, (target.manaIntake || 0) + enhancedCard.effect.value);
+              }
+              break;
+            }
+
 
             case 'life-steal':
               let enemyMana = target.mana;
@@ -183,7 +287,12 @@ export function useGameActions(partyId: string) {
               break;
 
 
-            case 'manaDrain':
+            case 'manaDrain': {
+              const shieldIndex = target.effects?.findIndex((effect) => effect.stackId === 'manaShield') ?? -1;
+              if (shieldIndex >= 0) {
+                target.effects = (target.effects || []).filter((_, idx) => idx !== shieldIndex);
+                break;
+              }
               const drainAmount = Math.min(target.mana, enhancedCard.effect.value);
               target.mana -= drainAmount;
               player.mana = Math.min(
@@ -191,6 +300,7 @@ export function useGameActions(partyId: string) {
                 player.mana + drainAmount
               );
               break;
+            }
 
             case 'manaBurn':
               const burnAmount = Math.ceil(target.mana / 2);
@@ -204,7 +314,13 @@ export function useGameActions(partyId: string) {
 
 
             case 'manaRefill':
-              player.mana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+              player.mana = Math.min(
+                party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                player.mana + enhancedCard.effect.value
+              );
+              if (card.name === 'Open Bar Tab') {
+                player.manaIntake = Math.max(0, (player.manaIntake || 0) + 1);
+              }
               break;
 
 
@@ -328,29 +444,27 @@ export function useGameActions(partyId: string) {
             }
 
             case 'manaShield':
-              effectManager.addManaShield({
-                reduction: enhancedCard.effect.value, // Value between 0-1 representing percentage reduction
-                duration: { turnsLeft: 3, initialDuration: 3 },
-                source: card.id,
-              });
+              player.effects = [
+                ...(player.effects || []).filter((effect) => effect.stackId !== 'manaShield'),
+                {
+                  stackId: 'manaShield',
+                  type: 'buff',
+                  value: 1,
+                  duration: 1,
+                },
+              ];
               break;
 
             case 'manaIntakeMultiplier':
-              effectManager.addIntakeEffect({
-                type: 'multiply',
-                value: enhancedCard.effect.value,
-                duration: { turnsLeft: 3, initialDuration: 3 },
-                source: card.id,
-              });
+              target.manaIntake = Math.max(0, (target.manaIntake || 0) * enhancedCard.effect.value);
+              break;
+
+            case 'manaIntakeMultiply':
+              target.manaIntake = Math.max(0, (target.manaIntake || 0) * enhancedCard.effect.value);
               break;
 
             case 'manaIntakeReduction':
-              effectManager.addIntakeEffect({
-                type: 'multiply',
-                value: 1 - enhancedCard.effect.value, // Convert reduction to multiplier (e.g. 0.3 reduction becomes 0.7 multiplier)
-                duration: { turnsLeft: 3, initialDuration: 3 },
-                source: card.id,
-              });
+              target.manaIntake = Math.max(0, (target.manaIntake || 0) * (1 - enhancedCard.effect.value));
               break;
 
             case 'increaseIntake':
@@ -370,7 +484,11 @@ export function useGameActions(partyId: string) {
               break;
 
             case 'soberingPotion':
-              player.manaIntake = Math.max(0, player.manaIntake * (1 - enhancedCard.effect.value));
+              if (enhancedCard.effect.value <= 0) {
+                player.manaIntake = 0;
+              } else {
+                player.manaIntake = Math.max(0, (player.manaIntake || 0) - enhancedCard.effect.value);
+              }
               break;
 
             case 'goldenLiver':
@@ -378,11 +496,7 @@ export function useGameActions(partyId: string) {
                 party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
                 player.mana + enhancedCard.effect.value
               );
-              effectManager.addManaShield({
-                reduction: 0.8, // 80% reduction
-                duration: { turnsLeft: 3, initialDuration: 3 },
-                source: card.id,
-              });
+              player.manaIntake = Math.max(0, (player.manaIntake || 0) * 0.2);
               break;
 
             case 'divineSobriety':
@@ -448,6 +562,84 @@ export function useGameActions(partyId: string) {
               });
               break;
 
+            case 'manaDouble':
+              player.mana = Math.min(
+                party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                player.mana * 2
+              );
+              player.manaIntake = Math.max(0, (player.manaIntake || 0) + 15);
+              break;
+
+            case 'manaIntakeOthers':
+              updatedPlayers.forEach((entry) => {
+                if (entry.id !== playerId) {
+                  entry.manaIntake = Math.max(0, (entry.manaIntake || 0) + enhancedCard.effect.value);
+                }
+              });
+              break;
+
+            case 'setAllToDrunk': {
+              const threshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
+              updatedPlayers.forEach((entry) => {
+                entry.manaIntake = threshold;
+              });
+              break;
+            }
+
+            case 'maxMana':
+              player.mana = Math.min(
+                (party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA) + enhancedCard.effect.value,
+                player.mana + enhancedCard.effect.value
+              );
+              break;
+
+            case 'maxManaAndMana':
+              player.mana = Math.min(
+                (party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA) + enhancedCard.effect.value,
+                player.mana + enhancedCard.effect.value
+              );
+              break;
+
+            case 'manaStealAll': {
+              let stolen = 0;
+              updatedPlayers.forEach((entry) => {
+                if (entry.id === playerId) return;
+                const taken = Math.min(entry.mana, enhancedCard.effect.value);
+                entry.mana = Math.max(0, entry.mana - taken);
+                stolen += taken;
+              });
+              player.mana = Math.min(
+                party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                player.mana + stolen
+              );
+              break;
+            }
+
+            case 'divineIntervention':
+              updatedPlayers.forEach((entry) => {
+                entry.manaIntake = 0;
+                entry.mana = Math.min(
+                  party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                  entry.mana + enhancedCard.effect.value
+                );
+              });
+              break;
+
+            case 'drunkestPlayerDamage': {
+              const drunkestPlayer = [...updatedPlayers]
+                .sort((a, b) => (b.manaIntake || 0) - (a.manaIntake || 0))[0];
+              if (drunkestPlayer) {
+                drunkestPlayer.mana = Math.max(0, drunkestPlayer.mana + enhancedCard.effect.value);
+              }
+              break;
+            }
+
+            case 'fellan':
+            case 'infiniteVoid':
+            case 'titan':
+              // Challenge or legacy legendary effects are resolved outside this switch.
+              break;
+
             case 'partyMaster':
               // Handled in the UI with a custom modal
               break;
@@ -492,16 +684,7 @@ export function useGameActions(partyId: string) {
   }, [partyId, cardEnhancer, effectManager, endTurn]);
 
   // Resolve a challenge card
-  const resolveChallengeCard = useCallback(async (playerId: string, winnerId: string, loserId: string, card: Card) => {
-
-    // Check if challenge effects are defined in any of the supported formats
-    if (!card.effect.challengeEffects && !card.effect.winnerEffect && !card.effect.loserEffect && !card.name.includes('Name the most') &&
-      card.name !== 'Öl Hävf' && card.name !== 'Got Big Muscles?' && card.name !== 'Shot Contest' && card.name !== 'SHOT MASTER') {
-      console.error('Challenge effects not defined for this card:', card);
-      throw new Error('Challenge effects not defined for this card: ' + card.name);
-    }
-
-
+  const resolveChallengeCard = useCallback(async (playerId: string, winnerId: string, loserId: string, card?: Card) => {
     if (!playerId || !winnerId || !loserId) {
       throw new Error('Missing required parameters for challenge resolution');
     }
@@ -519,6 +702,28 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) {
           throw new Error('Not player\'s turn');
         }
+        if (party.pendingChallenge && party.pendingChallenge.playerId !== playerId) {
+          throw new Error('Only the challenge owner can resolve this challenge');
+        }
+
+        const challengeCard = card ?? party.pendingChallenge?.card;
+        if (!challengeCard) {
+          throw new Error('Challenge card data is missing');
+        }
+        if (
+          !challengeCard.effect.challengeEffects &&
+          !challengeCard.effect.challenge &&
+          !challengeCard.effect.winnerEffect &&
+          !challengeCard.effect.loserEffect &&
+          !challengeCard.name.includes('Name the most') &&
+          challengeCard.name !== 'Öl Hävf' &&
+          challengeCard.name !== 'Got Big Muscles?' &&
+          challengeCard.name !== 'Shot Contest' &&
+          challengeCard.name !== 'SHOT MASTER'
+        ) {
+          console.error('Challenge effects not defined for this card:', challengeCard);
+          throw new Error('Challenge effects not defined for this card: ' + challengeCard.name);
+        }
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
@@ -535,20 +740,34 @@ export function useGameActions(partyId: string) {
           throw new Error('Winner or loser not found');
         }
 
+        const challengeOwner = updatedPlayers.find(p => p.id === playerId);
+        if (!challengeOwner) {
+          throw new Error('Challenge owner not found');
+        }
+        if (!party.pendingChallenge) {
+          if (challengeOwner.mana < challengeCard.manaCost) {
+            throw new Error('Not enough mana for challenge card');
+          }
+          challengeOwner.mana = Math.max(0, challengeOwner.mana - challengeCard.manaCost);
+        }
+
         let winnerEffect;
         let loserEffect;
         const maxMana = party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
 
         try {
-          if (card.effect.winnerEffect && card.effect.loserEffect) {
-            winnerEffect = card.effect.winnerEffect;
-            loserEffect = card.effect.loserEffect;
-          } else if (card.effect.challengeEffects?.winner && card.effect.challengeEffects?.loser) {
-            winnerEffect = card.effect.challengeEffects.winner;
-            loserEffect = card.effect.challengeEffects.loser;
+          if (challengeCard.effect.winnerEffect && challengeCard.effect.loserEffect) {
+            winnerEffect = challengeCard.effect.winnerEffect;
+            loserEffect = challengeCard.effect.loserEffect;
+          } else if (challengeCard.effect.challenge?.winnerEffect && challengeCard.effect.challenge?.loserEffect) {
+            winnerEffect = challengeCard.effect.challenge.winnerEffect;
+            loserEffect = challengeCard.effect.challenge.loserEffect;
+          } else if (challengeCard.effect.challengeEffects?.winner && challengeCard.effect.challengeEffects?.loser) {
+            winnerEffect = challengeCard.effect.challengeEffects.winner;
+            loserEffect = challengeCard.effect.challengeEffects.loser;
           } else {
             // Fallback for cards with non-standard effects
-            switch (card.name) {
+            switch (challengeCard.name) {
               case 'Öl Hävf':
                 winnerEffect = { type: 'mana', value: 5 };
                 loserEffect = { type: 'manaIntake', value: 10 };
@@ -566,22 +785,32 @@ export function useGameActions(partyId: string) {
                 loserEffect = { type: 'manaIntakeMultiply', value: 2 };
                 break;
               default:
-                if (card.name.includes('Name the most')) {
+                if (challengeCard.name.includes('Name the most')) {
                   // 'Name the most' cards
                   const value = 5; // Default value for naming challenges
                   winnerEffect = { type: 'manaStealer', value: value };
                   loserEffect = { type: 'manaBurn', value: value };
                 } else {
-                  console.error('Unable to determine challenge effects for card', card);
-                  throw new Error('Unable to determine challenge effects for card: ' + card.name);
+                  console.error('Unable to determine challenge effects for card', challengeCard);
+                  throw new Error('Unable to determine challenge effects for card: ' + challengeCard.name);
                 }
+            }
+          }
+
+          if (winnerEffect?.type === 'manaStealer') {
+            const stealAmount = Math.min(loser.mana, winnerEffect.value);
+            loser.mana = Math.max(0, loser.mana - stealAmount);
+            winner.mana = Math.min(maxMana, winner.mana + stealAmount);
+            winnerEffect = { type: 'null', value: 0 };
+            if (loserEffect?.type === 'manaBurn') {
+              loserEffect = { type: 'null', value: 0 };
             }
           }
 
           // Apply effects to winner and loser
 
-          const winnerResult = applyChallengeEffect(winner, winnerEffect, maxMana, card);
-          const loserResult = applyChallengeEffect(loser, loserEffect, maxMana, card);
+          const winnerResult = applyChallengeEffect(winner, winnerEffect, maxMana, challengeCard);
+          const loserResult = applyChallengeEffect(loser, loserEffect, maxMana, challengeCard);
 
           Object.assign(winner, winnerResult);
           Object.assign(loser, loserResult);
@@ -595,7 +824,7 @@ export function useGameActions(partyId: string) {
           throw new Error('Player not found');
         }
 
-        const cardIndex = player.cards.findIndex(c => c.id === card.id);
+        const cardIndex = player.cards.findIndex(c => c.id === challengeCard.id);
         if (cardIndex === -1) {
           throw new Error('Card not found in player\'s hand');
         }
@@ -608,20 +837,27 @@ export function useGameActions(partyId: string) {
         });
 
         // Update Firestore with challenge results
-        transaction.update(partyRef, {
+        const updatePayload: Partial<Party> = {
           players: updatedPlayers,
           lastAction: buildLastActionPayload({
             beforeStats,
             updatedPlayers,
             playerId: winnerId,
             targetId: loserId,
-            cardId: card.id,
-            cardName: card.name,
-            cardType: card.effect.type,
-            cardRarity: card.rarity,
-            cardDescription: card.description,
-            manaCost: card.manaCost,
+            cardId: challengeCard.id,
+            cardName: challengeCard.name,
+            cardType: challengeCard.effect.type,
+            cardRarity: challengeCard.rarity,
+            cardDescription: challengeCard.description,
+            manaCost: challengeCard.manaCost,
           }),
+        };
+        if (party.pendingChallenge) {
+          updatePayload.pendingChallenge = null;
+        }
+
+        transaction.update(partyRef, {
+          ...updatePayload,
         });
 
 
@@ -695,5 +931,5 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId]);
 
-  return { applyCardEffect, resolveChallengeCard, drinkMana };
+  return { applyCardEffect, startChallengeCard, resolveChallengeCard, drinkMana };
 }

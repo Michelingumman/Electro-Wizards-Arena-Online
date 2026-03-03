@@ -32,7 +32,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'eyy-jag-kommer-lacka-ur-assa',
     name: 'EYY JAG KOMMER LACKA UR ASSÅ',
-    description: 'INCREDIBLE POWER! Double your current mana and gain 15 mana intake',
+    description: 'INCREDIBLE POWER! Double your current mana and gain 15 Drunkness',
     manaCost: 10,
     rarity: CardRarity.LEGENDARY,
     type: 'normal',
@@ -46,7 +46,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'agh-det-hander-ju-inte',
     name: 'AGH DET HÄNDER JU INTE!',
-    description: 'Force all other players to increase their mana intake by 8',
+    description: 'Force all other players to increase their Drunkness by 8',
     manaCost: 8,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
@@ -60,7 +60,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'guld',
     name: 'GULD',
-    description: 'Make all players drunk! Set everyone\'s mana intake to the drunk threshold',
+    description: 'Make all players drunk! Set everyone\'s Drunkness to the drunk threshold',
     manaCost: 15,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
@@ -74,7 +74,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'shot-master',
     name: 'SHOT MASTER',
-    description: 'Challenge target to a drinking contest. Winner\'s mana intake is set to 0, loser\'s is doubled',
+    description: 'Challenge target to a drinking contest. Winner\'s Drunkness is set to 0, loser\'s is doubled',
     manaCost: 8,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
@@ -124,7 +124,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'divine-intervention',
     name: 'DIVINE INTERVENTION',
-    description: 'Reset everyone\'s mana intake to 0. All players gain 5 mana',
+    description: 'Reset everyone\'s Drunkness to 0. All players gain 5 mana',
     manaCost: 12,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
@@ -201,7 +201,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'ultimate-binge',
     name: 'ULTIMATE DRINKING BINGE',
-    description: 'Everyone except you drinks DOUBLE. All other players gain +5 Mana and +4 Mana Intake',
+    description: 'Everyone except you drinks DOUBLE. All other players gain +5 Mana and +4 Drunkness',
     manaCost: 6.0,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe-damage',
@@ -212,7 +212,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'legendary-challenge',
     name: 'LEGENDARY DRINKING CHALLENGE',
-    description: 'Challenge: Winner gets completely sober (mana intake reset to 0), Loser doubles their current mana intake',
+    description: 'Challenge: Winner gets completely sober (Drunkness reset to 0), Loser doubles their current Drunkness',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
@@ -231,7 +231,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'gold-card',
     name: 'GOLDEN LIVER',
-    description: 'Your liver becomes golden! Gain +10 Mana and your mana intake is reduced by 80% for 3 turns',
+    description: 'Your liver becomes golden! Gain +10 Mana and your Drunkness is reduced by 80% for 3 turns',
     manaCost: 8.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
@@ -242,7 +242,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'mana-hurricane',
     name: 'MANA HURRICANE',
-    description: 'Chaos ensues! Randomly redistributes all mana and mana intake values between all players',
+    description: 'Chaos ensues! Randomly redistributes all mana and Drunkness values between all players',
     manaCost: 7.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
@@ -253,7 +253,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'party-master',
     name: 'PARTY MASTER',
-    description: 'Take control of the party! Choose any player and set their mana and mana intake to any value',
+    description: 'Take control of the party! Choose any player and set their mana and Drunkness to any value',
     manaCost: 10.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
@@ -264,7 +264,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'divine-sobriety',
     name: 'DIVINE SOBRIETY',
-    description: 'Instantly become sober! Reset your mana intake to 0 and gain +5 Mana',
+    description: 'Instantly become sober! Reset your Drunkness to 0 and gain +5 Mana',
     manaCost: 4.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',

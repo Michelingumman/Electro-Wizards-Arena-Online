@@ -94,8 +94,8 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
         effects.manaValue = parseInt(manaMatch[2]) * (manaMatch[1] === '-' ? -1 : 1);
       }
 
-      // Check for intake patterns
-      const intakeMatch = lastAction.cardDescription.match(/(\+|\-)\s*(\d+)\s*[Ii]ntake/);
+      // Check for drunkness/intake patterns
+      const intakeMatch = lastAction.cardDescription.match(/(\+|\-)\s*(\d+)\s*(?:[Ii]ntake|[Dd]runkness)/);
       if (intakeMatch && intakeMatch[2]) {
         effects.intakeValue = parseInt(intakeMatch[2]) * (intakeMatch[1] === '-' ? -1 : 1);
       }
@@ -120,11 +120,11 @@ export function ActionLog({ lastAction, players }: ActionLogProps) {
   // Check if it's a drinking action
   const isDrinkAction = lastAction.cardType === 'forceDrink' || lastAction.cardId === 'drink';
 
-  // Extract intake value from description for random cards
+  // Extract drunkness value from description for random cards
   const getIntakeValueFromDescription = () => {
     if (!lastAction.cardDescription) return null;
 
-    const match = lastAction.cardDescription.match(/gain\s+(\d+)\s+mana\s+intake/i);
+    const match = lastAction.cardDescription.match(/gain\s+(\d+)\s+(?:mana\s+intake|drunkness)/i);
     if (match && match[1]) {
       return parseInt(match[1]);
     }

@@ -5,7 +5,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'duct-tape',
     name: 'Alcoholic Tolerance',
-    description: 'Reduce your mana intake by 4',
+    description: 'Reduce your Drunkness by 4',
     manaCost: 5,
     rarity: CardRarity.RARE,
     type: 'normal',
@@ -61,7 +61,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'sobering-potion',
     name: 'Sobering Potion',
-    description: 'Reset your mana intake to 0',
+    description: 'Reset your Drunkness to 0',
     manaCost: 4,
     rarity: CardRarity.RARE,
     type: 'normal',
@@ -89,7 +89,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'challice-of-focus',
     name: 'Chalice of Focus',
-    description: 'Reduce all players mana intake by 2 (including yourself)',
+    description: 'Reduce all players Drunkness by 2 (including yourself)',
     manaCost: 6,
     rarity: CardRarity.RARE,
     type: 'aoe',
@@ -103,7 +103,7 @@ export const RARE_CARDS: CardBase[] = [
   {
     id: 'shot-contest',
     name: 'Shot Contest',
-    description: 'Challenge another player. Winner gains 2 mana, loser gains 6 mana intake',
+    description: 'Challenge another player. Winner gains 2 mana, loser gains 6 Drunkness',
     manaCost: 3,
     rarity: CardRarity.RARE,
     type: 'challenge',
@@ -134,4 +134,5 @@ export const RARE_CARDS: CardBase[] = [
   //   color: RARITY_COLORS[CardRarity.RARE]
   // }
 ];
+
 

@@ -23,6 +23,7 @@ interface GameClassicUIProps {
     onLeaveParty: () => Promise<void>;
     onUpdateSettings: (settings: any) => Promise<void>;
     onDrink: () => Promise<void>;
+    onOpenPendingChallenge?: () => void;
     selectedCard: Card | null;
     setSelectedCard: (card: Card | null) => void;
 }

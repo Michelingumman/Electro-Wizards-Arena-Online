@@ -89,7 +89,7 @@ export function Home() {
               <Zap className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Electro Wizards Arena
+              Electro Arena
             </h1>
             <p className="text-sm text-gray-500 mt-1">Enter your name to start playing</p>
           </div>

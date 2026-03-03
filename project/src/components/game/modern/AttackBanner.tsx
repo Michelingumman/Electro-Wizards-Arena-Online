@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Party } from '../../../types/game';
-import { Sword, Heart, Zap, Wine, Target, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sword, Heart, Zap, Wine, Target, Sparkles, ChevronDown, ChevronUp, Droplets } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
@@ -19,6 +19,7 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
     if (!attacker) return null;
 
     const isSelf = lastAction.playerId === lastAction.targetId;
+    const affectedIds = lastAction.affectedPlayerIds || [];
 
     const getActionVerb = (type: string) => {
         switch (type) {
@@ -55,7 +56,42 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
     };
 
     const verb = getActionVerb(lastAction.cardType);
-    const targetText = isSelf ? 'self' : target?.name || '???';
+    const affectedOthers = affectedIds.filter((id) => id !== attacker.id);
+    const explicitGroupTypes = new Set([
+        'aoeDamage',
+        'aoeManaBurst',
+        'manaStealAll',
+        'manaIntakeOthers',
+        'setAllToDrunk',
+        'divineIntervention',
+        'manaHurricane',
+    ]);
+    const affectedMany = affectedOthers.length > 1 || explicitGroupTypes.has(lastAction.cardType);
+    const includesAttacker = affectedIds.includes(attacker.id);
+
+    let targetText = '';
+    if (lastAction.cardId === 'drink') {
+        targetText = 'self';
+    } else if (affectedMany) {
+        targetText = includesAttacker ? 'all players' : 'all opponents';
+    } else if (lastAction.targetId && !isSelf) {
+        targetText = target?.name || 'target';
+    } else if (lastAction.targetId && isSelf && lastAction.cardType === 'forceDrink') {
+        targetText = 'self';
+    } else if (lastAction.cardType === 'challenge') {
+        targetText = 'challenge table';
+    }
+
+    const actionPrefix = targetText
+        ? `${attacker.name} ${verb} ${targetText} with`
+        : `${attacker.name} used`;
+    const damageValue =
+        typeof lastAction.targetDamage === 'number'
+            ? lastAction.targetDamage
+            : typeof lastAction.targetManaDelta === 'number' && lastAction.targetManaDelta < 0
+                ? Math.abs(lastAction.targetManaDelta)
+                : null;
+    const manaCost = typeof lastAction.manaCost === 'number' ? lastAction.manaCost : null;
 
     return (
         <AnimatePresence mode="wait">
@@ -74,11 +110,9 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
                 {/* Compact banner */}
                 <div className="flex items-center gap-1.5 px-3 py-1.5">
                     {getActionIcon(lastAction.cardType)}
-                    <span className="text-[11px] text-white/90 font-medium truncate flex-1">
-                        <span className="font-bold">{attacker.name}</span>
-                        {' '}{verb}{' '}
-                        <span className="font-bold">{targetText}</span>
-                        {' '}with{' '}
+                    <span className="text-xs text-white/90 font-medium truncate flex-1">
+                        <span className="font-bold">{actionPrefix}</span>
+                        {' '}
                         <span className="text-purple-300 italic">{lastAction.cardName}</span>
                     </span>
                     {expanded
@@ -98,8 +132,18 @@ export function AttackBanner({ lastAction, players }: AttackBannerProps) {
                             className="overflow-hidden"
                         >
                             <div className="px-3 pb-2 pt-1 border-t border-white/5">
-                                <div className="text-[10px] text-gray-300 leading-relaxed">
+                                <div className="text-[11px] text-gray-300 leading-relaxed">
                                     {lastAction.cardDescription}
+                                </div>
+                                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-red-400/40 bg-red-950/40 px-2 py-0.5 text-[10px] text-red-200">
+                                        <Sword className="w-3 h-3" />
+                                        {damageValue !== null ? `Damage ${damageValue}` : 'Damage --'}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/40 bg-blue-950/40 px-2 py-0.5 text-[10px] text-blue-200">
+                                        <Droplets className="w-3 h-3" />
+                                        {manaCost !== null ? `Mana ${manaCost}` : 'Mana --'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2 mt-1.5">
                                     <span className="text-[9px] text-gray-600 uppercase tracking-wider">

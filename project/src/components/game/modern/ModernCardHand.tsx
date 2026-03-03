@@ -7,6 +7,7 @@ import { Droplets, Flame, ScrollText, Sparkles, Target, Zap } from 'lucide-react
 interface ModernCardHandProps {
     cards: Card[];
     onPlayCard: (card: Card) => void;
+    onCancelSelection?: () => void;
     disabled: boolean;
     currentMana: number;
     selectedCard: Card | null;
@@ -15,6 +16,7 @@ interface ModernCardHandProps {
 export function ModernCardHand({
     cards,
     onPlayCard,
+    onCancelSelection,
     disabled,
     currentMana,
     selectedCard,
@@ -42,18 +44,22 @@ export function ModernCardHand({
     }, [cards]);
 
     useEffect(() => {
-        if (!selectedCard) setActiveCardId(null);
-    }, [selectedCard]);
+        if (selectedCard) setActiveCardId(null);
+    }, [selectedCard?.id]);
 
     const cardCount = cards.length;
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 390;
-    const maxWidth = cardCount <= 4 ? 170 : cardCount === 5 ? 150 : 132;
-    const CARD_WIDTH = Math.min(maxWidth, Math.max(118, (screenW - 20) / Math.max(cardCount, 4)));
+    const CARD_WIDTH = cardCount <= 4
+        ? Math.min(188, Math.max(146, screenW * 0.39))
+        : cardCount === 5
+            ? Math.min(170, Math.max(132, screenW * 0.34))
+            : Math.min(150, Math.max(118, screenW * 0.29));
     const CENTER_INDEX = (cardCount - 1) / 2;
-    const ANGLE_SPREAD = cardCount <= 4 ? 11 : cardCount === 5 ? 8 : 6;
-    const X_SPREAD = cardCount <= 4 ? CARD_WIDTH * 0.58 : cardCount === 5 ? CARD_WIDTH * 0.5 : CARD_WIDTH * 0.42;
-    const BASE_Y = cardCount <= 4 ? 88 : 96;
-    const POPUP_Y = -112;
+    const ANGLE_SPREAD = cardCount <= 4 ? 10 : cardCount === 5 ? 8 : 6;
+    const X_SPREAD = cardCount <= 4 ? CARD_WIDTH * 0.5 : cardCount === 5 ? CARD_WIDTH * 0.45 : CARD_WIDTH * 0.38;
+    const BASE_Y = cardCount <= 4 ? 78 : 88;
+    const POPUP_Y = -144;
+    const hasSelection = Boolean(activeCardId);
 
     const getEffectIcon = (type: string) => {
         const cls = 'w-6 h-6 text-gray-400';
@@ -93,19 +99,38 @@ export function ModernCardHand({
     };
 
     return (
-        <div
-            className={clsx(
-                'fixed bottom-0 left-0 right-0 pointer-events-none flex justify-center items-end z-50 transition-all duration-300',
-                disabled && 'saturate-[0.7] brightness-[0.85]'
-            )}
-            style={{ height: '340px' }}
-        >
-            <div className="relative w-full flex justify-center items-end pb-4">
-                <AnimatePresence>
-                    {cards.map((card, index) => {
-                        const isActive = activeCardId === card.id || selectedCard?.id === card.id;
+        <>
+            <AnimatePresence>
+                {hasSelection && (
+                    <motion.button
+                        key="collapse-active-card"
+                        type="button"
+                        aria-label="Collapse selected card"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40 bg-transparent"
+                        onClick={() => {
+                            setActiveCardId(null);
+                        }}
+                    />
+                )}
+            </AnimatePresence>
+
+            <div
+                className={clsx(
+                    'fixed bottom-0 left-0 right-0 pointer-events-none flex justify-center items-end z-50 transition-all duration-300',
+                    disabled && 'saturate-[0.7] brightness-[0.85]'
+                )}
+                style={{ height: '390px' }}
+            >
+                <div className="relative w-full flex justify-center items-end" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
+                    <AnimatePresence>
+                        {cards.map((card, index) => {
+                        const isActive = activeCardId === card.id;
+                        const isTargetSelected = selectedCard?.id === card.id;
                         const isNew = newCardIds.has(card.id);
-                        const canPlay = currentMana >= card.manaCost && !disabled;
+                        const canPlay = currentMana >= card.manaCost && !disabled && !selectedCard;
 
                         const offset = index - CENTER_INDEX;
                         const angle = offset * ANGLE_SPREAD;
@@ -138,7 +163,7 @@ export function ModernCardHand({
                                 }}
                                 className={clsx(
                                     'absolute origin-bottom cursor-pointer pointer-events-auto touch-none select-none',
-                                    selectedCard?.id === card.id &&
+                                    isTargetSelected &&
                                         'ring-2 ring-yellow-400/90 ring-offset-1 ring-offset-gray-900 rounded-xl'
                                 )}
                                 style={{
@@ -151,14 +176,20 @@ export function ModernCardHand({
                                 }}
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    if (!isActive) {
-                                        setActiveCardId(card.id);
+                                    if (selectedCard) {
+                                        if (isTargetSelected && onCancelSelection) {
+                                            onCancelSelection();
+                                        }
                                         return;
                                     }
 
-                                    if (canPlay) {
+                                    if (isActive) {
                                         setActiveCardId(null);
-                                        onPlayCard(card);
+                                        return;
+                                    }
+
+                                    if (!isActive) {
+                                        setActiveCardId(card.id);
                                     }
                                 }}
                             >
@@ -182,26 +213,45 @@ export function ModernCardHand({
                                     </div>
 
                                     <div className="px-2.5 py-2 bg-black/35 space-y-1.5">
-                                        <p className="text-[10px] leading-snug text-gray-300 line-clamp-2">
+                                        <p className={clsx(
+                                            'text-[10px] leading-snug text-gray-300',
+                                            isActive ? 'line-clamp-none' : 'line-clamp-4'
+                                        )}>
                                             {card.description}
                                         </p>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[8px] text-gray-500 uppercase tracking-wider">
                                                 {card.rarity}
                                             </span>
-                                            {isActive && canPlay && (
-                                                <span className="text-[8px] rounded-full bg-purple-600/80 px-2 py-0.5 text-white font-semibold tracking-wide uppercase">
-                                                    Tap to play
-                                                </span>
+                                            {isActive && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        if (!canPlay) return;
+                                                        setActiveCardId(null);
+                                                        onPlayCard(card);
+                                                    }}
+                                                    disabled={!canPlay}
+                                                    className={clsx(
+                                                        'text-[9px] rounded-full px-2.5 py-1 font-semibold tracking-wide uppercase transition-all',
+                                                        canPlay
+                                                            ? 'bg-purple-600/90 text-white hover:bg-purple-500'
+                                                            : 'bg-gray-700/70 text-gray-400 cursor-not-allowed'
+                                                    )}
+                                                >
+                                                    {canPlay ? 'Play' : disabled ? 'Wait turn' : 'No mana'}
+                                                </button>
                                             )}
                                         </div>
                                     </div>
                                 </div>
                             </motion.div>
                         );
-                    })}
-                </AnimatePresence>
+                        })}
+                    </AnimatePresence>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -108,12 +108,12 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
                 max={100}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Player becomes "drunk" when mana intake exceeds this value
+                Player becomes "drunk" when drunkness exceeds this value
               </p>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Mana Intake Decay Rate</label>
+              <label className="block text-sm text-gray-400 mb-1">Drunkness Decay Rate</label>
               <Input
                 type="number"
                 value={settings.manaIntakeDecayRate}
@@ -126,7 +126,7 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
                 step={0.1}
               />
               <p className="text-xs text-gray-500 mt-1">
-                How quickly mana intake decreases per minute (higher = faster sobering)
+                How quickly drunkness decreases per minute (higher = faster sobering)
               </p>
             </div>
 

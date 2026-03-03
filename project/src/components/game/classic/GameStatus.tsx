@@ -27,10 +27,25 @@ export function GameStatus({ status, winner, players, isLeader, showNoValidPlaye
 
   if (status === 'waiting') {
     return (
-      <div className="text-center p-8 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20">
+      <div className="text-center p-6 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20 max-w-md w-full">
         <p className="text-xl text-purple-200">
           Waiting for {isLeader ? 'more players to join...' : 'the game to start...'}
         </p>
+        <div className="mt-4 text-left">
+          <p className="text-xs uppercase tracking-wider text-purple-300/80 mb-2">
+            Players in room ({players.length})
+          </p>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {players.map((player) => (
+              <div key={player.id} className="flex items-center justify-between rounded-lg bg-gray-900/40 border border-gray-700/40 px-3 py-2">
+                <span className="text-sm text-gray-100 truncate">{player.name}</span>
+                {player.isLeader && (
+                  <span className="text-[10px] uppercase tracking-wide text-amber-300">Leader</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
         {showNoValidPlayersWarning && (
           <div className="mt-4 px-4 py-3 bg-amber-900/30 border border-amber-500/30 rounded-lg">
             <p className="text-sm text-amber-300">

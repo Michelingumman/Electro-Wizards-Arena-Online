@@ -39,7 +39,7 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'shotgun',
     name: 'Drunk Roulette',
-    description: 'Increases mana intake by 2 for the target and one random player (could be you)',
+    description: 'Increases Drunkness by 2 for the target and one random player (could be you)',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -72,7 +72,7 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'energi_i_rummet',
     name: 'Match the Energy!',
-    description: 'You and your target both get +3 to mana intake (getting closer to drunk state)',
+    description: 'You and your target both get +3 to Drunkness (getting closer to drunk state)',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -83,7 +83,7 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'hangover-cure',
     name: 'Hangover Cure',
-    description: 'Reduces your mana intake by 4, helping you sober up',
+    description: 'Reduces your Drunkness by 4, helping you sober up',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'utility',
@@ -94,7 +94,7 @@ export const COMMON_CARDS: CardBase[] = [
   {
     id: 'bar-tab',
     name: 'Open Bar Tab',
-    description: 'Gain 3 mana, but increase your mana intake by 1',
+    description: 'Gain 3 mana, but increase your Drunkness by 1',
     manaCost: 0.0,
     rarity: CardRarity.COMMON,
     type: 'utility',

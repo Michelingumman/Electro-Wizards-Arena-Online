@@ -51,6 +51,12 @@ export function ChallengeModal({
           loseEffect: `${getEffectDescription(loserEffect)}`
         };
       }
+      else if (card.effect.challenge?.winnerEffect && card.effect.challenge?.loserEffect) {
+        return {
+          winEffect: `${getEffectDescription(card.effect.challenge.winnerEffect)}`,
+          loseEffect: `${getEffectDescription(card.effect.challenge.loserEffect)}`
+        };
+      }
       // Backward compatibility for older challenge structure
       else if (card.effect.challengeEffects?.winner && card.effect.challengeEffects?.loser) {
         return {
@@ -62,7 +68,7 @@ export function ChallengeModal({
       else if (card.name === 'Öl Hävf') { //non standard challenge
         return {
           winEffect: `+ 5 Mana`,
-          loseEffect: `+ 10 Mana Intake`
+          loseEffect: `+ 10 Drunkness`
         };
       }
       else if (card.name === 'Got Big Muscles?') { // non standrad challenge
@@ -74,13 +80,13 @@ export function ChallengeModal({
       else if (card.name === 'Shot Contest') { // non standard challenge
         return {
           winEffect: `+ 2 Mana`,
-          loseEffect: `+ 6 Mana Intake`
+          loseEffect: `+ 6 Drunkness`
         };
       }
       else if (card.name === 'SHOT MASTER') { // non standard challenge
         return {
-          winEffect: `Mana intake reset to 0`,
-          loseEffect: `Mana intake doubled`
+          winEffect: `Drunkness reset to 0`,
+          loseEffect: `Drunkness doubled`
         };
       }
       else if (card.name.includes('Name the most')) { // Naming challenges
@@ -112,15 +118,15 @@ export function ChallengeModal({
         case 'mana':
           return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
         case 'manaIntake':
-          return `${effect.value > 0 ? '+' : ''}${effect.value} Mana Intake`;
+          return `${effect.value > 0 ? '+' : ''}${effect.value} Drunkness`;
         case 'manaBurn':
           return `${effect.value > 0 ? '-' : ''}${effect.value} Mana`;
         case 'manaStealer':
           return `Steal ${effect.value} Mana`;
         case 'resetManaIntake':
-          return `Reset Mana Intake to 0`;
+          return `Reset Drunkness to 0`;
         case 'manaIntakeMultiply':
-          return `Multiply Mana Intake by ${effect.value}`;
+          return `Multiply Drunkness by ${effect.value}`;
         case 'heal':
           return `${effect.value > 0 ? '+' : ''}${effect.value} Mana`;
         case 'damage':
@@ -275,7 +281,7 @@ export function ChallengeModal({
               className="flex items-center space-x-2"
             >
               <Trophy className="w-4 h-4" />
-              <span>Confirm Challenge</span>
+              <span>Use Challenge</span>
             </Button>
           </div>
         </motion.div>

@@ -31,6 +31,12 @@ export interface PlayerEffect {
 
 export type Card = CardBase;
 
+export interface PendingChallenge {
+  playerId: string;
+  card: Card;
+  createdAt: number;
+}
+
 export interface Party {
   id: string;
   code: string;
@@ -42,6 +48,7 @@ export interface Party {
   winner?: string | null;
   settings?: GameSettings;
   lastAction?: GameAction;
+  pendingChallenge?: PendingChallenge | null;
   previousState?: {
     players: Player[];
     currentTurn: string;

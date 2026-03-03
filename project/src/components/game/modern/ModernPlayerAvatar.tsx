@@ -1,5 +1,4 @@
 import { Player } from '../../../types/game';
-import { Wine } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 
@@ -9,9 +8,19 @@ interface ModernPlayerAvatarProps {
     isTargetable: boolean;
     isDrunk?: boolean;
     drunkThreshold?: number;
+    projectedManaIntake?: number;
+    soberSeconds?: number;
+    maxMana?: number;
     onSelect?: () => void;
     isYou?: boolean;
     compact?: boolean;
+}
+
+function formatClock(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 export function ModernPlayerAvatar({
@@ -20,83 +29,98 @@ export function ModernPlayerAvatar({
     isTargetable,
     isDrunk = false,
     drunkThreshold = 20,
+    projectedManaIntake,
+    soberSeconds,
+    maxMana = 20,
     onSelect,
     isYou = false,
     compact = false,
 }: ModernPlayerAvatarProps) {
-    const drunkPercent = Math.min(100, Math.floor((player.manaIntake / drunkThreshold) * 100));
-    const initial = player.name.charAt(0).toUpperCase();
+    const intakeValue = projectedManaIntake ?? player.manaIntake ?? 0;
+    const intakePercent = Math.min(100, Math.max(0, (intakeValue / drunkThreshold) * 100));
+    const manaPercent = Math.min(100, Math.max(0, (player.mana / maxMana) * 100));
+    const drunkLine = 80;
+    const isDrunkState = isDrunk || intakePercent >= drunkLine;
 
     return (
         <motion.div
             layout
             onClick={isTargetable && onSelect ? onSelect : undefined}
             className={clsx(
-                "flex flex-col items-center gap-1 transition-all duration-200",
-                isTargetable && "cursor-pointer"
+                'flex flex-col items-center gap-1.5 transition-all duration-200',
+                isTargetable && 'cursor-pointer'
             )}
-            animate={isTargetable ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-            transition={isTargetable ? { repeat: Infinity, duration: 1.5 } : {}}
+            animate={isTargetable ? { scale: [1, 1.04, 1] } : undefined}
+            transition={isTargetable ? { repeat: Infinity, duration: 1.5 } : undefined}
         >
-            {/* Avatar Circle */}
-            <div className={clsx(
-                "relative rounded-full flex items-center justify-center font-bold transition-all duration-300",
-                compact ? "w-10 h-10 text-xs" : "w-11 h-11 text-sm",
-                isYou
-                    ? "bg-cyan-700 text-white ring-2 ring-cyan-400 ring-offset-2 ring-offset-gray-900 shadow-lg shadow-cyan-500/30"
-                    : isCurrentTurn
-                        ? "bg-purple-600 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-gray-900 shadow-lg shadow-purple-500/30"
-                        : isDrunk
-                            ? "bg-amber-800 text-amber-200 ring-1 ring-amber-500/50"
-                            : "bg-gray-700 text-gray-300 ring-1 ring-gray-600",
-                isTargetable && "ring-2 ring-red-400 ring-offset-2 ring-offset-gray-900"
-            )}>
-                {initial}
-
-                {/* Drunk indicator */}
-                {isDrunk && (
-                    <Wine className="absolute -bottom-1 -right-1 w-3 h-3 text-amber-400" />
+            <span
+                className={clsx(
+                    compact ? 'text-[12px]' : 'text-[14px]',
+                    'font-semibold tracking-[0.02em] max-w-[116px] truncate text-center leading-tight drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]',
+                    isCurrentTurn ? 'text-purple-200' : 'text-gray-300'
                 )}
-
-                {/* Current turn pulse ring */}
-                {isCurrentTurn && (
-                    <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-30" />
-                )}
-            </div>
-
-            {/* Name */}
-            <span className={clsx(
-                "text-[10px] font-medium max-w-[60px] truncate",
-                isCurrentTurn ? "text-purple-300" : "text-gray-500"
-            )}>
+            >
                 {player.name}
             </span>
-
-            {/* Mana Bar */}
-            <div className="w-10 flex items-center gap-0.5">
-                <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(100, (player.mana / 20) * 100)}%` }}
-                    />
-                </div>
-                <span className="text-[8px] text-gray-600 font-mono w-4 text-right">{player.mana.toFixed(0)}</span>
-            </div>
-
-            {/* Drunk Progress (tiny bar) */}
-            {player.manaIntake > 0 && (
-                <div className="w-10 h-0.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                        className={clsx(
-                            "h-full rounded-full transition-all duration-300",
-                            drunkPercent >= 80 ? "bg-red-500" : drunkPercent >= 50 ? "bg-amber-500" : "bg-green-600"
-                        )}
-                        style={{ width: `${drunkPercent}%` }}
-                    />
-                </div>
+            {isCurrentTurn && (
+                <span className="text-[9px] uppercase tracking-[0.18em] text-purple-200/90">
+                    Turn
+                </span>
             )}
 
-            {/* Targetable label */}
+            <div className="flex items-center gap-2">
+                <div
+                    className={clsx(
+                        'relative rounded-full overflow-hidden border',
+                        compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]',
+                        isYou
+                            ? 'border-cyan-300/70 shadow-[0_0_16px_rgba(34,211,238,0.35)]'
+                            : isCurrentTurn
+                                ? 'border-purple-300/70 shadow-[0_0_16px_rgba(168,85,247,0.35)]'
+                                : 'border-gray-600/70',
+                        isTargetable && 'ring-2 ring-red-400/70 ring-offset-2 ring-offset-gray-950'
+                    )}
+                >
+                    <div
+                        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cyan-500/70 to-blue-300/55 transition-all duration-300"
+                        style={{ height: `${intakePercent}%` }}
+                    />
+
+                    <div className="absolute left-0 right-0 border-t border-dashed border-red-200/70" style={{ bottom: `${drunkLine}%` }} />
+
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+
+                    {isCurrentTurn && (
+                        <>
+                            <div className="absolute -inset-2 rounded-full bg-purple-500/30 blur-md animate-pulse" />
+                            <div className="absolute inset-0 rounded-full border-2 border-purple-300/80 shadow-[0_0_18px_rgba(168,85,247,0.65)]" />
+                            <div className="absolute inset-0 rounded-full border-2 border-purple-400/70 animate-ping opacity-30" />
+                        </>
+                    )}
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={clsx('font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-black/40', isDrunkState ? 'text-amber-200' : 'text-gray-100')}>
+                            {formatClock(soberSeconds ?? 0)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="relative h-[58px] w-[26px] shrink-0">
+                    <div className="absolute left-1/2 top-0 h-2.5 w-3 -translate-x-1/2 rounded-t-md border border-blue-300/50 bg-blue-950/70" />
+                    <div className="absolute bottom-0 left-1/2 h-[49px] w-[24px] -translate-x-1/2 overflow-hidden rounded-[10px] border border-blue-300/50 bg-blue-950/70 shadow-[0_0_8px_rgba(56,189,248,0.28)]">
+                        <div
+                            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500 to-blue-400 transition-all duration-300"
+                            style={{ height: `${manaPercent}%` }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[9px] font-semibold text-blue-50 drop-shadow-[0_1px_4px_rgba(0,0,0,0.65)]">
+                                {player.mana.toFixed(1)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {isTargetable && (
                 <span className="text-[8px] text-red-400 font-semibold uppercase animate-pulse">Target</span>
             )}

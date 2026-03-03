@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, Party, Player } from '../../../types/game';
 import { ModernPlayerAvatar } from './ModernPlayerAvatar';
 import { animate, AnimatePresence, motion, useMotionValue } from 'framer-motion';
-import { Droplets, Heart, Sparkles, Sword, Target, Wine, Zap } from 'lucide-react';
+import { Sword } from 'lucide-react';
+import { GAME_CONFIG } from '../../../config/gameConfig';
 
 interface ArenaCircleProps {
     players: Player[];
@@ -10,52 +11,32 @@ interface ArenaCircleProps {
     currentTurn: string;
     selectedCard: Card | null;
     lastAction?: Party['lastAction'];
+    pendingChallenge?: Party['pendingChallenge'];
+    canResolvePendingChallenge?: boolean;
     isCurrentTurn: boolean;
     drunkThreshold: number;
+    settings?: Party['settings'];
     onTargetSelect: (targetId: string) => Promise<void>;
+    onChallengeCardClick?: () => void;
 }
-
-const ACTION_ICON_MAP: Record<string, { icon: typeof Sword; color: string }> = {
-    damage: { icon: Sword, color: 'text-red-400' },
-    aoeDamage: { icon: Sword, color: 'text-red-400' },
-    heal: { icon: Heart, color: 'text-green-400' },
-    manaRefill: { icon: Heart, color: 'text-green-400' },
-    potionBuff: { icon: Heart, color: 'text-green-400' },
-    manaDrain: { icon: Zap, color: 'text-yellow-400' },
-    manaBurn: { icon: Zap, color: 'text-yellow-400' },
-    challenge: { icon: Target, color: 'text-orange-400' },
-    forceDrink: { icon: Wine, color: 'text-amber-400' },
-};
-
-function ActionIcon({ type, size = 'w-6 h-6' }: { type: string; size?: string }) {
-    const entry = ACTION_ICON_MAP[type] || { icon: Sparkles, color: 'text-purple-400' };
-    const Icon = entry.icon;
-    return <Icon className={`${size} ${entry.color}`} />;
-}
-
-const RADIUS = 68;
 
 function getOpponentAngle(index: number, count: number): number {
     if (count === 1) return 0;
-    if (count === 2) return index === 0 ? 320 : 40;
-    if (count === 3) return [300, 0, 60][index];
-    const step = 160 / (count - 1);
-    return (280 + step * index) % 360;
+    if (count === 2) return index === 0 ? -70 : 70;
+    const start = -140;
+    const sweep = 280;
+    const step = sweep / (count - 1);
+    return start + step * index;
 }
 
-function angleToXY(deg: number) {
+function angleToXY(deg: number, radiusX: number, radiusY: number) {
     const rad = (deg * Math.PI) / 180;
-    return { x: Math.sin(rad) * RADIUS, y: -Math.cos(rad) * RADIUS };
+    return { x: Math.sin(rad) * radiusX, y: -Math.cos(rad) * radiusY };
 }
 
 function formatNumber(value: number) {
     const rounded = Number(value.toFixed(1));
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
-}
-
-function formatSigned(value: number) {
-    const rounded = Number(value.toFixed(1));
-    return `${rounded > 0 ? '+' : ''}${formatNumber(rounded)}`;
 }
 
 export function ArenaCircle({
@@ -64,74 +45,146 @@ export function ArenaCircle({
     currentTurn,
     selectedCard,
     lastAction,
+    pendingChallenge,
+    canResolvePendingChallenge = false,
     isCurrentTurn,
     drunkThreshold,
+    settings,
     onTargetSelect,
+    onChallengeCardClick,
 }: ArenaCircleProps) {
     const opponents = players.filter((player) => player.id !== currentPlayer.id);
     const total = players.length;
+    const layoutRef = useRef<HTMLDivElement>(null);
+    const [arenaBounds, setArenaBounds] = useState({ width: 360, height: 360 });
 
-    const youPos = angleToXY(180);
+    const maxMana = settings?.maxMana ?? GAME_CONFIG.MAX_MANA;
+    const decayRate = settings?.manaIntakeDecayRate ?? GAME_CONFIG.MANA_INTAKE_DECAY_RATE;
+
+    const intakeSnapshotRef = useRef<Map<string, number>>(new Map());
+    const snapshotTimeRef = useRef<number>(Date.now());
+    const [tickNow, setTickNow] = useState(Date.now());
+
+    const intakeKey = players.map((player) => `${player.id}:${player.manaIntake}`).join('|');
+
+    useEffect(() => {
+        intakeSnapshotRef.current = new Map(players.map((player) => [player.id, player.manaIntake || 0]));
+        snapshotTimeRef.current = Date.now();
+        setTickNow(Date.now());
+    }, [intakeKey]);
+
+    useEffect(() => {
+        const timer = setInterval(() => setTickNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        const element = layoutRef.current;
+        if (!element) return;
+
+        const updateBounds = () => {
+            const rect = element.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            setArenaBounds({
+                width: rect.width,
+                height: rect.height,
+            });
+        };
+
+        updateBounds();
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(() => updateBounds());
+            observer.observe(element);
+            return () => observer.disconnect();
+        }
+
+        window.addEventListener('resize', updateBounds);
+        return () => window.removeEventListener('resize', updateBounds);
+    }, []);
+
+    const getProjectedIntake = (player: Player) => {
+        const baseIntake = intakeSnapshotRef.current.get(player.id) ?? player.manaIntake ?? 0;
+        if (baseIntake <= 0 || decayRate <= 0) return 0;
+        const elapsedSec = (tickNow - snapshotTimeRef.current) / 1000;
+        return Math.max(0, baseIntake - (decayRate / 60) * elapsedSec);
+    };
+
+    const getSoberSeconds = (intake: number) => {
+        if (intake <= 0 || decayRate <= 0) return 0;
+        const threshold = Math.max(drunkThreshold, 0.1);
+        const baseSeconds = (intake / threshold) * 60;
+        return baseSeconds / Math.max(decayRate, 0.1);
+    };
+
+    const BOX_WIDTH = Math.max(260, arenaBounds.width - 14);
+    const BOX_HEIGHT = Math.max(220, arenaBounds.height - 20);
+    const rawRadiusX = Math.max(76, Math.min(142, BOX_WIDTH / 2 - 58));
+    const rawRadiusY = Math.max(74, Math.min(136, BOX_HEIGHT / 2 - 52));
+    const spreadFactor = total <= 2 ? 0.72 : total === 3 ? 0.8 : 0.92;
+    const radiusX = rawRadiusX * spreadFactor;
+    const radiusY = rawRadiusY * spreadFactor;
+    const centerGap = pendingChallenge ? 22 : 10;
+    const arenaYOffset = pendingChallenge ? 10 : 22;
+
+    const spreadFromCenter = (point: { x: number; y: number }) => ({
+        x: point.x,
+        y: point.y + (point.y >= 0 ? centerGap : -centerGap),
+    });
+
+    const youPos = spreadFromCenter(angleToXY(180, radiusX, radiusY));
     const OFFSET_Y = -15;
-    const BOX_SIZE = RADIUS * 2 + 130;
-    const half = BOX_SIZE / 2;
+    const halfX = BOX_WIDTH / 2;
+    const halfY = BOX_HEIGHT / 2;
 
     const posOf = (id: string) => {
         if (id === currentPlayer.id) return youPos;
         const idx = opponents.findIndex((player) => player.id === id);
-        return idx >= 0 ? angleToXY(getOpponentAngle(idx, total - 1)) : null;
+        return idx >= 0 ? spreadFromCenter(angleToXY(getOpponentAngle(idx, total - 1), radiusX, radiusY)) : null;
     };
 
     const atkPos = lastAction?.playerId ? posOf(lastAction.playerId) : null;
     const tgtPos = lastAction?.targetId ? posOf(lastAction.targetId) : null;
-    const hasLine = atkPos && tgtPos && lastAction?.playerId !== lastAction?.targetId;
+    const hasLine = Boolean(atkPos && tgtPos && lastAction?.playerId !== lastAction?.targetId);
 
-    const attackerName = lastAction?.playerId
-        ? players.find((player) => player.id === lastAction.playerId)?.name ?? '--'
-        : '--';
-    const targetName = lastAction?.targetId
-        ? players.find((player) => player.id === lastAction.targetId)?.name ?? '--'
-        : '--';
+    const PLAYER_EDGE_OFFSET = 34;
+    const lineGeometry = hasLine && atkPos && tgtPos
+        ? (() => {
+            const sx = atkPos.x + halfX;
+            const sy = atkPos.y + halfY + OFFSET_Y;
+            const tx = tgtPos.x + halfX;
+            const ty = tgtPos.y + halfY + OFFSET_Y;
+            const dx = tx - sx;
+            const dy = ty - sy;
+            const distance = Math.hypot(dx, dy) || 1;
+            const ux = dx / distance;
+            const uy = dy / distance;
+            const canOffset = distance > PLAYER_EDGE_OFFSET * 2 + 6;
 
-    const targetDamage = typeof lastAction?.targetDamage === 'number' ? lastAction.targetDamage : null;
-    const targetManaDelta = typeof lastAction?.targetManaDelta === 'number' ? lastAction.targetManaDelta : null;
-    const targetManaIntakeDelta = typeof lastAction?.targetManaIntakeDelta === 'number'
-        ? lastAction.targetManaIntakeDelta
+            return {
+                startX: canOffset ? sx + ux * PLAYER_EDGE_OFFSET : sx,
+                startY: canOffset ? sy + uy * PLAYER_EDGE_OFFSET : sy,
+                endX: canOffset ? tx - ux * PLAYER_EDGE_OFFSET : tx,
+                endY: canOffset ? ty - uy * PLAYER_EDGE_OFFSET : ty,
+                distance: canOffset ? Math.max(0, distance - PLAYER_EDGE_OFFSET * 2) : distance,
+                angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+            };
+        })()
         : null;
-    const manaCost = typeof lastAction?.manaCost === 'number' ? lastAction.manaCost : null;
-
-    let targetDeltaLabel = '--';
-    let targetDeltaTone = 'text-gray-300';
-
-    if (targetDamage !== null && targetDamage > 0) {
-        targetDeltaLabel = `-${formatNumber(targetDamage)}`;
-        targetDeltaTone = 'text-red-300';
-    } else if (targetManaDelta !== null) {
-        targetDeltaLabel = formatSigned(targetManaDelta);
-        targetDeltaTone = targetManaDelta < 0 ? 'text-red-300' : targetManaDelta > 0 ? 'text-green-300' : 'text-gray-300';
-    } else if (targetManaIntakeDelta !== null) {
-        targetDeltaLabel = `I ${formatSigned(targetManaIntakeDelta)}`;
-        targetDeltaTone = targetManaIntakeDelta > 0 ? 'text-amber-300' : 'text-gray-300';
-    }
 
     const [showProjectile, setShowProjectile] = useState(false);
     const projX = useMotionValue(0);
     const projY = useMotionValue(0);
 
     useEffect(() => {
-        if (!hasLine || !atkPos || !tgtPos || !lastAction) return;
+        if (!hasLine || !lineGeometry || !lastAction) return;
 
-        const ax = atkPos.x + half;
-        const ay = atkPos.y + half + OFFSET_Y;
-        const tx = tgtPos.x + half;
-        const ty = tgtPos.y + half + OFFSET_Y;
-
-        projX.set(ax);
-        projY.set(ay);
+        projX.set(lineGeometry.startX);
+        projY.set(lineGeometry.startY);
         setShowProjectile(true);
 
-        const ctrlX = animate(projX, tx, { duration: 0.45, ease: 'easeInOut' });
-        const ctrlY = animate(projY, ty, { duration: 0.45, ease: 'easeInOut' });
+        const ctrlX = animate(projX, lineGeometry.endX, { duration: 0.45, ease: 'easeInOut' });
+        const ctrlY = animate(projY, lineGeometry.endY, { duration: 0.45, ease: 'easeInOut' });
 
         const timer = setTimeout(() => setShowProjectile(false), 500);
         return () => {
@@ -139,48 +192,106 @@ export function ArenaCircle({
             ctrlY.stop();
             clearTimeout(timer);
         };
-    }, [hasLine, atkPos?.x, atkPos?.y, tgtPos?.x, tgtPos?.y, half, OFFSET_Y, lastAction?.cardId, projX, projY]);
+    }, [hasLine, lineGeometry?.startX, lineGeometry?.startY, lineGeometry?.endX, lineGeometry?.endY, lastAction?.cardId, projX, projY]);
+
+    const floatingDamage = typeof lastAction?.targetDamage === 'number' && lastAction.targetDamage > 0
+        ? lastAction.targetDamage
+        : typeof lastAction?.targetManaDelta === 'number' && lastAction.targetManaDelta < 0
+            ? Math.abs(lastAction.targetManaDelta)
+            : null;
+
+    const challengeOwnerName = pendingChallenge
+        ? players.find((player) => player.id === pendingChallenge.playerId)?.name ?? 'player'
+        : '';
 
     return (
-        <div className="relative w-full h-full flex items-center justify-center">
-            <div className="relative" style={{ width: BOX_SIZE, height: BOX_SIZE }}>
+        <div ref={layoutRef} className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <div className="relative" style={{ width: BOX_WIDTH, height: BOX_HEIGHT, transform: `translateY(${arenaYOffset}px)` }}>
                 <AnimatePresence>
-                    {hasLine && lastAction && (
-                        <motion.svg
+                    {hasLine && lineGeometry && lastAction && (
+                        <motion.div
                             key={`line-${lastAction.cardId}`}
-                            className="absolute inset-0 w-full h-full pointer-events-none z-20"
-                            style={{ overflow: 'visible' }}
+                            className="absolute z-20 pointer-events-none"
+                            style={{
+                                left: lineGeometry.startX,
+                                top: lineGeometry.startY,
+                                transform: `translateY(-50%) rotate(${lineGeometry.angle}deg)`,
+                                transformOrigin: '0 50%',
+                            }}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, transition: { duration: 0.8 } }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
                         >
-                            <defs>
-                                <linearGradient id="atkLine" x1="0%" y1="0%" x2="100%">
-                                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
-                                    <stop offset="100%" stopColor="#f97316" stopOpacity="0.5" />
-                                </linearGradient>
-                                <filter id="lineGlow">
-                                    <feGaussianBlur stdDeviation="4" result="b" />
-                                    <feMerge>
-                                        <feMergeNode in="b" />
-                                        <feMergeNode in="SourceGraphic" />
-                                    </feMerge>
-                                </filter>
-                            </defs>
-                            <motion.line
-                                x1={atkPos!.x + half}
-                                y1={atkPos!.y + half + OFFSET_Y}
-                                x2={tgtPos!.x + half}
-                                y2={tgtPos!.y + half + OFFSET_Y}
-                                stroke="url(#atkLine)"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                filter="url(#lineGlow)"
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                            <motion.div
+                                className="relative h-[3px] rounded-full bg-gradient-to-r from-red-500/95 to-orange-400/90 shadow-[0_0_14px_rgba(248,113,113,0.6)]"
+                                initial={{ width: 0 }}
+                                animate={{ width: lineGeometry.distance }}
+                                exit={{ width: 0 }}
+                                transition={{ duration: 0.35, ease: 'easeOut' }}
+                            >
+                                <div
+                                    className="absolute -right-[2px] top-1/2 -translate-y-1/2"
+                                    style={{
+                                        width: 0,
+                                        height: 0,
+                                        borderTop: '5px solid transparent',
+                                        borderBottom: '5px solid transparent',
+                                        borderLeft: '8px solid #f87171',
+                                        filter: 'drop-shadow(0 0 6px rgba(248,113,113,0.65))',
+                                    }}
+                                />
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {hasLine && lineGeometry && lastAction && (
+                        <motion.div
+                            key={`line-shadow-${lastAction.cardId}`}
+                            className="absolute z-[19] pointer-events-none"
+                            style={{
+                                left: lineGeometry.startX,
+                                top: lineGeometry.startY,
+                                transform: `translateY(-50%) rotate(${lineGeometry.angle}deg)`,
+                                transformOrigin: '0 50%',
+                            }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <motion.div
+                                className="h-[8px] rounded-full bg-red-500/20 blur-[6px]"
+                                initial={{ width: 0 }}
+                                animate={{ width: lineGeometry.distance }}
+                                exit={{ width: 0 }}
+                                transition={{ duration: 0.35, ease: 'easeOut' }}
                             />
-                        </motion.svg>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {hasLine && lineGeometry && lastAction && (
+                        <motion.div
+                            key={`sword-${lastAction.cardId}`}
+                            className="absolute z-30 pointer-events-none"
+                            style={{
+                                left: (lineGeometry.startX + lineGeometry.endX) / 2,
+                                top: (lineGeometry.startY + lineGeometry.endY) / 2,
+                                translateX: '-50%',
+                                translateY: '-50%',
+                                rotate: `${lineGeometry.angle}deg`,
+                            }}
+                            initial={{ opacity: 0, scale: 0.7 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <div className="rounded-full border border-red-400/50 bg-gray-950/80 p-1.5 shadow-[0_0_12px_rgba(248,113,113,0.4)]">
+                                <Sword className="w-3.5 h-3.5 text-red-300" />
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
 
@@ -195,20 +306,20 @@ export function ArenaCircle({
                             transition={{ duration: 0.15 }}
                         >
                             <div className="w-8 h-8 rounded-full bg-black/70 border border-red-500/40 flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.5)]">
-                                <ActionIcon type={lastAction.cardType} size="w-4 h-4" />
+                                <Sword className="w-4 h-4 text-red-300" />
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {!showProjectile && lastAction && tgtPos && (
+                    {!showProjectile && lastAction && lineGeometry && (
                         <motion.div
                             key={`burst-${lastAction.cardId}`}
                             className="absolute z-30 pointer-events-none"
                             style={{
-                                left: tgtPos.x + half,
-                                top: tgtPos.y + half + OFFSET_Y,
+                                left: lineGeometry.endX,
+                                top: lineGeometry.endY,
                                 translateX: '-50%',
                                 translateY: '-50%',
                             }}
@@ -222,86 +333,65 @@ export function ArenaCircle({
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {lastAction && tgtPos && targetDamage !== null && targetDamage > 0 && (
+                    {lastAction && tgtPos && floatingDamage !== null && (
                         <motion.div
                             key={`dmg-${lastAction.cardId}`}
                             className="absolute z-50 pointer-events-none whitespace-nowrap"
                             style={{
-                                left: tgtPos.x + half + 28,
-                                top: tgtPos.y + half + OFFSET_Y - 16,
+                                left: tgtPos.x + halfX + 24,
+                                top: tgtPos.y + halfY + OFFSET_Y - 28,
                             }}
                             initial={{ opacity: 0, y: 0, scale: 0.6 }}
-                            animate={{ opacity: 1, y: -12, scale: 1 }}
-                            exit={{ opacity: 0, y: -28, scale: 0.8 }}
+                            animate={{ opacity: 1, y: -10, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.85 }}
                             transition={{ type: 'spring', stiffness: 300, damping: 18 }}
                         >
-                            <span className="text-xs font-bold text-red-400 drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]">
-                                -{formatNumber(targetDamage)}
+                            <span className="text-sm font-bold text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">
+                                -{formatNumber(floatingDamage)}
                             </span>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                <AnimatePresence mode="wait">
-                    {lastAction && (
-                        <motion.div
-                            key={`center-${lastAction.cardId}`}
-                            className="absolute z-40 pointer-events-none"
-                            style={{ left: half, top: half + OFFSET_Y, translateX: '-50%', translateY: '-50%' }}
-                            initial={{ scale: 0, opacity: 0, y: 8 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.85, opacity: 0, y: -8 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.2 }}
+                <AnimatePresence>
+                    {pendingChallenge && (
+                        <motion.button
+                            type="button"
+                            key={`challenge-${pendingChallenge.card.id}`}
+                            className="absolute left-1/2 top-1/2 z-40 w-[calc(100vw-64px)] max-w-[236px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-purple-400/40 bg-purple-950/75 px-3 py-3 text-left shadow-[0_0_25px_rgba(147,51,234,0.25)] backdrop-blur-sm"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            onClick={canResolvePendingChallenge ? onChallengeCardClick : undefined}
+                            disabled={!canResolvePendingChallenge}
                         >
-                            <div className="min-w-[200px] max-w-[230px] rounded-2xl border border-gray-700/70 bg-gray-950/85 px-3 py-2 backdrop-blur-sm shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <p className="text-[9px] uppercase tracking-wider text-gray-500">
-                                            {lastAction.cardType}
-                                        </p>
-                                        <p className="text-xs font-semibold text-white truncate">
-                                            {lastAction.cardName}
-                                        </p>
-                                    </div>
-                                    <div className="shrink-0 flex items-center gap-1 rounded-full border border-blue-500/40 bg-blue-950/50 px-2 py-1">
-                                        <Droplets className="w-3 h-3 text-blue-300" />
-                                        <span className="text-[11px] font-semibold text-blue-200">
-                                            {manaCost !== null ? formatNumber(manaCost) : '--'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-gray-700/80 bg-gray-900/60 px-2 py-1">
-                                        <Sword className="w-3 h-3 text-red-300 shrink-0" />
-                                        <span className="text-[10px] text-gray-300 truncate">
-                                            {attackerName}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-gray-700/80 bg-gray-900/60 px-2 py-1">
-                                        <Target className="w-3 h-3 text-rose-300 shrink-0" />
-                                        <span className="text-[10px] text-gray-400 truncate">
-                                            {targetName}
-                                        </span>
-                                        <span className={`ml-auto text-[10px] font-bold ${targetDeltaTone}`}>
-                                            {targetDeltaLabel}
-                                        </span>
-                                    </div>
-                                </div>
+                            <p className="text-xs uppercase tracking-wider text-purple-200/80">Challenge card</p>
+                            <h3 className="mt-0.5 text-base font-semibold text-white truncate">{pendingChallenge.card.name}</h3>
+                            <p className="mt-1 text-xs leading-relaxed text-purple-100/80 line-clamp-3">
+                                {pendingChallenge.card.description}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between text-xs">
+                                <span className="rounded-full border border-blue-400/40 bg-blue-950/50 px-2 py-0.5 text-blue-200">
+                                    Mana {pendingChallenge.card.manaCost}
+                                </span>
+                                <span className="text-purple-100/80">
+                                    {canResolvePendingChallenge ? 'Tap to resolve' : `${challengeOwnerName} is resolving`}
+                                </span>
                             </div>
-                        </motion.div>
+                        </motion.button>
                     )}
                 </AnimatePresence>
 
                 {opponents.map((player, index) => {
-                    const pos = angleToXY(getOpponentAngle(index, total - 1));
+                    const pos = spreadFromCenter(angleToXY(getOpponentAngle(index, total - 1), radiusX, radiusY));
+                    const projectedIntake = getProjectedIntake(player);
                     return (
                         <motion.div
                             key={player.id}
                             className="absolute z-20"
                             style={{
-                                left: pos.x + half,
-                                top: pos.y + half + OFFSET_Y,
+                                left: pos.x + halfX,
+                                top: pos.y + halfY + OFFSET_Y,
                                 translateX: '-50%',
                                 translateY: '-50%',
                             }}
@@ -321,10 +411,12 @@ export function ArenaCircle({
                                     selectedCard?.requiresTarget &&
                                     (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
                                 )}
-                                isDrunk={player.isDrunk}
+                                isDrunk={projectedIntake >= drunkThreshold * 0.8}
                                 drunkThreshold={drunkThreshold}
+                                projectedManaIntake={projectedIntake}
+                                soberSeconds={getSoberSeconds(projectedIntake)}
+                                maxMana={maxMana}
                                 onSelect={selectedCard && !selectedCard.isChallenge ? () => onTargetSelect(player.id) : undefined}
-                                compact
                             />
                         </motion.div>
                     );
@@ -333,8 +425,8 @@ export function ArenaCircle({
                 <motion.div
                     className="absolute z-20"
                     style={{
-                        left: youPos.x + half,
-                        top: youPos.y + half + OFFSET_Y,
+                        left: youPos.x + halfX,
+                        top: youPos.y + halfY + OFFSET_Y,
                         translateX: '-50%',
                         translateY: '-50%',
                     }}
@@ -346,23 +438,25 @@ export function ArenaCircle({
                         player={currentPlayer}
                         isCurrentTurn={isCurrentTurn}
                         isTargetable={false}
-                        isDrunk={currentPlayer.isDrunk}
+                        isDrunk={getProjectedIntake(currentPlayer) >= drunkThreshold * 0.8}
                         drunkThreshold={drunkThreshold}
+                        projectedManaIntake={getProjectedIntake(currentPlayer)}
+                        soberSeconds={getSoberSeconds(getProjectedIntake(currentPlayer))}
+                        maxMana={maxMana}
                         isYou
-                        compact
                     />
                 </motion.div>
             </div>
 
-            {!lastAction && (
+            {!lastAction && !pendingChallenge && (
                 <motion.div
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
                 >
-                    <span className="text-xs text-gray-700 font-medium" style={{ marginTop: OFFSET_Y }}>
-                        {isCurrentTurn ? 'Your turn — play a card!' : 'Waiting...'}
+                    <span className="text-base text-gray-500 font-medium" style={{ marginTop: OFFSET_Y }}>
+                        {isCurrentTurn ? 'Your turn - play a card!' : 'Waiting...'}
                     </span>
                 </motion.div>
             )}

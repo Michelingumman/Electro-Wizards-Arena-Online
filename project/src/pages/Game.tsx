@@ -17,12 +17,12 @@ export function Game() {
   const navigate = useNavigate();
   const { party, currentPlayer, loading, error } = useGameStore();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const { applyCardEffect, drinkMana, resolveChallengeCard } = useGameActions(partyId);
+  const { applyCardEffect, startChallengeCard, drinkMana, resolveChallengeCard } = useGameActions(partyId);
   const { leaveParty, startGame, updateGameSettings } = usePartyActions();
 
   useGameState(partyId);
 
-  // Mana intake decay — syncs to Firestore every 30s
+  // Drunkness decay sync — updates Firestore in 30s batches
   useEffect(() => {
     if (!party || party.status !== 'playing') return;
 
@@ -87,6 +87,7 @@ export function Game() {
 
   const isCurrentTurn = Boolean(party?.currentTurn === currentPlayer?.id);
   const isLeader = Boolean(currentPlayer?.isLeader);
+  const gameMode = party?.gameMode || 'classic';
   const hasValidPlayer = party?.players.some((player) => validPlayers.includes(player.name.toLowerCase())) ?? false;
   const canStart = Boolean(
     party?.status === 'waiting' &&
@@ -103,6 +104,7 @@ export function Game() {
 
   const handlePlayCard = async (card: Card) => {
     if (!currentPlayer || !isCurrentTurn) return;
+    if (party?.pendingChallenge) return;
 
     const isDrunk = currentPlayer.isDrunk;
     const isMiss = isDrunk && Math.random() < 0.2;
@@ -117,6 +119,7 @@ export function Game() {
       card.isChallenge ||
       card.type === 'challenge' ||
       card.effect.type === 'challenge' ||
+      card.effect.challenge ||
       ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(card.name) ||
       card.name.includes('Name the most') ||
       card.effect.winnerEffect ||
@@ -124,8 +127,17 @@ export function Game() {
       card.effect.challengeEffects;
 
     if (isChallenge) {
-      card.isChallenge = true;
-      setSelectedCard(card);
+      if (gameMode === 'modern') {
+        try {
+          await startChallengeCard(currentPlayer.id, card);
+          setSelectedCard(null);
+        } catch (error) {
+          console.error('Error starting challenge:', error);
+        }
+      } else {
+        card.isChallenge = true;
+        setSelectedCard(card);
+      }
     } else if (card.requiresTarget) {
       setSelectedCard(card);
     } else {
@@ -167,7 +179,8 @@ export function Game() {
   };
 
   const handleChallengeResolve = async (winnerId: string, loserId: string) => {
-    if (!currentPlayer || !selectedCard || !isCurrentTurn) return;
+    const challengeCard = party?.pendingChallenge?.card || selectedCard;
+    if (!currentPlayer || !challengeCard || !isCurrentTurn) return;
 
     let finalWinnerId = winnerId;
     let finalLoserId = loserId;
@@ -181,11 +194,17 @@ export function Game() {
     }
 
     try {
-      await resolveChallengeCard(currentPlayer.id, finalWinnerId, finalLoserId, selectedCard);
+      await resolveChallengeCard(currentPlayer.id, finalWinnerId, finalLoserId, challengeCard);
       setSelectedCard(null);
     } catch (error) {
       console.error('Error resolving challenge:', error);
     }
+  };
+
+  const handleOpenPendingChallenge = () => {
+    if (!party?.pendingChallenge || !currentPlayer) return;
+    if (party.pendingChallenge.playerId !== currentPlayer.id) return;
+    setSelectedCard(party.pendingChallenge.card);
   };
 
   const handleDrink = async () => {
@@ -245,8 +264,6 @@ export function Game() {
   }
 
   const isPlayerDrunk = currentPlayer?.isDrunk || false;
-  const gameMode = party.gameMode || 'classic';
-
   const props = {
     party,
     currentPlayer,
@@ -261,13 +278,15 @@ export function Game() {
     onLeaveParty: handleLeaveParty,
     onUpdateSettings: handleUpdateSettings,
     onDrink: handleDrink,
+    onOpenPendingChallenge: handleOpenPendingChallenge,
     selectedCard,
     setSelectedCard,
   };
 
   return (
     <div className={clsx(
-      "min-h-screen bg-gradient-to-b from-gray-900 to-purple-900 overflow-auto relative",
+      "bg-gradient-to-b from-gray-900 to-purple-900 relative",
+      gameMode === 'modern' ? "h-screen h-[100dvh] overflow-hidden" : "min-h-screen overflow-auto",
       isPlayerDrunk && "drunk-player-view"
     )}>
       {isPlayerDrunk && (
