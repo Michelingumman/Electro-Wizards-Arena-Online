@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Zap, Users, Layers, Sparkles, ArrowRight, Hash, Beer } from 'lucide-react';
+import { initServerTimeOffset } from '../lib/firebase';
 import { auth, db } from '../lib/firebase';
 import { Input } from '../components/ui/Input';
 import { usePartyActions } from '../hooks/usePartyActions';
@@ -52,6 +53,7 @@ export function Home() {
 
     try {
       const userCredential = await signInAnonymously(auth);
+      initServerTimeOffset(); // fire-and-forget: estimate server clock offset
       localStorage.setItem('playerName', name);
 
       const partyId = await createParty({
@@ -74,6 +76,7 @@ export function Home() {
 
     try {
       const userCredential = await signInAnonymously(auth);
+      initServerTimeOffset(); // fire-and-forget: estimate server clock offset
       localStorage.setItem('playerName', name);
 
       const partyQuery = query(

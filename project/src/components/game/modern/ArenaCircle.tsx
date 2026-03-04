@@ -5,6 +5,7 @@ import { animate, AnimatePresence, motion, useMotionValue } from 'framer-motion'
 import { Sword } from 'lucide-react';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { isCanCupReactionChallengeCard as isCanCupReactionChallengeCardUtil } from '../../../utils/canCupChallengeHelpers';
+import { serverNow } from '../../../lib/firebase';
 
 interface ArenaCircleProps {
     players: Player[];
@@ -400,7 +401,7 @@ export function ArenaCircle({
     const lineGradientId = `attack-line-${lastAction?.cardId ?? 'none'}`.replace(/[^a-zA-Z0-9_-]/g, '');
 
     const [showProjectile, setShowProjectile] = useState(false);
-    const [reactionNow, setReactionNow] = useState(Date.now());
+    const [reactionNow, setReactionNow] = useState(serverNow());
     const [submittingReactionReady, setSubmittingReactionReady] = useState(false);
     const [submittingReactionPress, setSubmittingReactionPress] = useState(false);
     const projX = useMotionValue(0);
@@ -471,7 +472,7 @@ export function ArenaCircle({
     useEffect(() => {
         if (!isReactionChallengeCard || !reactionState || reactionState.phase === 'resolved') return;
         if (reactionState.phase === 'countdown' || isReactionGreen) {
-            const timer = setInterval(() => setReactionNow(Date.now()), 80);
+            const timer = setInterval(() => setReactionNow(serverNow()), 80);
             return () => clearInterval(timer);
         }
         return;

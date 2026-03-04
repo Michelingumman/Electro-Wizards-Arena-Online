@@ -1,25 +1,21 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { useGameStore } from '../store/gameStore';
 import { Party } from '../types/game';
 import { useAuth } from './useAuth';
-import { usePartyActions } from './usePartyActions';
 
 export function useGameState(partyId: string) {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { leaveParty } = usePartyActions();
   const unsubscribeRef = useRef<(() => void) | null>(null);
-  const { 
-    setParty, 
-    setCurrentPlayer, 
-    setLoading, 
+  const {
+    setParty,
+    setCurrentPlayer,
+    setLoading,
     setError,
     reset,
-    party,
-    currentPlayer 
   } = useGameStore();
 
   const cleanup = useCallback(() => {
@@ -45,11 +41,11 @@ export function useGameState(partyId: string) {
     }
 
     const partyData = { ...doc.data(), id: doc.id } as Party;
-    
+
     // Look for player with either matching ID or name
     const savedPlayerName = localStorage.getItem('playerName');
     let player = partyData.players.find(p => p.id === user.uid);
-    
+
     // If player is not found by ID but we have a saved name and a player with that name exists,
     // it means we're reconnecting, and we should trigger a re-join with same name
     if (!player && savedPlayerName) {
@@ -80,12 +76,13 @@ export function useGameState(partyId: string) {
 
     const setupSubscription = async () => {
       cleanup();
+      reset(); // Clear stale data first
       setLoading(true);
       setError(null);
 
       try {
         const partyRef = doc(db, 'parties', partyId);
-        
+
         // Set up real-time updates
         const unsubscribe = onSnapshot(
           partyRef,
@@ -129,7 +126,7 @@ export function useGameState(partyId: string) {
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      
+
       // Only clean up if we're actually navigating away from the game page
       // Not for refreshes or disconnects
       if (window.location.pathname !== `/game/${partyId}`) {
