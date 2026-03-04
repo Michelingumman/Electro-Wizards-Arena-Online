@@ -1,12 +1,11 @@
 import { CardBase, CardRarity } from '../../../types/cards';
-import { RARITY_COLORS } from '../rarities';
 
 export const EPIC_CARDS: CardBase[] = [
   {
     id: 'ol-havf',
-    name: 'Öl Hävf',
-    description: 'Challenge another player to a chugging contest. Winner gains 5 mana, loser gains 10 Drunkness',
-    manaCost: 4,
+    name: 'Stugboende Chug-Duell',
+    description: 'Utmaning: vinnaren faar +4 mana, foerloraren faar +8 drunkness',
+    manaCost: 5,
     rarity: CardRarity.EPIC,
     type: 'challenge',
     effect: {
@@ -14,20 +13,21 @@ export const EPIC_CARDS: CardBase[] = [
       value: 0,
       winnerEffect: {
         type: 'mana',
-        value: 5
+        value: 4
       },
       loserEffect: {
         type: 'manaIntake',
-        value: 10
+        value: 8
       }
     },
     requiresTarget: true,
-    color: 'amber'
+    color: 'amber',
+    isChallenge: true,
   },
   {
     id: 'got-big-muscles',
-    name: 'Got Big Muscles?',
-    description: 'Challenge another player to an arm wrestle. Winner gains 3 mana, loser loses 4 mana',
+    name: 'Armboej i Pisten',
+    description: 'Utmaning: vinnaren faar +3 mana, foerloraren tappar 3 mana',
     manaCost: 5,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -40,16 +40,17 @@ export const EPIC_CARDS: CardBase[] = [
       },
       loserEffect: {
         type: 'mana',
-        value: -4
+        value: -3
       }
     },
     requiresTarget: true,
-    color: 'rose'
+    color: 'rose',
+    isChallenge: true,
   },
   {
     id: 'name-the-most-car-brands',
-    name: 'Name the most: CAR BRANDS',
-    description: 'Challenge another player. Winner steals 5 mana from loser',
+    name: 'Namnkrig: BILMARKEN',
+    description: 'Utmaning: vinnaren stjael 4 mana fraan foerloraren',
     manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -58,34 +59,21 @@ export const EPIC_CARDS: CardBase[] = [
       value: 0,
       winnerEffect: {
         type: 'manaStealer',
-        value: 5
-      }
+        value: 4
+      },
+      loserEffect: {
+        type: 'manaBurn',
+        value: 4
+      },
     },
     requiresTarget: true,
-    color: 'cyan'
+    color: 'cyan',
+    isChallenge: true,
   },
   {
     id: 'name-the-most-pokemon',
-    name: 'Name the most: POKÉMON',
-    description: 'Challenge another player. Winner steals 6 mana from loser',
-    manaCost: 6,
-    rarity: CardRarity.EPIC,
-    type: 'challenge',
-    effect: {
-      type: 'challenge',
-      value: 0,
-      winnerEffect: {
-        type: 'manaStealer',
-        value: 6
-      }
-    },
-    requiresTarget: true,
-    color: 'yellow'
-  },
-  {
-    id: 'name-the-most-countries',
-    name: 'Name the most: COUNTRIES',
-    description: 'Challenge another player. Winner steals 5 mana from loser',
+    name: 'Namnkrig: POKEMON',
+    description: 'Utmaning: vinnaren stjael 5 mana fraan foerloraren',
     manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'challenge',
@@ -95,79 +83,121 @@ export const EPIC_CARDS: CardBase[] = [
       winnerEffect: {
         type: 'manaStealer',
         value: 5
-      }
+      },
+      loserEffect: {
+        type: 'manaBurn',
+        value: 5
+      },
     },
     requiresTarget: true,
-    color: 'blue'
+    color: 'yellow',
+    isChallenge: true,
+  },
+  {
+    id: 'name-the-most-countries',
+    name: 'Namnkrig: LANDER',
+    description: 'Utmaning: vinnaren stjael 4 mana fraan foerloraren',
+    manaCost: 6,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: {
+        type: 'manaStealer',
+        value: 4
+      },
+      loserEffect: {
+        type: 'manaBurn',
+        value: 4
+      },
+    },
+    requiresTarget: true,
+    color: 'blue',
+    isChallenge: true,
   },
   {
     id: 'mana-explosion',
-    name: 'Mana Explosion',
-    description: 'All players drink! Everyone gains 5 Drunkness',
-    manaCost: 7,
+    name: 'Snabb Vaermestuga',
+    description: 'Alla spelare faar +4 drunkness',
+    manaCost: 6,
     rarity: CardRarity.EPIC,
     type: 'aoe',
     effect: {
       type: 'manaIntake',
-      value: 5
+      value: 4
     },
     requiresTarget: false,
     color: 'orange'
   },
   {
     id: 'party-round',
-    name: 'Party Round',
-    description: 'Buy a round for everyone! All players gain 3 mana',
-    manaCost: 8,
+    name: 'Laget Bjuder',
+    description: 'Alla spelare faar +2 mana',
+    manaCost: 7,
     rarity: CardRarity.EPIC,
     type: 'aoe',
     effect: {
       type: 'mana',
-      value: 3
+      value: 2
     },
     requiresTarget: false,
     color: 'green'
   },
   {
     id: 'breath-test',
-    name: 'Breath Test',
-    description: 'Force the drunkest player (highest Drunkness) to lose 7 mana',
+    name: 'Poliskontroll',
+    description: 'Den med hoegst drunkness tappar 6 mana',
     manaCost: 5,
     rarity: CardRarity.EPIC,
     type: 'aoe',
     effect: {
       type: 'drunkestPlayerDamage',
-      value: -7
+      value: -6
     },
     requiresTarget: false,
     color: 'red'
   },
   {
     id: 'mana-roulette',
-    name: 'Mana Roulette',
-    description: 'Randomly select a player (including yourself) to gain 8 Drunkness',
+    name: 'Lodge-Roulette',
+    description: 'En slumpad spelare faar +6 drunkness',
     manaCost: 4,
     rarity: CardRarity.EPIC,
     type: 'aoe',
     effect: {
       type: 'roulette',
-      value: 8
+      value: 6
     },
     requiresTarget: false,
     color: 'purple'
   },
   {
     id: 'potentiation',
-    name: 'Potentiation',
-    description: 'Double your current Drunkness (more effective when already drunk)',
-    manaCost: 3,
+    name: 'Dubbel-Tempo',
+    description: 'Oeka din drunkness med 80% (x1.8)',
+    manaCost: 4,
     rarity: CardRarity.EPIC,
     type: 'normal',
     effect: {
       type: 'manaIntakeMultiply',
-      value: 2
+      value: 1.8
     },
     requiresTarget: false,
     color: 'indigo'
+  },
+  {
+    id: 'clockwork-chug',
+    name: 'Tidtagar-Chug',
+    description: 'Vaelj en spelare och laegg +3:00 drunk-tid',
+    manaCost: 6,
+    rarity: CardRarity.EPIC,
+    type: 'targeted',
+    effect: {
+      type: 'drunkTimer',
+      value: 180
+    },
+    requiresTarget: true,
+    color: 'sky'
   }
 ];

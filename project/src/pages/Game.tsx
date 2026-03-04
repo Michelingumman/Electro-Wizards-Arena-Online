@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
-import { Card, PendingCanCupSipResolution } from '../types/game';
+import { Card, Party, PendingCanCupSipResolution, isAfterskiMode } from '../types/game';
 import { useGameActions } from '../hooks/useGameActions';
 import { useGameState } from '../hooks/useGameState';
 import { usePartyActions } from '../hooks/usePartyActions';
-import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { GAME_CONFIG } from '../config/gameConfig';
 import clsx from 'clsx';
 import { GameClassicUI } from '../components/game/classic/GameClassicUI';
 import { GameModernUI } from '../components/game/modern/GameModernUI';
 import { isCanCupReactionChallengeCard } from '../utils/canCupChallengeHelpers';
+import { isChallengeCard } from '../utils/challengeCard';
 
 export function Game() {
   const { partyId = '' } = useParams<{ partyId: string }>();
@@ -33,12 +34,12 @@ export function Game() {
 
   useGameState(partyId);
 
-  // Drunkness decay sync — updates Firestore in 30s batches
+  // Drunkness + drunk-timer sync
   useEffect(() => {
     if (!party || party.status !== 'playing') return;
     if (party.gameMode === 'can-cup') return;
 
-    const SYNC_INTERVAL_MS = 30_000;
+    const SYNC_INTERVAL_MS = 5_000;
     let isUpdating = false;
 
     const decayInterval = setInterval(async () => {
@@ -47,36 +48,95 @@ export function Game() {
 
       try {
         const partyRef = doc(db, 'parties', partyId);
-        const partySnapshot = await getDoc(partyRef);
+        await runTransaction(db, async (transaction) => {
+          const partySnapshot = await transaction.get(partyRef);
+          if (!partySnapshot.exists()) return;
 
-        if (!partySnapshot.exists()) { isUpdating = false; return; }
-        const partyData = partySnapshot.data();
-        if (!partyData || partyData.status !== 'playing') { isUpdating = false; return; }
-        if (!Array.isArray(partyData.players) || partyData.players.length === 0) { isUpdating = false; return; }
+          const partyData = partySnapshot.data() as Party;
+          if (!partyData || partyData.status !== 'playing') return;
+          if (!Array.isArray(partyData.players) || partyData.players.length === 0) return;
 
-        const decayRate = partyData.settings?.manaIntakeDecayRate ?? GAME_CONFIG.MANA_INTAKE_DECAY_RATE;
-        const drunkThreshold = partyData.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
-        const decayAmount = (decayRate / 60) * (SYNC_INTERVAL_MS / 1000);
+          const now = Date.now();
+          const lastSyncedAt = typeof partyData.drunkTimerLastSyncedAt === 'number'
+            ? partyData.drunkTimerLastSyncedAt
+            : now;
+          const elapsedSeconds = Math.max(0, Math.floor((now - lastSyncedAt) / 1000));
 
-        const hasIntake = partyData.players.some(p => (p.manaIntake ?? 0) > 0);
-        if (!hasIntake) { isUpdating = false; return; }
+          if (elapsedSeconds <= 0) return;
 
-        const updatedPlayers = partyData.players.map(player => {
-          if (!player || typeof player !== 'object') return player;
-          const currentIntake = typeof player.manaIntake === 'number' ? player.manaIntake : 0;
-          if (currentIntake <= 0) return player;
+          const decayRate = partyData.settings?.manaIntakeDecayRate ?? GAME_CONFIG.MANA_INTAKE_DECAY_RATE;
+          const drunkThreshold = partyData.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
+          const decayAmount = (decayRate / 60) * elapsedSeconds;
+          const gameMode = partyData.gameMode ?? 'classic';
+          const isModernMode = isAfterskiMode(gameMode);
+          const drunkTimeLimitSeconds = Math.max(
+            1,
+            Math.round(partyData.settings?.drunkTimeLimitSeconds ?? GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS)
+          );
+          const hasIntake = partyData.players.some((player) => (player.manaIntake ?? 0) > 0);
+          if (!hasIntake) return;
 
-          const newIntake = Math.max(0, currentIntake - decayAmount);
-          return {
-            ...player,
-            manaIntake: parseFloat(newIntake.toFixed(2)),
-            isDrunk: newIntake >= drunkThreshold * 0.8,
+          const updatedPlayers = partyData.players.map((player) => {
+            const currentIntake = typeof player.manaIntake === 'number' ? player.manaIntake : 0;
+            const newIntake = Math.max(0, currentIntake - decayAmount);
+            const wasDrunk = currentIntake >= drunkThreshold * 0.8;
+            const nextDrunkSeconds = Math.max(
+              0,
+              Math.round((player.drunkSeconds ?? 0) + (isModernMode && wasDrunk ? elapsedSeconds : 0))
+            );
+
+            return {
+              ...player,
+              manaIntake: parseFloat(newIntake.toFixed(2)),
+              isDrunk: newIntake >= drunkThreshold * 0.8,
+              drunkSeconds: nextDrunkSeconds,
+            };
+          });
+
+          const updatePayload: {
+            players: Party['players'];
+            drunkTimerLastSyncedAt: number;
+            lastUpdate: ReturnType<typeof serverTimestamp>;
+            status?: Party['status'];
+            winner?: string;
+          } = {
+            players: updatedPlayers,
+            drunkTimerLastSyncedAt: now,
+            lastUpdate: serverTimestamp(),
           };
-        });
 
-        await updateDoc(partyRef, {
-          players: updatedPlayers,
-          lastUpdate: serverTimestamp(),
+          if (isModernMode) {
+            const hasReachedDrunkTimeLimit = updatedPlayers.some(
+              (player) => (player.drunkSeconds ?? 0) >= drunkTimeLimitSeconds
+            );
+
+            if (hasReachedDrunkTimeLimit) {
+              const winnerPool = updatedPlayers.filter(
+                (player) => (player.drunkSeconds ?? 0) < drunkTimeLimitSeconds
+              );
+              const rankingPool = winnerPool.length > 0 ? winnerPool : updatedPlayers;
+              const winner = [...rankingPool].sort((left, right) => {
+                const leftDrunkSeconds = left.drunkSeconds ?? 0;
+                const rightDrunkSeconds = right.drunkSeconds ?? 0;
+                if (leftDrunkSeconds !== rightDrunkSeconds) {
+                  return leftDrunkSeconds - rightDrunkSeconds;
+                }
+                const leftIntake = left.manaIntake ?? 0;
+                const rightIntake = right.manaIntake ?? 0;
+                if (leftIntake !== rightIntake) {
+                  return leftIntake - rightIntake;
+                }
+                return right.mana - left.mana;
+              })[0];
+
+              if (winner) {
+                updatePayload.status = 'finished';
+                updatePayload.winner = winner.id;
+              }
+            }
+          }
+
+          transaction.update(partyRef, updatePayload);
         });
       } catch (error) {
         console.error('Error in mana decay sync:', error);
@@ -151,16 +211,7 @@ export function Game() {
       return;
     }
 
-    const isChallenge =
-      card.isChallenge ||
-      card.type === 'challenge' ||
-      card.effect.type === 'challenge' ||
-      card.effect.challenge ||
-      ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(card.name) ||
-      card.name.includes('Name the most') ||
-      card.effect.winnerEffect ||
-      card.effect.loserEffect ||
-      card.effect.challengeEffects;
+    const isChallenge = isChallengeCard(card);
 
     if (isChallenge) {
       const isCircleChallengeWithoutParticipantSetup =
@@ -183,7 +234,6 @@ export function Game() {
           setChallengeSetupCard(card);
         }
       } else {
-        card.isChallenge = true;
         setSelectedCard(card);
       }
     } else if (card.requiresTarget) {

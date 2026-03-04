@@ -1,12 +1,11 @@
 import { CardBase, CardRarity } from '../../../types/cards';
-import { GAME_CONFIG } from '../../gameConfig';
 import { RARITY_COLORS } from '../rarities';
 
 export const COMMON_CARDS: CardBase[] = [
   {
     id: 'fire-arrow',
-    name: 'Mana Drain Arrow',
-    description: 'A basic magic arrow that drains 1 mana from target',
+    name: 'Puckad Snoeboll',
+    description: 'Kasta en iskall snoeboll och draenerar 1 mana fraan valfri kompis',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -16,8 +15,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'ice-chard',
-    name: 'Mana Freeze Shard',
-    description: 'A sharp shard of ice that drains 2 mana from target',
+    name: 'Isig Stavstoet',
+    description: 'En snabb stavstoe tvingar maalet att tappa 2 mana',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -27,8 +26,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'lightning-chain',
-    name: 'Mana Chain Lightning',
-    description: 'Drains 1 mana from everyone (even the one playing the card)',
+    name: 'Lift-Kortslutning',
+    description: 'Alla spelare tappar 1 mana naer liften laegger av',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -38,8 +37,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'shotgun',
-    name: 'Drunk Roulette',
-    description: 'Increases Drunkness by 2 for the target and one random player (could be you)',
+    name: 'Afterski-Roulette',
+    description: 'Maalet och en slumpad spelare faar +2 i drunkness',
     manaCost: 1.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -49,9 +48,9 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'shockwave',
-    name: 'Mana Shockwave',
-    description: 'Drains 2 mana from all other players',
-    manaCost: 2.0,
+    name: 'Pist-Skovel',
+    description: 'Alla andra spelare tappar 2 mana',
+    manaCost: 3.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
     effect: { type: 'aoeDamage', value: 2.0 },
@@ -60,8 +59,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'fireball',
-    name: 'Mana Fireball',
-    description: 'Cast a powerful Fireball that drains 4 Mana from an opponent',
+    name: 'Vaermestuge-Kast',
+    description: 'En tung traeff som draenerar 4 mana fraan en motstaandare',
     manaCost: 5.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -71,8 +70,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'energi_i_rummet',
-    name: 'Match the Energy!',
-    description: 'You and your target both get +3 to Drunkness (getting closer to drunk state)',
+    name: 'Hoej Staemningen',
+    description: 'Du och maalet faar +3 drunkness naer tempoet gaar upp',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'damage',
@@ -82,8 +81,8 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'hangover-cure',
-    name: 'Hangover Cure',
-    description: 'Reduces your Drunkness by 4, helping you sober up',
+    name: 'Vattenpaus',
+    description: 'Du lugnar ner laeget och minskar din drunkness med 4',
     manaCost: 2.0,
     rarity: CardRarity.COMMON,
     type: 'utility',
@@ -93,12 +92,34 @@ export const COMMON_CARDS: CardBase[] = [
   },
   {
     id: 'bar-tab',
-    name: 'Open Bar Tab',
-    description: 'Gain 3 mana, but increase your Drunkness by 1',
+    name: 'Notan Paa Laget',
+    description: 'Faa +3 mana men ocksaa +1 drunkness',
     manaCost: 0.0,
     rarity: CardRarity.COMMON,
     type: 'utility',
     effect: { type: 'manaRefill', value: 3.0 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'tipsy-tax',
+    name: 'Mest Lullig Faar Straffet',
+    description: 'Laegg +1:30 drunk-tid paa den som redan aeer mest dragen',
+    manaCost: 2.0,
+    rarity: CardRarity.COMMON,
+    type: 'aoe',
+    effect: { type: 'drunkestTimer', value: 90 },
+    requiresTarget: false,
+    color: RARITY_COLORS[CardRarity.COMMON]
+  },
+  {
+    id: 'pick-on-the-sober-one',
+    name: 'Nykterhetskontroll',
+    description: 'Den minst fulla i gruppen tvingas ta en drink',
+    manaCost: 2.0,
+    rarity: CardRarity.COMMON,
+    type: 'aoe',
+    effect: { type: 'leastDrunkForceDrink', value: 1 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.COMMON]
   }

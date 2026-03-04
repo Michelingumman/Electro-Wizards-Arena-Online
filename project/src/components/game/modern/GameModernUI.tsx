@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Party, PendingCanCupSipResolution, Player } from '../../../types/game';
+import { Card, Party, PendingCanCupSipResolution, Player, isAfterskiMode } from '../../../types/game';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { LogOut, Play, Hash, Wine } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,6 +15,7 @@ import { GodModeCardPicker } from './GodModeCardPicker';
 import { CanCupEndScreen } from './CanCupEndScreen';
 import { CardBase } from '../../../types/cards';
 import { isCanCupReactionChallengeCard } from '../../../utils/canCupChallengeHelpers';
+import { isChallengeCard } from '../../../utils/challengeCard';
 
 interface GameModernUIProps {
     party: Party;
@@ -69,10 +70,19 @@ export function GameModernUI({
     setSelectedCard,
     onGodModeSwapCard,
 }: GameModernUIProps) {
+    const formatClock = (seconds: number) => {
+        const safeSeconds = Math.max(0, Math.floor(seconds));
+        const mins = Math.floor(safeSeconds / 60);
+        const secs = safeSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     const [godModePickingCard, setGodModePickingCard] = useState<Card | null>(null);
-    const gameMode = party.gameMode ?? 'modern';
+    const gameMode = party.gameMode ?? 'afterski';
     const isCanCup = gameMode === 'can-cup';
+    const isAfterski = isAfterskiMode(gameMode);
     const drunkThreshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
+    const drunkTimeLimitSeconds = party.settings?.drunkTimeLimitSeconds ?? GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS;
     const manaDrinkAmount = party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT;
     const pendingChallenge = party.pendingChallenge;
     const canResolvePendingChallenge = Boolean(
@@ -82,18 +92,26 @@ export function GameModernUI({
     );
     const rootClass = isCanCup
         ? 'bg-gradient-to-b from-[#0d1122] via-[#1e1332] to-[#2a1407]'
-        : 'bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950';
+        : isAfterski
+            ? 'bg-gradient-to-b from-[#091a2d] via-[#10253d] to-[#1e3a55]'
+            : 'bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950';
     const headerClass = isCanCup
         ? 'bg-[#070e1c]/80 border-cyan-900/30'
-        : 'bg-black/40 border-gray-800/40';
+        : isAfterski
+            ? 'bg-[#0a1a2d]/85 border-cyan-700/25'
+            : 'bg-black/40 border-gray-800/40';
     const startButtonClass = isCanCup
         ? 'flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold rounded-lg transition-colors active:scale-95'
-        : 'flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-semibold rounded-lg transition-colors active:scale-95';
+        : isAfterski
+            ? 'flex items-center gap-1 px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-semibold rounded-lg transition-colors active:scale-95'
+            : 'flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-semibold rounded-lg transition-colors active:scale-95';
     const partyCodeClass = isCanCup ? 'bg-cyan-950/55' : 'bg-gray-800/80';
-    const partyCodeTextClass = isCanCup ? 'text-cyan-200' : 'text-purple-300';
+    const partyCodeTextClass = isCanCup ? 'text-cyan-200' : isAfterski ? 'text-cyan-200' : 'text-purple-300';
     const drinkButtonClass = isCanCup
         ? 'fixed right-3 z-[70] flex items-center gap-2 rounded-xl border border-cyan-400/45 bg-cyan-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-500 active:scale-95'
-        : 'fixed right-3 z-[70] flex items-center gap-2 rounded-xl border border-blue-400/40 bg-blue-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.35)] transition-all hover:bg-blue-500 active:scale-95';
+        : isAfterski
+            ? 'fixed right-3 z-[70] flex items-center gap-2 rounded-xl border border-cyan-300/50 bg-cyan-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(34,211,238,0.35)] transition-all hover:bg-cyan-500 active:scale-95'
+            : 'fixed right-3 z-[70] flex items-center gap-2 rounded-xl border border-blue-400/40 bg-blue-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.35)] transition-all hover:bg-blue-500 active:scale-95';
     const pendingSipButtonLabel = pendingCanCupSipForCurrentPlayer
         ? (() => {
             const drinkSips = pendingCanCupSipForCurrentPlayer.beerSipsToConsume;
@@ -115,7 +133,19 @@ export function GameModernUI({
         : '';
     const arenaBottomOffset = isCanCup ? 0 : 360;
     const arenaBottomInset = isCanCup ? 160 : 0;
-    const arenaTopInset = isCanCup ? (party.lastAction ? 56 : 18) : 0;
+    const arenaTopInset = isCanCup
+        ? (party.lastAction ? 56 : 18)
+        : isAfterski
+            ? (party.lastAction ? 66 : 10)
+            : 0;
+    const afterskiSortedByRiskDesc = [...party.players].sort(
+        (left, right) => (right.drunkSeconds ?? 0) - (left.drunkSeconds ?? 0)
+    );
+    const highestRiskPlayer = afterskiSortedByRiskDesc[0] ?? null;
+    const safestPlayer = [...party.players].sort(
+        (left, right) => (left.drunkSeconds ?? 0) - (right.drunkSeconds ?? 0)
+    )[0] ?? null;
+    const attackBannerTop = isAfterski && party.status === 'playing' ? 106 : 52;
 
     return (
         <div className={`w-full min-h-0 flex flex-col relative overflow-hidden ${rootClass}`} style={{ height: 'var(--app-height, 100dvh)' }}>
@@ -143,7 +173,7 @@ export function GameModernUI({
             <div className={`flex items-center justify-between px-3 py-2 border-b backdrop-blur-sm shrink-0 z-30 ${headerClass}`}>
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="text-sm font-bold text-white truncate">
-                        {isCanCup ? 'Can Cup Arena' : 'Electro Wizards'}
+                        {isCanCup ? 'Can Cup Arena' : isAfterski ? 'Afterski Arena' : 'Electro Wizards'}
                     </span>
                     <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded ${partyCodeClass}`}>
                         <Hash className="w-2.5 h-2.5 text-gray-600" />
@@ -173,6 +203,7 @@ export function GameModernUI({
                             players={party.players}
                             isLeader={isLeader}
                             code={party.code}
+                            gameMode={gameMode}
                             showNoValidPlayersWarning={showNoValidPlayersWarning}
                         />
                         {isCanCup && (
@@ -187,8 +218,36 @@ export function GameModernUI({
             {/* ─── Playing State: 3-Zone Layout ─── */}
             {party.status !== 'waiting' && (
                 <>
+                    {party.status === 'playing' && isAfterski && (
+                        <div className="shrink-0 px-2 pt-2 z-40">
+                            <div className="rounded-xl border border-cyan-400/35 bg-[#082138]/85 px-3 py-2 backdrop-blur-sm shadow-[0_8px_24px_rgba(8,145,178,0.2)]">
+                                <div className="grid grid-cols-3 gap-2 text-[10px] text-cyan-100/90">
+                                    <div className="rounded-lg border border-cyan-500/25 bg-cyan-950/45 px-2 py-1.5">
+                                        <p className="uppercase tracking-wide text-cyan-300/80">Drunk Limit</p>
+                                        <p className="text-sm font-semibold text-white">{formatClock(drunkTimeLimitSeconds)}</p>
+                                    </div>
+                                    <div className="rounded-lg border border-rose-400/25 bg-rose-950/35 px-2 py-1.5">
+                                        <p className="uppercase tracking-wide text-rose-200/80">Hoegst Risk</p>
+                                        <p className="text-sm font-semibold text-white truncate">
+                                            {highestRiskPlayer?.name ?? '-'} {highestRiskPlayer ? `(${formatClock(highestRiskPlayer.drunkSeconds ?? 0)})` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border border-emerald-400/25 bg-emerald-950/35 px-2 py-1.5">
+                                        <p className="uppercase tracking-wide text-emerald-200/80">Saekrast</p>
+                                        <p className="text-sm font-semibold text-white truncate">
+                                            {safestPlayer?.name ?? '-'} {safestPlayer ? `(${formatClock(safestPlayer.drunkSeconds ?? 0)})` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="mt-2 text-[10px] text-cyan-200/80">
+                                    Drunk-state startar vid 80% av {drunkThreshold.toFixed(0)} intake. Tiden raeknas bara naer spelaren aeer drunk.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {party.lastAction && (
-                        <div className="absolute left-0 right-0 top-[52px] z-[65] px-2 pointer-events-none">
+                        <div className="absolute left-0 right-0 z-[65] px-2 pointer-events-none" style={{ top: `${attackBannerTop}px` }}>
                             <div className="pointer-events-auto">
                                 <AttackBanner
                                     lastAction={party.lastAction}
@@ -206,7 +265,14 @@ export function GameModernUI({
                                 {isCanCup ? (
                                     <CanCupEndScreen party={party} currentPlayer={currentPlayer} />
                                 ) : (
-                                    <GameStatus status={party.status} winner={party.winner} players={party.players} isLeader={isLeader} code={party.code} />
+                                    <GameStatus
+                                        status={party.status}
+                                        winner={party.winner}
+                                        players={party.players}
+                                        isLeader={isLeader}
+                                        code={party.code}
+                                        gameMode={gameMode}
+                                    />
                                 )}
                             </div>
                         ) : (
@@ -218,6 +284,7 @@ export function GameModernUI({
                                 lastAction={party.lastAction}
                                 isCurrentTurn={isCurrentTurn}
                                 drunkThreshold={drunkThreshold}
+                                drunkTimeLimitSeconds={drunkTimeLimitSeconds}
                                 onTargetSelect={onTargetSelect}
                                 settings={party.settings}
                                 pendingChallenge={pendingChallenge}
@@ -298,16 +365,7 @@ export function GameModernUI({
 
             {/* ─── Challenge Modal ─── */}
             {selectedCard && !isCanCupReactionChallengeCard(selectedCard) && (
-                party.pendingChallenge?.card.id === selectedCard.id ||
-                selectedCard.isChallenge ||
-                selectedCard.type === 'challenge' ||
-                selectedCard.effect.type === 'challenge' ||
-                selectedCard.effect.challenge ||
-                ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(selectedCard.name) ||
-                (selectedCard.name && selectedCard.name.includes('Name the most')) ||
-                selectedCard.effect.winnerEffect ||
-                selectedCard.effect.loserEffect ||
-                selectedCard.effect.challengeEffects
+                party.pendingChallenge?.card.id === selectedCard.id || isChallengeCard(selectedCard)
             ) && (
                     <ChallengeModal
                         card={selectedCard}

@@ -24,9 +24,9 @@ const MODE_OPTIONS: ModeOption[] = [
     icon: <Layers className="w-4 h-4 mb-1.5" />,
   },
   {
-    id: 'modern',
-    title: 'Modern',
-    description: 'Arena + hand fan',
+    id: 'afterski',
+    title: 'Afterski Arena',
+    description: 'Fjaellvibe + drunk-timer',
     icon: <Sparkles className="w-4 h-4 mb-1.5" />,
   },
   {

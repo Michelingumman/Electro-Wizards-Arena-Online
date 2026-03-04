@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, Party, Player, GameMode } from '../../../types/game';
+import { Card, Party, Player, GameMode, isAfterskiMode } from '../../../types/game';
 import { ModernPlayerAvatar } from './ModernPlayerAvatar';
 import { animate, AnimatePresence, motion, useMotionValue } from 'framer-motion';
 import { Sword } from 'lucide-react';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { isCanCupReactionChallengeCard as isCanCupReactionChallengeCardUtil } from '../../../utils/canCupChallengeHelpers';
+import { isChallengeCard } from '../../../utils/challengeCard';
 import { serverNow } from '../../../lib/firebase';
 
 interface ArenaCircleProps {
@@ -18,6 +19,7 @@ interface ArenaCircleProps {
     canResolvePendingChallenge?: boolean;
     isCurrentTurn: boolean;
     drunkThreshold: number;
+    drunkTimeLimitSeconds?: number;
     settings?: Party['settings'];
     onTargetSelect: (targetId: string) => Promise<void>;
     onChallengeCardClick?: () => void;
@@ -161,18 +163,21 @@ export function ArenaCircle({
     canResolvePendingChallenge = false,
     isCurrentTurn,
     drunkThreshold,
+    drunkTimeLimitSeconds = GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS,
     settings,
     onTargetSelect,
     onChallengeCardClick,
     onReactionReady,
     onReactionPress,
-    gameMode = 'modern',
+    gameMode = 'afterski',
     topInset = 0,
     bottomInset = 0,
 }: ArenaCircleProps) {
     const opponents = players.filter((player) => player.id !== currentPlayer.id);
     const total = players.length;
     const isCanCup = gameMode === 'can-cup';
+    const isAfterski = isAfterskiMode(gameMode);
+    const useCanCupPlacement = isCanCup || isAfterski;
     const layoutRef = useRef<HTMLDivElement>(null);
     const [arenaBounds, setArenaBounds] = useState({ width: 360, height: 360 });
 
@@ -180,13 +185,15 @@ export function ArenaCircle({
     const decayRate = settings?.manaIntakeDecayRate ?? GAME_CONFIG.MANA_INTAKE_DECAY_RATE;
 
     const intakeSnapshotRef = useRef<Map<string, number>>(new Map());
+    const drunkSecondsSnapshotRef = useRef<Map<string, number>>(new Map());
     const snapshotTimeRef = useRef<number>(Date.now());
     const [tickNow, setTickNow] = useState(Date.now());
 
-    const intakeKey = players.map((player) => `${player.id}:${player.manaIntake}`).join('|');
+    const intakeKey = players.map((player) => `${player.id}:${player.manaIntake}:${player.drunkSeconds ?? 0}`).join('|');
 
     useEffect(() => {
         intakeSnapshotRef.current = new Map(players.map((player) => [player.id, player.manaIntake || 0]));
+        drunkSecondsSnapshotRef.current = new Map(players.map((player) => [player.id, player.drunkSeconds || 0]));
         snapshotTimeRef.current = Date.now();
         setTickNow(Date.now());
     }, [intakeKey]);
@@ -228,36 +235,42 @@ export function ArenaCircle({
         return Math.max(0, baseIntake - (decayRate / 60) * elapsedSec);
     };
 
-    const getSoberSeconds = (intake: number) => {
-        if (intake <= 0 || decayRate <= 0) return 0;
-        return (intake / decayRate) * 60;
+    const getProjectedDrunkSeconds = (player: Player) => {
+        const baseDrunkSeconds = drunkSecondsSnapshotRef.current.get(player.id) ?? player.drunkSeconds ?? 0;
+        const projectedIntake = getProjectedIntake(player);
+        const projectedIsDrunk = projectedIntake >= drunkThreshold * 0.8;
+        if (!projectedIsDrunk) {
+            return Math.max(0, baseDrunkSeconds);
+        }
+        const elapsedSec = (tickNow - snapshotTimeRef.current) / 1000;
+        return Math.max(0, baseDrunkSeconds + elapsedSec);
     };
 
-    const BOX_WIDTH = Math.max(260, arenaBounds.width - (isCanCup ? 4 : 14));
-    const BOX_HEIGHT = Math.max(220, arenaBounds.height - (isCanCup ? 6 : 20));
-    const canCupTopInset = isCanCup
+    const BOX_WIDTH = Math.max(260, arenaBounds.width - (useCanCupPlacement ? 4 : 14));
+    const BOX_HEIGHT = Math.max(220, arenaBounds.height - (useCanCupPlacement ? 6 : 20));
+    const canCupTopInset = useCanCupPlacement
         ? Math.max(0, Math.min(topInset, Math.max(0, BOX_HEIGHT * 0.30)))
         : 0;
-    const canCupBottomInset = isCanCup
+    const canCupBottomInset = useCanCupPlacement
         ? Math.max(0, Math.min(bottomInset, Math.max(0, BOX_HEIGHT - canCupTopInset - 140)))
         : 0;
-    const rawRadiusX = isCanCup
+    const rawRadiusX = useCanCupPlacement
         ? Math.max(80, Math.min(BOX_WIDTH / 2 - 40, 200))
         : Math.max(76, Math.min(142, BOX_WIDTH / 2 - 58));
-    const rawRadiusY = isCanCup
+    const rawRadiusY = useCanCupPlacement
         ? Math.max(90, Math.min(BOX_HEIGHT / 2 - 50, 200))
         : Math.max(74, Math.min(136, BOX_HEIGHT / 2 - 52));
     const spreadFactor = total <= 2 ? 0.72 : total === 3 ? 0.8 : 0.92;
     const canCupSpreadX = total <= 2 ? 0.85 : total === 3 ? 0.95 : 1.0;
     const canCupSpreadY = total <= 2 ? 0.78 : total === 3 ? 0.85 : total === 4 ? 0.9 : 0.95;
-    const radiusX = isCanCup
+    const radiusX = useCanCupPlacement
         ? rawRadiusX * canCupSpreadX
         : rawRadiusX * spreadFactor;
-    const radiusY = (isCanCup
+    const radiusY = (useCanCupPlacement
         ? rawRadiusY * canCupSpreadY
         : rawRadiusY * spreadFactor) * (pendingChallenge ? 0.86 : 1);
-    const centerGap = pendingChallenge ? 28 : (isCanCup ? 24 : 12);
-    const arenaYOffset = pendingChallenge ? (isCanCup ? 8 : 52) : (isCanCup ? 0 : 72);
+    const centerGap = pendingChallenge ? 28 : (useCanCupPlacement ? 24 : 12);
+    const arenaYOffset = pendingChallenge ? (useCanCupPlacement ? 8 : 52) : (useCanCupPlacement ? 0 : 72);
 
     const spreadFromCenter = (point: { x: number; y: number }) => ({
         x: point.x,
@@ -265,23 +278,23 @@ export function ArenaCircle({
     });
 
     const youPos = spreadFromCenter(angleToXY(180, radiusX, radiusY));
-    const OFFSET_Y = isCanCup ? 0 : -15;
+    const OFFSET_Y = useCanCupPlacement ? 0 : -15;
     const halfX = BOX_WIDTH / 2;
-    const playfieldHeight = isCanCup
+    const playfieldHeight = useCanCupPlacement
         ? Math.max(140, BOX_HEIGHT - canCupTopInset - canCupBottomInset)
         : BOX_HEIGHT;
     const halfY = playfieldHeight / 2;
-    const centerY = isCanCup ? (canCupTopInset + halfY) : (BOX_HEIGHT / 2);
-    const isTightCanCupLayout = isCanCup && (arenaBounds.width <= 410 || playfieldHeight <= 430);
-    const useCompactAvatars = isCanCup && (isTightCanCupLayout || opponents.length >= 4);
+    const centerY = useCanCupPlacement ? (canCupTopInset + halfY) : (BOX_HEIGHT / 2);
+    const isTightCanCupLayout = useCanCupPlacement && (arenaBounds.width <= 410 || playfieldHeight <= 430);
+    const useCompactAvatars = useCanCupPlacement && (isTightCanCupLayout || opponents.length >= 4);
 
     const getAngle = (index: number, count: number) => (
         getOpponentAngle(index, count)
     );
 
     // For Can Cup: use percentage-based positions; for others: use radial angles
-    const canCupOpponentPositions = isCanCup ? getCanCupOpponentPositions(opponents.length, isTightCanCupLayout) : [];
-    const canCupUserPos = isCanCup ? getCanCupUserPosition(opponents.length, isTightCanCupLayout) : null;
+    const canCupOpponentPositions = useCanCupPlacement ? getCanCupOpponentPositions(opponents.length, isTightCanCupLayout) : [];
+    const canCupUserPos = useCanCupPlacement ? getCanCupUserPosition(opponents.length, isTightCanCupLayout) : null;
 
     const canCupPosToCoord = (frac: { x: number; y: number }) => ({
         x: frac.x * halfX,
@@ -289,7 +302,7 @@ export function ArenaCircle({
     });
 
     const posOf = (id: string) => {
-        if (isCanCup) {
+        if (useCanCupPlacement) {
             if (id === currentPlayer.id) return canCupPosToCoord(canCupUserPos ?? { x: 0, y: 0.82 });
             const idx = opponents.findIndex((player) => player.id === id);
             if (idx >= 0 && canCupOpponentPositions[idx]) {
@@ -540,7 +553,7 @@ export function ArenaCircle({
     return (
         <div
             ref={layoutRef}
-            className={isCanCup
+            className={useCanCupPlacement
                 ? 'relative w-full h-full flex items-center justify-center overflow-visible'
                 : 'relative w-full h-full flex items-center justify-center overflow-hidden'}
         >
@@ -837,7 +850,7 @@ export function ArenaCircle({
                 </AnimatePresence>
 
                 {opponents.map((player, index) => {
-                    const pos = isCanCup && canCupOpponentPositions[index]
+                    const pos = useCanCupPlacement && canCupOpponentPositions[index]
                         ? canCupPosToCoord(canCupOpponentPositions[index])
                         : spreadFromCenter(angleToXY(getAngle(index, total - 1), radiusX, radiusY));
                     const projectedIntake = getProjectedIntake(player);
@@ -870,9 +883,10 @@ export function ArenaCircle({
                                 isDrunk={gameMode === 'can-cup' ? false : projectedIntake >= drunkThreshold * 0.8}
                                 drunkThreshold={drunkThreshold}
                                 projectedManaIntake={projectedIntake}
-                                soberSeconds={getSoberSeconds(projectedIntake)}
+                                drunkSeconds={getProjectedDrunkSeconds(player)}
+                                drunkTimeLimitSeconds={drunkTimeLimitSeconds}
                                 maxMana={maxMana}
-                                onSelect={selectedCard && !selectedCard.isChallenge ? () => onTargetSelect(player.id) : undefined}
+                                onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}
                                 gameMode={gameMode}
                                 canCupSipsPerCan={settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN}
                                 pendingCanCupSip={pendingCanCupSips?.[player.id]}
@@ -885,8 +899,8 @@ export function ArenaCircle({
                 <motion.div
                     className="absolute z-20"
                     style={{
-                        left: (isCanCup ? canCupPosToCoord(canCupUserPos ?? { x: 0, y: 0.82 }).x : youPos.x) + halfX,
-                        top: (isCanCup ? canCupPosToCoord(canCupUserPos ?? { x: 0, y: 0.82 }).y : youPos.y) + centerY + OFFSET_Y,
+                        left: (useCanCupPlacement ? canCupPosToCoord(canCupUserPos ?? { x: 0, y: 0.82 }).x : youPos.x) + halfX,
+                        top: (useCanCupPlacement ? canCupPosToCoord(canCupUserPos ?? { x: 0, y: 0.82 }).y : youPos.y) + centerY + OFFSET_Y,
                         translateX: '-50%',
                         translateY: '-50%',
                     }}
@@ -901,7 +915,8 @@ export function ArenaCircle({
                         isDrunk={gameMode === 'can-cup' ? false : getProjectedIntake(currentPlayer) >= drunkThreshold * 0.8}
                         drunkThreshold={drunkThreshold}
                         projectedManaIntake={getProjectedIntake(currentPlayer)}
-                        soberSeconds={getSoberSeconds(getProjectedIntake(currentPlayer))}
+                        drunkSeconds={getProjectedDrunkSeconds(currentPlayer)}
+                        drunkTimeLimitSeconds={drunkTimeLimitSeconds}
                         maxMana={maxMana}
                         isYou
                         gameMode={gameMode}

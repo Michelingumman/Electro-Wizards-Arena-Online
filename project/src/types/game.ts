@@ -1,6 +1,10 @@
 import { CardBase } from './cards';
 
-export type GameMode = 'classic' | 'modern' | 'can-cup';
+export type GameMode = 'classic' | 'modern' | 'afterski' | 'can-cup';
+
+// 'modern' is kept for backward compatibility with existing parties.
+export const isAfterskiMode = (gameMode?: GameMode | null): boolean =>
+  gameMode === 'afterski' || gameMode === 'modern';
 
 export interface CanCupState {
   sipsLeft: number;
@@ -15,6 +19,7 @@ export interface Player {
   name: string;
   mana: number;
   manaIntake: number;
+  drunkSeconds?: number;
   canCup?: CanCupState;
   cards: Card[];
   isLeader?: boolean;
@@ -92,6 +97,8 @@ export interface Party {
     currentTurn: string;
     timestamp: number;
   };
+  drunkTimerLastSyncedAt?: number;
+  expiresAt?: number;
 }
 
 export interface GameAction {
@@ -117,6 +124,7 @@ export interface GameSettings {
   initialMana: number;
   drunkThreshold: number;
   manaIntakeDecayRate: number;
+  drunkTimeLimitSeconds?: number;
   canCupSipsPerCan?: number;
   canCupCansToWin?: number;
   godMode?: boolean;

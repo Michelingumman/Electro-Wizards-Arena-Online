@@ -31,37 +31,37 @@ export const LEGENDARY_CARDS: CardBase[] = [
   // },
   {
     id: 'eyy-jag-kommer-lacka-ur-assa',
-    name: 'EYY JAG KOMMER LACKA UR ASSÅ',
-    description: 'INCREDIBLE POWER! Double your current mana and gain 15 Drunkness',
+    name: 'Liftkoen Kokar',
+    description: 'Dubbla din mana men faa +10 drunkness',
     manaCost: 10,
     rarity: CardRarity.LEGENDARY,
     type: 'normal',
     effect: {
       type: 'manaDouble',
-      value: 0
+      value: 10
     },
     requiresTarget: false,
     color: 'rose'
   },
   {
     id: 'agh-det-hander-ju-inte',
-    name: 'AGH DET HÄNDER JU INTE!',
-    description: 'Force all other players to increase their Drunkness by 8',
+    name: 'Det Haender Igen!',
+    description: 'Alla andra spelare faar +6 drunkness',
     manaCost: 8,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
     effect: {
       type: 'manaIntakeOthers',
-      value: 8
+      value: 6
     },
     requiresTarget: false,
     color: 'orange'
   },
   {
     id: 'guld',
-    name: 'GULD',
-    description: 'Make all players drunk! Set everyone\'s Drunkness to the drunk threshold',
-    manaCost: 15,
+    name: 'Alla Till Baren',
+    description: 'Saett allas drunkness till graensen foer drunk-state',
+    manaCost: 13,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
     effect: {
@@ -73,8 +73,8 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'shot-master',
-    name: 'SHOT MASTER',
-    description: 'Challenge target to a drinking contest. Winner\'s Drunkness is set to 0, loser\'s is doubled',
+    name: 'Afterski-Maestaren',
+    description: 'Utmaning: vinnaren blir helt nykter, foerloraren faardubblar sin drunkness',
     manaCost: 8,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
@@ -91,46 +91,47 @@ export const LEGENDARY_CARDS: CardBase[] = [
       }
     },
     requiresTarget: true,
-    color: 'emerald'
+    color: 'emerald',
+    isChallenge: true,
   },
   {
     id: 'bar-tycoon',
-    name: 'BAR TYCOON',
-    description: 'Take control of the bar! Your max mana and current mana are increased by 10',
+    name: 'Fjaellstuge-Magnat',
+    description: 'Faa +7 mana med hoegre tillfaelligt manatak',
     manaCost: 12,
     rarity: CardRarity.LEGENDARY,
     type: 'normal',
     effect: {
       type: 'maxManaAndMana',
-      value: 10
+      value: 7
     },
     requiresTarget: false,
     color: 'indigo'
   },
   {
     id: 'mana-master',
-    name: 'MANA MASTER',
-    description: 'Steal 3 mana from each opponent and reduce their max mana by 2',
-    manaCost: 10,
+    name: 'Pistkontrollanten',
+    description: 'Stjael 2 mana fraan varje motstaandare',
+    manaCost: 9,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
     effect: {
       type: 'manaStealAll',
-      value: 3
+      value: 2
     },
     requiresTarget: false,
     color: 'violet'
   },
   {
     id: 'divine-intervention',
-    name: 'DIVINE INTERVENTION',
-    description: 'Reset everyone\'s Drunkness to 0. All players gain 5 mana',
+    name: 'Skidgudens Timeout',
+    description: 'Nollstaell allas drunkness och ge +4 mana till alla',
     manaCost: 12,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe',
     effect: {
       type: 'divineIntervention',
-      value: 5
+      value: 4
     },
     requiresTarget: false,
     color: 'blue'
@@ -138,7 +139,7 @@ export const LEGENDARY_CARDS: CardBase[] = [
   {
     id: 'fellan',
     name: "AH ELLER HUR",
-    description: 'You set the pace for how quickly to chug a beer. If 2 enemies fail to beat your time + 1 second, all enemies lose all mana. If you win: get full health',
+    description: 'Saett tiden i en chug-duell. Klarar inte baada motstaandare tiden +1 sekund straffas de haardt.',
     manaCost: 10.0,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
@@ -158,8 +159,8 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'markus',
-    name: "VA FAN GÖRU MANNEN",
-    description: 'Cheat, cuz u so fkn good and Draw 3 Legendary Cards, but it will cost you half of your life',
+    name: "Markus Fuskfil",
+    description: 'Dra 3 legendariska kort men betala dyrt i kontroll',
     manaCost: 10.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
@@ -186,8 +187,8 @@ export const LEGENDARY_CARDS: CardBase[] = [
   // // },
   {
     id: 'adam',
-    name: "GULD",
-    description: 'Remove all legendary cards from enemies hands and deal damage equal to the number of legendary cards in your hand',
+    name: "Lagkaptenens Ultimatum",
+    description: 'Rensa legendariska kort hos motstaandare och straffa deras mana',
     manaCost: 10.0,
     rarity: CardRarity.LEGENDARY,
     type: 'legendary',
@@ -200,19 +201,19 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'ultimate-binge',
-    name: 'ULTIMATE DRINKING BINGE',
-    description: 'Everyone except you drinks DOUBLE. All other players gain +5 Mana and +4 Drunkness',
+    name: 'Hela Stugan Skalar',
+    description: 'Alla utom du faar +4 mana och +4 drunkness',
     manaCost: 6.0,
     rarity: CardRarity.LEGENDARY,
     type: 'aoe-damage',
-    effect: { type: 'aoeManaBurst', value: 5.0 },
+    effect: { type: 'aoeManaBurst', value: 4.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.LEGENDARY]
   },
   {
     id: 'legendary-challenge',
-    name: 'LEGENDARY DRINKING CHALLENGE',
-    description: 'Challenge: Winner gets completely sober (Drunkness reset to 0), Loser doubles their current Drunkness',
+    name: 'Legendarisk Stugduell',
+    description: 'Utmaning: vinnaren blir nykter, foerloraren dubblar sin drunkness',
     manaCost: 5.0,
     rarity: CardRarity.LEGENDARY,
     type: 'challenge',
@@ -225,24 +226,25 @@ export const LEGENDARY_CARDS: CardBase[] = [
         loserEffect: { type: 'manaIntakeMultiplier', value: 2.0 }
       }
     },
-    requiresTarget: false,
-    color: RARITY_COLORS[CardRarity.LEGENDARY]
+    requiresTarget: true,
+    color: RARITY_COLORS[CardRarity.LEGENDARY],
+    isChallenge: true,
   },
   {
     id: 'gold-card',
-    name: 'GOLDEN LIVER',
-    description: 'Your liver becomes golden! Gain +10 Mana and your Drunkness is reduced by 80% for 3 turns',
+    name: 'Gyllene Lever',
+    description: 'Faa +8 mana och minska din drunkness kraftigt',
     manaCost: 8.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
-    effect: { type: 'goldenLiver', value: 10.0 },
+    effect: { type: 'goldenLiver', value: 8.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.LEGENDARY]
   },
   {
     id: 'mana-hurricane',
-    name: 'MANA HURRICANE',
-    description: 'Chaos ensues! Randomly redistributes all mana and Drunkness values between all players',
+    name: 'Snostormskaos',
+    description: 'Blanda om allas mana och drunkness slumpmaessigt',
     manaCost: 7.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
@@ -252,8 +254,8 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'party-master',
-    name: 'PARTY MASTER',
-    description: 'Take control of the party! Choose any player and set their mana and Drunkness to any value',
+    name: 'Afterski-Chef',
+    description: 'Ta kontroll och styr en spelares stats med precision',
     manaCost: 10.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
@@ -263,12 +265,12 @@ export const LEGENDARY_CARDS: CardBase[] = [
   },
   {
     id: 'divine-sobriety',
-    name: 'DIVINE SOBRIETY',
-    description: 'Instantly become sober! Reset your Drunkness to 0 and gain +5 Mana',
+    name: 'Nykter Reset',
+    description: 'Bli direkt nykter och faa +4 mana',
     manaCost: 4.0,
     rarity: CardRarity.LEGENDARY,
     type: 'utility',
-    effect: { type: 'divineSobriety', value: 5.0 },
+    effect: { type: 'divineSobriety', value: 4.0 },
     requiresTarget: false,
     color: RARITY_COLORS[CardRarity.LEGENDARY]
   }

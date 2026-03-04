@@ -12,22 +12,31 @@ const createInitialPlayer = (
   gameMode: GameMode,
   isLeader: boolean,
   initialMana: number
-): Player => ({
-  ...player,
-  mana: initialMana,
-  manaIntake: 0,
-  isDrunk: false,
-  cards: generateInitialCards(gameMode),
-  isLeader,
-  canCup: gameMode === 'can-cup'
-    ? {
+): Player => {
+  const basePlayer: Player = {
+    ...player,
+    mana: initialMana,
+    manaIntake: 0,
+    drunkSeconds: 0,
+    isDrunk: false,
+    cards: generateInitialCards(gameMode),
+    isLeader,
+  };
+
+  if (gameMode !== 'can-cup') {
+    return basePlayer;
+  }
+
+  return {
+    ...basePlayer,
+    canCup: {
       sipsLeft: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
       waterSips: 0,
       deflectCharges: 0,
       emptyCans: 0,
-    }
-    : undefined,
-});
+    },
+  };
+};
 
 export function usePartyActions() {
 
@@ -54,8 +63,11 @@ export function usePartyActions() {
         initialMana: GAME_CONFIG.INITIAL_MANA,
         drunkThreshold: GAME_CONFIG.DRUNK_THRESHOLD,
         manaIntakeDecayRate: GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+        drunkTimeLimitSeconds: GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS,
         canCupSipsPerCan: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
       },
+      drunkTimerLastSyncedAt: Date.now(),
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     };
 
     try {
@@ -160,7 +172,8 @@ export function usePartyActions() {
 
         transaction.update(partyRef, {
           status: 'playing',
-          currentTurn: firstPlayer.id
+          currentTurn: firstPlayer.id,
+          drunkTimerLastSyncedAt: Date.now(),
         });
       });
     } catch (error) {
@@ -241,6 +254,7 @@ export function usePartyActions() {
           initialMana: GAME_CONFIG.INITIAL_MANA,
           drunkThreshold: GAME_CONFIG.DRUNK_THRESHOLD,
           manaIntakeDecayRate: GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+          drunkTimeLimitSeconds: GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS,
           canCupSipsPerCan: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
         };
 

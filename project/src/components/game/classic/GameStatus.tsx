@@ -1,4 +1,4 @@
-import { Party } from '../../../types/game';
+import { Party, isAfterskiMode } from '../../../types/game';
 
 interface GameStatusProps {
   status: Party['status'];
@@ -6,10 +6,11 @@ interface GameStatusProps {
   players: Party['players'];
   isLeader: boolean;
   code: string;
+  gameMode?: Party['gameMode'];
   showNoValidPlayersWarning?: boolean;
 }
 
-export function GameStatus({ status, winner, players, isLeader, code, showNoValidPlayersWarning }: GameStatusProps) {
+export function GameStatus({ status, winner, players, isLeader, code, gameMode, showNoValidPlayersWarning }: GameStatusProps) {
   if (status === 'finished') {
     return (
       <div className="text-center p-8 bg-purple-900/30 backdrop-blur-sm rounded-lg border border-purple-500/20">
@@ -20,7 +21,9 @@ export function GameStatus({ status, winner, players, isLeader, code, showNoVali
           </p>
         )}
         <p className="text-sm text-purple-300 mt-2">
-          The last wizard standing with mana!
+          {isAfterskiMode(gameMode)
+            ? 'A player exceeded the drunk-time limit.'
+            : 'The last wizard standing with mana!'}
         </p>
       </div>
     );

@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import { doc, runTransaction } from 'firebase/firestore';
 import { db, serverNow } from '../lib/firebase';
-import { Card, GameMode, Party, PendingCanCupSipResolution, Player } from '../types/game';
+import { Card, GameMode, Party, PendingCanCupSipResolution, Player, isAfterskiMode } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { drawLegendaryCard, drawNewCard } from '../utils/cardGeneration';
 import { validateChallengeParticipants, applyChallengeEffect } from '../utils/challengeEffects';
+import { isChallengeCard, isNamingChallengeCard } from '../utils/challengeCard';
 import { CardEnhancer } from '../utils/cardEnhancer';
 import { EffectManager } from '../utils/effectManager';
 import {
@@ -133,6 +134,7 @@ export function useGameActions(partyId: string) {
       {
         mana: toRounded(player.mana),
         manaIntake: toRounded(player.manaIntake || 0),
+        drunkSeconds: Math.max(0, Math.round(player.drunkSeconds || 0)),
         canCupSipsLeft: player.canCup?.sipsLeft ?? null,
         canCupWaterSips: player.canCup?.waterSips ?? null,
         canCupDeflectCharges: player.canCup?.deflectCharges ?? null,
@@ -159,6 +161,7 @@ export function useGameActions(partyId: string) {
     beforeStats: Map<string, {
       mana: number;
       manaIntake: number;
+      drunkSeconds: number;
       canCupSipsLeft: number | null;
       canCupWaterSips: number | null;
       canCupDeflectCharges: number | null;
@@ -213,6 +216,7 @@ export function useGameActions(partyId: string) {
         return (
           Math.abs((player.mana || 0) - before.mana) > 0.001 ||
           Math.abs((player.manaIntake || 0) - before.manaIntake) > 0.001 ||
+          Math.abs((player.drunkSeconds || 0) - before.drunkSeconds) > 0.001 ||
           (player.canCup?.sipsLeft ?? null) !== before.canCupSipsLeft ||
           (player.canCup?.waterSips ?? null) !== before.canCupWaterSips ||
           (player.canCup?.deflectCharges ?? null) !== before.canCupDeflectCharges ||
@@ -514,17 +518,7 @@ export function useGameActions(partyId: string) {
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
         if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
-        const isChallengeCard =
-          card.isChallenge ||
-          card.type === 'challenge' ||
-          card.effect.type === 'challenge' ||
-          card.effect.challenge ||
-          ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(card.name) ||
-          card.name.includes('Name the most') ||
-          card.effect.winnerEffect ||
-          card.effect.loserEffect ||
-          card.effect.challengeEffects;
-        if (!isChallengeCard) throw new Error('This card is not a challenge card');
+        if (!isChallengeCard(card)) throw new Error('This card is not a challenge card');
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
@@ -592,6 +586,7 @@ export function useGameActions(partyId: string) {
         transaction.update(partyRef, {
           players: updatedPlayers,
           pendingChallenge: pendingChallengePayload,
+          drunkTimerLastSyncedAt: gameMode === 'can-cup' ? party.drunkTimerLastSyncedAt : Date.now(),
           pendingCanCupSips: gameMode === 'can-cup'
             ? toPendingCanCupSipsField(nextPendingCanCupSips)
             : party.pendingCanCupSips ?? null,
@@ -991,7 +986,7 @@ export function useGameActions(partyId: string) {
                 party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
                 player.mana + enhancedCard.effect.value
               );
-              if (card.name === 'Open Bar Tab') {
+              if (card.id === 'bar-tab') {
                 player.manaIntake = Math.max(0, (player.manaIntake || 0) + 1);
               }
               break;
@@ -1240,7 +1235,7 @@ export function useGameActions(partyId: string) {
                 party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
                 player.mana * 2
               );
-              player.manaIntake = Math.max(0, (player.manaIntake || 0) + 15);
+              player.manaIntake = Math.max(0, (player.manaIntake || 0) + enhancedCard.effect.value);
               break;
 
             case 'manaIntakeOthers':
@@ -1250,6 +1245,78 @@ export function useGameActions(partyId: string) {
                 }
               });
               break;
+
+            case 'drunkTimer': {
+              const deltaSeconds = Math.round(enhancedCard.effect.value);
+              const isAoeTimer = enhancedCard.type === 'aoe' || enhancedCard.type === 'aoe-damage';
+              if (isAoeTimer) {
+                updatedPlayers.forEach((entry) => {
+                  entry.drunkSeconds = Math.max(0, Math.round((entry.drunkSeconds || 0) + deltaSeconds));
+                });
+              } else {
+                target.drunkSeconds = Math.max(0, Math.round((target.drunkSeconds || 0) + deltaSeconds));
+              }
+              break;
+            }
+
+            case 'drunkTimerShift': {
+              const shiftSeconds = Math.max(0, Math.round(enhancedCard.effect.value));
+              target.drunkSeconds = Math.max(0, Math.round((target.drunkSeconds || 0) + shiftSeconds));
+              const candidates = updatedPlayers.filter((entry) => entry.id !== target.id);
+              if (candidates.length > 0) {
+                const randomBeneficiary = candidates[Math.floor(Math.random() * candidates.length)];
+                randomBeneficiary.drunkSeconds = Math.max(
+                  0,
+                  Math.round((randomBeneficiary.drunkSeconds || 0) - shiftSeconds)
+                );
+              }
+              break;
+            }
+
+            case 'drunkestTimer': {
+              const sortedByDrunkness = [...updatedPlayers].sort((left, right) => {
+                const leftDrunkSeconds = left.drunkSeconds || 0;
+                const rightDrunkSeconds = right.drunkSeconds || 0;
+                if (leftDrunkSeconds !== rightDrunkSeconds) {
+                  return rightDrunkSeconds - leftDrunkSeconds;
+                }
+                return (right.manaIntake || 0) - (left.manaIntake || 0);
+              });
+
+              const drunkestPlayer = sortedByDrunkness[0];
+              if (drunkestPlayer) {
+                drunkestPlayer.drunkSeconds = Math.max(
+                  0,
+                  Math.round((drunkestPlayer.drunkSeconds || 0) + enhancedCard.effect.value)
+                );
+              }
+              break;
+            }
+
+            case 'leastDrunkForceDrink': {
+              const sortedBySobriety = [...updatedPlayers].sort((left, right) => {
+                const leftDrunkSeconds = left.drunkSeconds || 0;
+                const rightDrunkSeconds = right.drunkSeconds || 0;
+                if (leftDrunkSeconds !== rightDrunkSeconds) {
+                  return leftDrunkSeconds - rightDrunkSeconds;
+                }
+                return (left.manaIntake || 0) - (right.manaIntake || 0);
+              });
+
+              const leastDrunkPlayer = sortedBySobriety[0];
+              if (leastDrunkPlayer) {
+                const forcedDrinkAmount = party.settings?.manaDrinkAmount ?? GAME_CONFIG.MANA_DRINK_AMOUNT;
+                leastDrunkPlayer.mana = Math.min(
+                  party.settings?.maxMana ?? GAME_CONFIG.MAX_MANA,
+                  leastDrunkPlayer.mana + forcedDrinkAmount
+                );
+                leastDrunkPlayer.manaIntake = Math.max(
+                  0,
+                  (leastDrunkPlayer.manaIntake || 0) + forcedDrinkAmount
+                );
+              }
+              break;
+            }
 
             case 'setAllToDrunk': {
               const threshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
@@ -1329,8 +1396,9 @@ export function useGameActions(partyId: string) {
           p.isDrunk = (p.manaIntake || 0) >= drunkThreshold * 0.8;
         });
 
-        transaction.update(partyRef, {
+        const updatePayload: Partial<Party> & { lastAction: NonNullable<Party['lastAction']> } = {
           players: updatedPlayers,
+          drunkTimerLastSyncedAt: Date.now(),
           lastAction: buildLastActionPayload({
             beforeStats,
             updatedPlayers,
@@ -1343,7 +1411,38 @@ export function useGameActions(partyId: string) {
             cardDescription: card.description,
             manaCost: enhancedCard.manaCost,
           }),
-        });
+        };
+
+        if (isAfterskiMode(gameMode)) {
+          const drunkTimeLimitSeconds = Math.max(
+            1,
+            Math.round(party.settings?.drunkTimeLimitSeconds ?? GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS)
+          );
+          const hasReachedDrunkTimeLimit = updatedPlayers.some(
+            (entry) => (entry.drunkSeconds || 0) >= drunkTimeLimitSeconds
+          );
+          if (hasReachedDrunkTimeLimit) {
+            const winnerPool = updatedPlayers.filter(
+              (entry) => (entry.drunkSeconds || 0) < drunkTimeLimitSeconds
+            );
+            const rankingPool = winnerPool.length > 0 ? winnerPool : updatedPlayers;
+            const winner = [...rankingPool].sort((left, right) => {
+              const leftDrunkSeconds = left.drunkSeconds || 0;
+              const rightDrunkSeconds = right.drunkSeconds || 0;
+              if (leftDrunkSeconds !== rightDrunkSeconds) return leftDrunkSeconds - rightDrunkSeconds;
+              if ((left.manaIntake || 0) !== (right.manaIntake || 0)) {
+                return (left.manaIntake || 0) - (right.manaIntake || 0);
+              }
+              return right.mana - left.mana;
+            })[0];
+            if (winner) {
+              updatePayload.status = 'finished';
+              updatePayload.winner = winner.id;
+            }
+          }
+        }
+
+        transaction.update(partyRef, updatePayload);
       });
 
       // End turn and decay mana intake
@@ -1383,17 +1482,7 @@ export function useGameActions(partyId: string) {
         if (!challengeCard) {
           throw new Error('Challenge card data is missing');
         }
-        if (
-          !challengeCard.effect.challengeEffects &&
-          !challengeCard.effect.challenge &&
-          !challengeCard.effect.winnerEffect &&
-          !challengeCard.effect.loserEffect &&
-          !challengeCard.name.includes('Name the most') &&
-          challengeCard.name !== 'Öl Hävf' &&
-          challengeCard.name !== 'Got Big Muscles?' &&
-          challengeCard.name !== 'Shot Contest' &&
-          challengeCard.name !== 'SHOT MASTER'
-        ) {
+        if (!isChallengeCard(challengeCard)) {
           console.error('Challenge effects not defined for this card:', challengeCard);
           throw new Error('Challenge effects not defined for this card: ' + challengeCard.name);
         }
@@ -1452,25 +1541,25 @@ export function useGameActions(partyId: string) {
             loserEffect = challengeCard.effect.challengeEffects.loser;
           } else {
             // Fallback for cards with non-standard effects
-            switch (challengeCard.name) {
-              case 'Öl Hävf':
+            switch (challengeCard.id) {
+              case 'ol-havf':
                 winnerEffect = { type: 'mana', value: 5 };
                 loserEffect = { type: 'manaIntake', value: 10 };
                 break;
-              case 'Got Big Muscles?':
+              case 'got-big-muscles':
                 winnerEffect = { type: 'mana', value: 3 };
                 loserEffect = { type: 'manaBurn', value: 4 };
                 break;
-              case 'Shot Contest':
+              case 'shot-contest':
                 winnerEffect = { type: 'mana', value: 2 };
                 loserEffect = { type: 'manaIntake', value: 6 };
                 break;
-              case 'SHOT MASTER':
+              case 'shot-master':
                 winnerEffect = { type: 'resetManaIntake', value: 0 };
                 loserEffect = { type: 'manaIntakeMultiply', value: 2 };
                 break;
               default:
-                if (challengeCard.name.includes('Name the most')) {
+                if (isNamingChallengeCard(challengeCard)) {
                   // 'Name the most' cards
                   const value = 5; // Default value for naming challenges
                   winnerEffect = { type: 'manaStealer', value: value };
@@ -1586,6 +1675,7 @@ export function useGameActions(partyId: string) {
         // Update Firestore with challenge results
         const updatePayload: Partial<Party> = {
           players: updatedPlayers,
+          drunkTimerLastSyncedAt: gameMode === 'can-cup' ? party.drunkTimerLastSyncedAt : Date.now(),
           pendingCanCupSips: gameMode === 'can-cup'
             ? toPendingCanCupSipsField(nextPendingCanCupSips)
             : party.pendingCanCupSips ?? null,
@@ -1719,6 +1809,7 @@ export function useGameActions(partyId: string) {
 
         transaction.update(partyRef, {
           players: updatedPlayers,
+          drunkTimerLastSyncedAt: gameMode === 'can-cup' ? party.drunkTimerLastSyncedAt : Date.now(),
           lastAction: buildLastActionPayload({
             beforeStats,
             updatedPlayers,

@@ -1,67 +1,66 @@
 import { CardBase, CardRarity } from '../../../types/cards';
-import { RARITY_COLORS } from '../rarities';
 
 export const RARE_CARDS: CardBase[] = [
   {
     id: 'duct-tape',
-    name: 'Alcoholic Tolerance',
-    description: 'Reduce your Drunkness by 4',
-    manaCost: 5,
+    name: 'Balans i Bena',
+    description: 'Minska din drunkness med 3',
+    manaCost: 4,
     rarity: CardRarity.RARE,
     type: 'normal',
     effect: {
       type: 'manaIntake',
-      value: -4
+      value: -3
     },
     requiresTarget: false,
     color: 'amber'
   },
   {
     id: 'bacta-spray',
-    name: 'Double Shot',
-    description: 'Increase your max mana by 3',
-    manaCost: 6,
+    name: 'Extra Liftkort',
+    description: 'Faa +2 mana och tillfaelligt hoegre manatak',
+    manaCost: 5,
     rarity: CardRarity.RARE,
     type: 'normal',
     effect: {
       type: 'maxMana',
-      value: 3
+      value: 2
     },
     requiresTarget: false,
     color: 'lime'
   },
   {
     id: 'mana-drain',
-    name: 'Mana Drain',
-    description: 'Drain 7 mana from target, increasing your mana by 7',
-    manaCost: 6,
+    name: 'Skidpass-Stoeld',
+    description: 'Stjael 5 mana fraan maalet',
+    manaCost: 5,
     rarity: CardRarity.RARE,
     type: 'targeted',
     effect: {
       type: 'manaDrain',
-      value: 7
+      value: 5
     },
     requiresTarget: true,
     color: 'blue'
   },
   {
     id: 'mana-transfer',
-    name: 'Mana Transfer',
-    description: 'Transfer 5 mana from yourself to target player',
+    name: 'Lagspel i Liften',
+    description: 'Ge 4 mana fraan dig sjaelv till valfri spelare',
     manaCost: 3,
     rarity: CardRarity.RARE,
     type: 'targeted',
     effect: {
       type: 'manaTransfer',
-      value: 5
+      value: 4
     },
     requiresTarget: true,
     color: 'violet'
   },
   {
     id: 'sobering-potion',
-    name: 'Sobering Potion',
-    description: 'Reset your Drunkness to 0',
+    name: 'Kall Duscha',
+    description: 'Nollstaell din drunkness',
     manaCost: 4,
     rarity: CardRarity.RARE,
     type: 'normal',
@@ -74,9 +73,9 @@ export const RARE_CARDS: CardBase[] = [
   },
   {
     id: 'mana-shield',
-    name: 'Mana Shield',
-    description: 'Gain immunity to the next targeted mana drain effect',
-    manaCost: 5,
+    name: 'Hjaelm och Ryggskydd',
+    description: 'Blockera naesta riktade mana-drain',
+    manaCost: 4,
     rarity: CardRarity.RARE,
     type: 'normal',
     effect: {
@@ -88,9 +87,9 @@ export const RARE_CARDS: CardBase[] = [
   },
   {
     id: 'challice-of-focus',
-    name: 'Chalice of Focus',
-    description: 'Reduce all players Drunkness by 2 (including yourself)',
-    manaCost: 6,
+    name: 'Gemensam Vattenrunda',
+    description: 'Alla spelare minskar sin drunkness med 2',
+    manaCost: 5,
     rarity: CardRarity.RARE,
     type: 'aoe',
     effect: {
@@ -101,10 +100,38 @@ export const RARE_CARDS: CardBase[] = [
     color: 'indigo'
   },
   {
+    id: 'five-minute-breather',
+    name: 'Fem Minuters Frizon',
+    description: 'Minska din drunk-tid med 5:00',
+    manaCost: 5,
+    rarity: CardRarity.RARE,
+    type: 'normal',
+    effect: {
+      type: 'drunkTimer',
+      value: -300
+    },
+    requiresTarget: false,
+    color: 'teal'
+  },
+  {
+    id: 'blame-shift',
+    name: 'Skyll Paa Naagon Annan',
+    description: 'Maalet faar +5:00 drunk-tid, en slumpad annan faar -5:00',
+    manaCost: 5,
+    rarity: CardRarity.RARE,
+    type: 'targeted',
+    effect: {
+      type: 'drunkTimerShift',
+      value: 300
+    },
+    requiresTarget: true,
+    color: 'fuchsia'
+  },
+  {
     id: 'shot-contest',
-    name: 'Shot Contest',
-    description: 'Challenge another player. Winner gains 2 mana, loser gains 6 Drunkness',
-    manaCost: 3,
+    name: 'Shotduell i Stugan',
+    description: 'Utmaning: vinnaren faar +2 mana, foerloraren faar +5 drunkness',
+    manaCost: 4,
     rarity: CardRarity.RARE,
     type: 'challenge',
     effect: {
@@ -116,11 +143,12 @@ export const RARE_CARDS: CardBase[] = [
       },
       loserEffect: {
         type: 'manaIntake',
-        value: 6
+        value: 5
       }
     },
     requiresTarget: true,
-    color: 'amber'
+    color: 'amber',
+    isChallenge: true,
   }
   // {
   //   id: 'guardian',

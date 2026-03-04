@@ -25,7 +25,7 @@ export function ModernCardHand({
     disabled,
     currentMana,
     selectedCard,
-    gameMode = 'modern',
+    gameMode = 'afterski',
     godMode = false,
     onGodModePick,
     canCupSipsLeft,

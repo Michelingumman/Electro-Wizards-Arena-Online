@@ -10,7 +10,7 @@ interface AttackBannerProps {
     gameMode?: GameMode;
 }
 
-export function AttackBanner({ lastAction, players, gameMode = 'modern' }: AttackBannerProps) {
+export function AttackBanner({ lastAction, players, gameMode = 'afterski' }: AttackBannerProps) {
     const [expanded, setExpanded] = useState(false);
 
     if (!lastAction) return null;
@@ -24,11 +24,15 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
 
     const getActionVerb = (type: string) => {
         switch (type) {
-            case 'damage': case 'aoeDamage': return 'attacked';
-            case 'heal': case 'manaRefill': case 'potionBuff': return 'healed';
-            case 'manaDrain': case 'manaBurn': return 'drained';
-            case 'challenge': return 'challenged';
-            case 'forceDrink': return 'forced drink on';
+            case 'damage': case 'aoeDamage': return 'attackerade';
+            case 'heal': case 'manaRefill': case 'potionBuff': return 'healade';
+            case 'manaDrain': case 'manaBurn': return 'draenerade';
+            case 'challenge': return 'utmanade';
+            case 'forceDrink': return 'tvingade att dricka';
+            case 'drunkTimer': return 'justerade drunk-tid foer';
+            case 'drunkTimerShift': return 'flyttade drunk-tid till';
+            case 'drunkestTimer': return 'straffade den mest dragna med';
+            case 'leastDrunkForceDrink': return 'tvingade den minst dragna att dricka';
             case 'canCupSip': return 'tvingade klunkar på';
             case 'canCupAoESip': return 'skålade med';
             case 'canCupWater': return 'tog vattenpaus';
@@ -52,6 +56,11 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
             case 'manaDrain': case 'manaBurn': return <Zap className={clsx(cls, "text-yellow-400")} />;
             case 'challenge': return <Target className={clsx(cls, "text-orange-400")} />;
             case 'forceDrink': return <Wine className={clsx(cls, "text-amber-400")} />;
+            case 'drunkTimer':
+            case 'drunkTimerShift':
+            case 'drunkestTimer':
+            case 'leastDrunkForceDrink':
+                return <Wine className={clsx(cls, "text-amber-300")} />;
             case 'canCupSip':
             case 'canCupAoESip':
             case 'canCupDoubleTrouble':
@@ -76,6 +85,11 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
             case 'manaDrain': case 'manaBurn': return 'border-yellow-500/30 bg-yellow-950/40';
             case 'challenge': return 'border-orange-500/30 bg-orange-950/40';
             case 'forceDrink': return 'border-amber-500/30 bg-amber-950/40';
+            case 'drunkTimer':
+            case 'drunkTimerShift':
+            case 'drunkestTimer':
+            case 'leastDrunkForceDrink':
+                return 'border-amber-500/30 bg-amber-950/35';
             case 'canCupSip':
             case 'canCupAoESip':
             case 'canCupDoubleTrouble':
@@ -103,6 +117,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
         'setAllToDrunk',
         'divineIntervention',
         'manaHurricane',
+        'drunkTimerShift',
     ]);
     const affectedMany = affectedOthers.length > 1 || explicitGroupTypes.has(lastAction.cardType);
     const includesAttacker = affectedIds.includes(attacker.id);
@@ -114,6 +129,8 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
         targetText = includesAttacker ? 'all players' : 'all opponents';
     } else if (lastAction.targetId && !isSelf) {
         targetText = target?.name || 'target';
+    } else if (['drunkestTimer', 'leastDrunkForceDrink'].includes(lastAction.cardType) && affectedOthers.length === 1) {
+        targetText = players.find((player) => player.id === affectedOthers[0])?.name || 'maalet';
     } else if (lastAction.targetId && isSelf && [
         'forceDrink', 'canCupWater', 'canCupDeflect', 'canCupTopUp',
     ].includes(lastAction.cardType)) {
@@ -123,8 +140,8 @@ export function AttackBanner({ lastAction, players, gameMode = 'modern' }: Attac
     }
 
     const actionPrefix = targetText
-        ? `${attacker.name} ${verb} ${targetText} with`
-        : `${attacker.name} played`;
+        ? `${attacker.name} ${verb} ${targetText} med`
+        : `${attacker.name} spelade`;
     const damageValue =
         typeof lastAction.targetDamage === 'number'
             ? lastAction.targetDamage

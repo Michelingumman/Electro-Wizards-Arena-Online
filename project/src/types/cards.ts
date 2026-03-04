@@ -59,6 +59,10 @@ export type EffectType =
   'divineIntervention' |
   'manaIntakeMultiply' |
   'drunkestPlayerDamage' |
+  'drunkTimer' |
+  'drunkTimerShift' |
+  'drunkestTimer' |
+  'leastDrunkForceDrink' |
   'manaTransfer' |
   'manaStealer' |
   'maxMana' |

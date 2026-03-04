@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Card, Party, Player } from '../../../types/game';
 import { PlayerStats } from './PlayerStats';
 import { CardList } from './CardList';
@@ -8,6 +7,7 @@ import { GameStatus } from './GameStatus';
 import { ActionLog } from './ActionLog';
 import { ChallengeModal } from './ChallengeModal';
 import { GAME_CONFIG } from '../../../config/gameConfig';
+import { isChallengeCard } from '../../../utils/challengeCard';
 
 interface GameClassicUIProps {
     party: Party;
@@ -74,7 +74,7 @@ export function GameClassicUI({
                                     selectedCard?.requiresTarget &&
                                     (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
                                 )}
-                                onSelect={selectedCard && !selectedCard.isChallenge ? () => onTargetSelect(player.id) : undefined}
+                                onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}
                             />
                         ))}
                     </div>
@@ -127,16 +127,7 @@ export function GameClassicUI({
                 />
             )}
 
-            {selectedCard && (
-                selectedCard.isChallenge ||
-                selectedCard.type === 'challenge' ||
-                selectedCard.effect.type === 'challenge' ||
-                ['Öl Hävf', 'Got Big Muscles?', 'Shot Contest', 'SHOT MASTER'].includes(selectedCard.name) ||
-                (selectedCard.name && selectedCard.name.includes('Name the most')) ||
-                selectedCard.effect.winnerEffect ||
-                selectedCard.effect.loserEffect ||
-                selectedCard.effect.challengeEffects
-            ) && (
+            {selectedCard && isChallengeCard(selectedCard) && (
                     <ChallengeModal
                         card={selectedCard}
                         players={party.players}

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, Player } from '../../../types/game';
-import { Trophy, Droplet, Wine, X } from 'lucide-react';
+import { Trophy, Wine, X } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GAME_CONFIG } from '../../../config/gameConfig';
+import { isNamingChallengeCard } from '../../../utils/challengeCard';
 
 interface ChallengeModalProps {
   card: Card;
@@ -34,77 +34,70 @@ export function ChallengeModal({
   const eligiblePlayers = eligiblePlayerIds && eligiblePlayerIds.length > 0
     ? players.filter((player) => eligiblePlayerIds.includes(player.id))
     : players;
+  const currentPlayerName = players.find((player) => player.id === currentPlayerId)?.name ?? 'Host';
 
-  const challengeCardNames = [
-    'Name the most: CAR BRANDS',
-    'Name the most: FOOTBALL TEAMS',
-    'Name the most: BEER BRANDS',
-    'Name the most: LIQUOR BRANDS',
-    'Name the most: COUNTRIES',
-    'Name the most: TYPES OF PORN',
-    'Wim Hoff Wannabe',
-  ];
+  const isEffectObject = (effect: unknown): effect is { type: string; value: number } => {
+    if (!effect || typeof effect !== 'object') return false;
+    const maybeEffect = effect as { type?: unknown; value?: unknown };
+    return typeof maybeEffect.type === 'string' && typeof maybeEffect.value === 'number';
+  };
 
   const getChallengeEffects = () => {
     try {
-      // Check for direct winnerEffect and loserEffect properties
-      if (card.effect.winnerEffect && card.effect.loserEffect) {
-        const winnerEffect = card.effect.winnerEffect;
-        const loserEffect = card.effect.loserEffect;
+      const winnerEffect = card.effect.winnerEffect
+        ?? card.effect.challenge?.winnerEffect
+        ?? (isEffectObject((card.effect.challengeEffects as { winner?: unknown } | undefined)?.winner)
+          ? (card.effect.challengeEffects as { winner: { type: string; value: number } }).winner
+          : null);
+      const loserEffect = card.effect.loserEffect
+        ?? card.effect.challenge?.loserEffect
+        ?? (isEffectObject((card.effect.challengeEffects as { loser?: unknown } | undefined)?.loser)
+          ? (card.effect.challengeEffects as { loser: { type: string; value: number } }).loser
+          : null);
 
+      if (winnerEffect && loserEffect) {
         return {
-          winEffect: `${getEffectDescription(winnerEffect)}`,
-          loseEffect: `${getEffectDescription(loserEffect)}`
+          winEffect: getEffectDescription(winnerEffect),
+          loseEffect: getEffectDescription(loserEffect),
         };
       }
-      else if (card.effect.challenge?.winnerEffect && card.effect.challenge?.loserEffect) {
+
+      // Legacy fallback for old cards that might miss explicit loser effect in DB snapshots.
+      if (card.id === 'ol-havf') {
         return {
-          winEffect: `${getEffectDescription(card.effect.challenge.winnerEffect)}`,
-          loseEffect: `${getEffectDescription(card.effect.challenge.loserEffect)}`
+          winEffect: '+5 Mana',
+          loseEffect: '+10 Drunkness',
         };
       }
-      // Backward compatibility for older challenge structure
-      else if (card.effect.challengeEffects?.winner && card.effect.challengeEffects?.loser) {
+      if (card.id === 'got-big-muscles') {
         return {
-          winEffect: `${getEffectDescription(card.effect.challengeEffects.winner)}`,
-          loseEffect: `${getEffectDescription(card.effect.challengeEffects.loser)}`,
+          winEffect: '+3 Mana',
+          loseEffect: '-4 Mana',
         };
       }
-      // Handle specific card cases by name
-      else if (card.name === 'Öl Hävf') { //non standard challenge
+      if (card.id === 'shot-contest') {
         return {
-          winEffect: `+ 5 Mana`,
-          loseEffect: `+ 10 Drunkness`
+          winEffect: '+2 Mana',
+          loseEffect: '+6 Drunkness',
         };
       }
-      else if (card.name === 'Got Big Muscles?') { // non standrad challenge
+      if (card.id === 'shot-master') {
         return {
-          winEffect: `+ 3 Mana`,
-          loseEffect: `- 4 Mana`
+          winEffect: 'Drunkness reset to 0',
+          loseEffect: 'Drunkness doubled',
         };
       }
-      else if (card.name === 'Shot Contest') { // non standard challenge
-        return {
-          winEffect: `+ 2 Mana`,
-          loseEffect: `+ 6 Drunkness`
-        };
-      }
-      else if (card.name === 'SHOT MASTER') { // non standard challenge
-        return {
-          winEffect: `Drunkness reset to 0`,
-          loseEffect: `Drunkness doubled`
-        };
-      }
-      else if (card.name.includes('Name the most')) { // Naming challenges
-        const value = card.effect.winnerEffect?.value || 5;
+      if (isNamingChallengeCard(card)) {
+        const value = card.effect.winnerEffect?.value || card.effect.challenge?.winnerEffect?.value || 4;
         return {
           winEffect: `Steal ${value} mana from loser`,
-          loseEffect: `Lose ${value} mana to winner`
+          loseEffect: `Lose ${value} mana`,
         };
       }
-      else return {
-        winEffect: 'Effect will be determined based on card', // More generic fallback message
-        loseEffect: 'Effect will be determined based on card'
+
+      return {
+        winEffect: 'Effect decided by challenge host',
+        loseEffect: 'Effect decided by challenge host',
       };
     } catch (error) {
       console.error('Error determining challenge effects:', error);
@@ -116,7 +109,7 @@ export function ChallengeModal({
   };
 
   // Helper to get human-readable description of an effect
-  const getEffectDescription = (effect: any) => {
+  const getEffectDescription = (effect: { type: string; value: number } | null) => {
     if (!effect) return 'No effect';
 
     try {
@@ -203,7 +196,7 @@ export function ChallengeModal({
           <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
             <div>
               <h3 className="text-lg font-semibold text-purple-100">{card.name}</h3>
-              <p className="text-sm text-gray-300">Challenge Resolution</p>
+              <p className="text-sm text-gray-300">Challenge Resolution · {currentPlayerName}</p>
             </div>
             <button
               onClick={onCancel}

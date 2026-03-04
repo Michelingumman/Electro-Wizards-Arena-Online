@@ -10,7 +10,8 @@ interface ModernPlayerAvatarProps {
     isDrunk?: boolean;
     drunkThreshold?: number;
     projectedManaIntake?: number;
-    soberSeconds?: number;
+    drunkSeconds?: number;
+    drunkTimeLimitSeconds?: number;
     maxMana?: number;
     onSelect?: () => void;
     isYou?: boolean;
@@ -34,12 +35,13 @@ export function ModernPlayerAvatar({
     isDrunk = false,
     drunkThreshold = 20,
     projectedManaIntake,
-    soberSeconds,
+    drunkSeconds,
+    drunkTimeLimitSeconds,
     maxMana = 20,
     onSelect,
     isYou = false,
     compact = false,
-    gameMode = 'modern',
+    gameMode = 'afterski',
     canCupSipsPerCan = 10,
     pendingCanCupSip,
 }: ModernPlayerAvatarProps) {
@@ -73,6 +75,11 @@ export function ModernPlayerAvatar({
     const mugWidth = compact ? 44 : 54;
     const mugHeight = compact ? 66 : 80;
     const avatarSizeClass = compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]';
+    const drunkTimerSeconds = Math.max(0, drunkSeconds ?? player.drunkSeconds ?? 0);
+    const drunkTimerProgress = !drunkTimeLimitSeconds || drunkTimeLimitSeconds <= 0
+        ? 0
+        : drunkTimerSeconds / drunkTimeLimitSeconds;
+    const drunkTimerText = formatClock(drunkTimerSeconds);
 
     if (gameMode === 'can-cup') {
         return (
@@ -246,8 +253,15 @@ export function ModernPlayerAvatar({
                     )}
 
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={clsx('font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-black/40', isDrunkState ? 'text-amber-200' : 'text-gray-100')}>
-                            {formatClock(soberSeconds ?? 0)}
+                        <span className={clsx(
+                            'font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-black/40',
+                            drunkTimerProgress >= 1
+                                ? 'text-red-200'
+                                : drunkTimerProgress >= 0.8 || isDrunkState
+                                    ? 'text-amber-200'
+                                    : 'text-gray-100'
+                        )}>
+                            {drunkTimerText}
                         </span>
                     </div>
                 </div>
@@ -262,6 +276,20 @@ export function ModernPlayerAvatar({
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[9px]">
+                <span className={clsx(
+                    'rounded-full border px-1.5 py-0.5',
+                    intakePercent >= 80
+                        ? 'border-red-300/50 bg-red-950/40 text-red-200'
+                        : intakePercent >= 50
+                            ? 'border-amber-300/50 bg-amber-950/40 text-amber-200'
+                            : 'border-emerald-300/45 bg-emerald-950/35 text-emerald-200'
+                )}>
+                    Intake {intakeValue.toFixed(1)}/{drunkThreshold}
+                </span>
+                <span className="text-gray-300">{Math.round(intakePercent)}%</span>
             </div>
 
             {isTargetable && (

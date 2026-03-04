@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
-import { GameSettings as GameSettingsType } from '../../../types/game';
+import { GameSettings as GameSettingsType, isAfterskiMode } from '../../../types/game';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { useGameStore } from '../../../store/gameStore';
 
@@ -20,6 +20,7 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
     initialMana: GAME_CONFIG.INITIAL_MANA,
     drunkThreshold: GAME_CONFIG.DRUNK_THRESHOLD,
     manaIntakeDecayRate: GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+    drunkTimeLimitSeconds: GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS,
   });
 
   // Update settings from party when it changes
@@ -31,6 +32,7 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
         initialMana: party.settings.initialMana || GAME_CONFIG.INITIAL_MANA,
         drunkThreshold: party.settings.drunkThreshold || GAME_CONFIG.DRUNK_THRESHOLD,
         manaIntakeDecayRate: party.settings.manaIntakeDecayRate || GAME_CONFIG.MANA_INTAKE_DECAY_RATE,
+        drunkTimeLimitSeconds: party.settings.drunkTimeLimitSeconds || GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS,
       });
     }
   }, [party?.settings]);
@@ -171,6 +173,28 @@ export function GameSettings({ onSave, isLeader }: GameSettingsProps) {
                     How quickly drunkness decreases per minute (higher = faster sobering)
                   </p>
                 </div>
+
+                {isAfterskiMode(party?.gameMode) && (
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Drunk Time Limit (minutes)</label>
+                    <Input
+                      type="number"
+                      value={Math.round((settings.drunkTimeLimitSeconds ?? GAME_CONFIG.DRUNK_TIME_LIMIT_SECONDS) / 60)}
+                      onChange={(e) => {
+                        const minutes = Math.max(1, Math.min(120, parseInt(e.target.value) || 10));
+                        setSettings(s => ({
+                          ...s,
+                          drunkTimeLimitSeconds: minutes * 60,
+                        }));
+                      }}
+                      min={1}
+                      max={120}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      If a player stays drunk longer than this, the game ends.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
