@@ -157,8 +157,11 @@ export function ModernPlayerAvatar({
                                 {Array.from({ length: Math.max(1, canCupCapacity - 1) }).map((_, index) => (
                                     <div
                                         key={`sip-line-${player.id}-${index}`}
-                                        className="absolute left-1 right-1 h-[2px] bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                                        style={{ bottom: `${((index + 1) / canCupCapacity) * 100}%` }}
+                                        className="absolute left-1 right-1 h-[1px] bg-white/45 shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                                        style={{
+                                            bottom: `${((index + 1) / canCupCapacity) * 100}%`,
+                                            transform: 'translateY(0.5px)'
+                                        }}
                                     />
                                 ))}
                             </div>

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { doc, runTransaction } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, serverNow } from '../lib/firebase';
 import { Card, GameMode, Party, PendingCanCupSipResolution, Player } from '../types/game';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { drawLegendaryCard, drawNewCard } from '../utils/cardGeneration';
@@ -599,7 +599,7 @@ export function useGameActions(partyId: string) {
         };
 
         if (duelistIds.every((id) => readySet.has(id))) {
-          const now = Date.now();
+          const now = serverNow();
           // Each light stage gets a random delay of 1-5 seconds for unpredictability
           const redDelay = 1000 + Math.floor(Math.random() * 4000);
           const yellowDelay = 1000 + Math.floor(Math.random() * 4000);
@@ -656,7 +656,7 @@ export function useGameActions(partyId: string) {
           throw new Error('Only duelists can press');
         }
 
-        const now = Date.now();
+        const now = serverNow();
         if (!reactionState.greenAt || now < reactionState.greenAt) {
           throw new Error('Too early - wait for green');
         }

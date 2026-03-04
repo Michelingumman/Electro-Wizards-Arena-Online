@@ -128,6 +128,9 @@ export function Game() {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
 
+    // Force scroll to top - crucial for fixing "missing header" on mobile
+    window.scrollTo(0, 0);
+
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
