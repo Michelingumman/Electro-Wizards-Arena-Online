@@ -40,7 +40,7 @@ function getOpponentAngle(index: number, count: number): number {
 // Returns {x, y} as fractions of halfWidth/halfHeight from center (-1 to 1)
 function getCanCupOpponentPositions(count: number, tightLayout = false): { x: number; y: number }[] {
     switch (count) {
-        case 1: return [{ x: 0, y: -0.38 }];
+        case 1: return [{ x: 0, y: tightLayout ? -0.58 : -0.52 }];
         case 2: return [
             { x: tightLayout ? -0.74 : -0.72, y: tightLayout ? -0.10 : -0.08 },
             { x: tightLayout ? 0.74 : 0.72, y: tightLayout ? -0.10 : -0.08 },
@@ -86,6 +86,7 @@ function getCanCupOpponentPositions(count: number, tightLayout = false): { x: nu
 function getCanCupUserPosition(opponentCount: number, tightLayout = false): { x: number; y: number } {
     if (opponentCount >= 4) return { x: 0, y: tightLayout ? 0.66 : 0.84 };
     if (opponentCount === 3) return { x: 0, y: tightLayout ? 0.74 : 0.87 };
+    if (opponentCount === 1) return { x: 0, y: tightLayout ? 0.64 : 0.72 };
     return { x: 0, y: tightLayout ? 0.82 : 0.9 };
 }
 
