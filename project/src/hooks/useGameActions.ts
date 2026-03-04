@@ -12,6 +12,9 @@ import {
   addWaterSips,
   applyDirectSips,
   applyForcedSips,
+  canCupGiveEmptyCan,
+  canCupRemoveDefense,
+  getPlayersWithFewestEmptyCans,
   sanitizeSipsPerCan,
   swapSipsLeft,
   topUpSips,
@@ -266,6 +269,7 @@ export function useGameActions(partyId: string) {
     let targetSipCommand = 0;
     const affectedPlayerIds = new Set<string>();
     let nextPendingCanCupSips = normalizePendingCanCupSips(pendingCanCupSips);
+    let resolvedTargetId = target.id;
 
     const ensureCanCupState = (player: Player, sipsPerCan: number) => {
       if (!player.canCup) {
@@ -396,12 +400,68 @@ export function useGameActions(partyId: string) {
         }
         break;
       }
+      case 'canCupRemoveDefense': {
+        const penaltySips = Math.max(0, Math.round(card.effect.value));
+        const isAoeDefenseRemoval = !card.requiresTarget || card.type === 'aoe';
+
+        if (isAoeDefenseRemoval) {
+          updatedPlayers.forEach((entry) => {
+            canCupRemoveDefense(entry, sipsPerCan);
+            affectedPlayerIds.add(entry.id);
+            if (penaltySips > 0) {
+              const applied = queueForcedSips(entry.id, penaltySips);
+              if (entry.id === target.id) {
+                targetSipCommand += applied;
+              }
+            }
+          });
+        } else {
+          canCupRemoveDefense(target, sipsPerCan);
+          affectedPlayerIds.add(target.id);
+          if (penaltySips > 0) {
+            targetSipCommand += queueForcedSips(target.id, penaltySips);
+          }
+        }
+
+        if (penaltySips === 0) {
+          nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, sipsPerCan);
+        }
+        break;
+      }
+      case 'canCupGiveEmptyCan': {
+        const transferCount = Math.max(0, Math.round(card.effect.value));
+        const sourceBefore = player.canCup?.emptyCans ?? 0;
+        const targetBefore = target.canCup?.emptyCans ?? 0;
+
+        for (let index = 0; index < transferCount; index += 1) {
+          canCupGiveEmptyCan(player, target, sipsPerCan);
+        }
+
+        const sourceAfter = player.canCup?.emptyCans ?? sourceBefore;
+        const targetAfter = target.canCup?.emptyCans ?? targetBefore;
+        if (sourceAfter !== sourceBefore || targetAfter !== targetBefore) {
+          affectedPlayerIds.add(player.id);
+          affectedPlayerIds.add(target.id);
+        }
+        break;
+      }
+      case 'canCupTaxSober': {
+        const taxSips = Math.max(0, Math.round(card.effect.value));
+        const candidates = getPlayersWithFewestEmptyCans(updatedPlayers, sipsPerCan);
+        if (candidates.length > 0 && taxSips > 0) {
+          const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+          resolvedTargetId = randomCandidate.id;
+          targetSipCommand += queueForcedSips(randomCandidate.id, taxSips);
+        }
+        break;
+      }
       default:
         throw new Error(`Unsupported Can Cup effect type: ${card.effect.type}`);
     }
 
     return {
       targetSipCommand,
+      resolvedTargetId,
       affectedPlayerIds: Array.from(affectedPlayerIds),
       pendingCanCupSips: nextPendingCanCupSips,
     };
@@ -772,6 +832,7 @@ export function useGameActions(partyId: string) {
           });
 
           player.cards[cardIndex] = drawNewCard(gameMode);
+          const actionTargetId = canCupResult.resolvedTargetId ?? targetId;
 
           transaction.update(partyRef, {
             players: updatedPlayers,
@@ -780,7 +841,7 @@ export function useGameActions(partyId: string) {
               beforeStats,
               updatedPlayers,
               playerId,
-              targetId,
+              targetId: actionTargetId,
               cardId: card.id,
               cardName: card.name,
               cardType: card.effect.type,
