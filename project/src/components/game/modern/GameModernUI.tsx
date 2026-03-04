@@ -113,10 +113,12 @@ export function GameModernUI({
             return `${base} (${detailParts.join(', ')})`;
         })()
         : '';
-    const arenaBottomOffset = isCanCup ? 332 : 360;
+    const arenaBottomOffset = isCanCup ? 0 : 360;
+    const arenaBottomInset = isCanCup ? 160 : 0;
+    const arenaTopInset = isCanCup ? (party.lastAction ? 56 : 18) : 0;
 
     return (
-        <div className={`w-full h-screen h-[100dvh] flex flex-col relative overflow-hidden ${rootClass}`}>
+        <div className={`w-full min-h-0 flex flex-col relative overflow-hidden ${rootClass}`} style={{ height: 'var(--app-height, 100dvh)' }}>
             {isCanCup && (
                 <div className="absolute inset-0 pointer-events-none z-[1] overflow-hidden">
                     <motion.div
@@ -198,7 +200,7 @@ export function GameModernUI({
                     )}
 
                     {/* Zone 2: Arena Circle (fills space between header+banner and card fan) */}
-                    <div className="flex-1 relative z-10" style={{ marginBottom: `${arenaBottomOffset}px` }}>
+                    <div className="flex-1 min-h-0 relative z-10" style={{ marginBottom: `${arenaBottomOffset}px` }}>
                         {party.status === 'finished' ? (
                             <div className="flex items-center justify-center h-full">
                                 {isCanCup ? (
@@ -225,6 +227,8 @@ export function GameModernUI({
                                 onReactionReady={onSetReactionChallengeReady}
                                 onReactionPress={onPressReactionChallenge}
                                 gameMode={gameMode}
+                                topInset={arenaTopInset}
+                                bottomInset={arenaBottomInset}
                             />
                         )}
                     </div>

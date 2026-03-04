@@ -59,6 +59,7 @@ export function ModernCardHand({
 
     const cardCount = cards.length;
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 390;
+    const isCanCup = gameMode === 'can-cup';
     const CARD_WIDTH = cardCount <= 4
         ? Math.min(188, Math.max(146, screenW * 0.39))
         : cardCount === 5
@@ -67,8 +68,13 @@ export function ModernCardHand({
     const CENTER_INDEX = (cardCount - 1) / 2;
     const ANGLE_SPREAD = cardCount <= 4 ? 10 : cardCount === 5 ? 8 : 6;
     const X_SPREAD = cardCount <= 4 ? CARD_WIDTH * 0.5 : cardCount === 5 ? CARD_WIDTH * 0.45 : CARD_WIDTH * 0.38;
-    const BASE_Y = cardCount <= 4 ? 55 : 64;
-    const POPUP_Y = -160;
+    const BASE_Y = isCanCup
+        ? (cardCount <= 4 ? 72 : 82)
+        : (cardCount <= 4 ? 55 : 64);
+    const POPUP_Y = isCanCup ? -148 : -160;
+    const FAN_HEIGHT = isCanCup ? 350 : 390;
+    const BASE_CARD_HEIGHT = isCanCup ? 210 : 204;
+    const EXPANDED_CARD_HEIGHT = BASE_CARD_HEIGHT + (isCanCup ? 68 : 60);
     const hasSelection = Boolean(activeCardId);
 
     const getEffectIcon = (type: string) => {
@@ -154,7 +160,7 @@ export function ModernCardHand({
                     'fixed bottom-0 left-0 right-0 pointer-events-none flex justify-center items-end z-50 transition-all duration-300',
                     disabled && 'saturate-[0.7] brightness-[0.85]'
                 )}
-                style={{ height: '390px' }}
+                style={{ height: `${FAN_HEIGHT}px` }}
             >
                 <div className="relative w-full flex justify-center items-end" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
                     <AnimatePresence>
@@ -207,6 +213,7 @@ export function ModernCardHand({
                                     )}
                                     style={{
                                         width: CARD_WIDTH,
+                                        height: isActive ? EXPANDED_CARD_HEIGHT : BASE_CARD_HEIGHT,
                                         filter:
                                             !canPlay && !isActive && !disabled
                                                 ? 'brightness(0.55) grayscale(0.25)'
@@ -234,78 +241,82 @@ export function ModernCardHand({
                                 >
                                     <div
                                         className={clsx(
-                                            'w-full rounded-xl overflow-hidden border backdrop-blur-sm',
+                                            'w-full h-full rounded-xl overflow-hidden border backdrop-blur-sm',
                                             `bg-gradient-to-b ${rarity.bg} ${rarity.border}`
                                         )}
                                     >
-                                        <div className="px-3 py-2.5 flex items-start justify-between bg-black/45 gap-2">
-                                            <span className="font-bold text-[12px] leading-tight text-white/95 line-clamp-2">
-                                                {card.name}
-                                            </span>
-                                            <div
-                                                className={clsx(
-                                                    'shrink-0 mt-0.5 px-1.5 h-6 rounded-full flex items-center justify-center gap-1 text-[10px] font-bold text-white',
-                                                    gameMode === 'can-cup' ? 'bg-amber-600/90' : 'bg-blue-600/90'
-                                                )}
-                                            >
-                                                {gameMode === 'can-cup' && <Beer className="w-3 h-3" />}
-                                                {card.sipCost ?? card.manaCost}
-                                                {gameMode !== 'can-cup' && <Zap className="w-2.5 h-2.5 opacity-60" />}
-                                            </div>
-                                        </div>
-
-                                        <div className="h-16 w-full bg-black/35 flex items-center justify-center">
-                                            {getEffectIcon(card.effect?.type || card.type)}
-                                        </div>
-
-                                        <div className="px-2.5 py-2 bg-black/35 space-y-1.5">
-                                            <p className={clsx(
-                                                'text-[10px] leading-snug text-gray-300',
-                                                isActive ? 'line-clamp-none' : 'line-clamp-4'
-                                            )}>
-                                                {card.description}
-                                            </p>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[8px] text-gray-500 uppercase tracking-wider">
-                                                    {card.rarity}
+                                        <div className="h-full flex flex-col">
+                                            <div className="px-3 py-2.5 min-h-[46px] flex items-start justify-between bg-black/45 gap-2 shrink-0">
+                                                <span className="min-h-[30px] font-bold text-[12px] leading-tight text-white/95 line-clamp-2">
+                                                    {card.name}
                                                 </span>
-                                                {isActive && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        {godMode && onGodModePick && (
+                                                <div
+                                                    className={clsx(
+                                                        'shrink-0 mt-0.5 px-1.5 h-6 rounded-full flex items-center justify-center gap-1 text-[10px] font-bold text-white',
+                                                        gameMode === 'can-cup' ? 'bg-amber-600/90' : 'bg-blue-600/90'
+                                                    )}
+                                                >
+                                                    {gameMode === 'can-cup' && <Beer className="w-3 h-3" />}
+                                                    {card.sipCost ?? card.manaCost}
+                                                    {gameMode !== 'can-cup' && <Zap className="w-2.5 h-2.5 opacity-60" />}
+                                                </div>
+                                            </div>
+
+                                            <div className="h-16 w-full bg-black/35 flex items-center justify-center shrink-0">
+                                                {getEffectIcon(card.effect?.type || card.type)}
+                                            </div>
+
+                                            <div className="px-2.5 py-2 bg-black/35 flex-1 flex flex-col justify-between min-h-0">
+                                                <p className={clsx(
+                                                    'text-[10px] leading-snug text-gray-300',
+                                                    isActive
+                                                        ? 'line-clamp-none overflow-y-auto pr-1'
+                                                        : 'line-clamp-3 min-h-[40px]'
+                                                )}>
+                                                    {card.description}
+                                                </p>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] text-gray-500 uppercase tracking-wider">
+                                                        {card.rarity}
+                                                    </span>
+                                                    {isActive && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            {godMode && onGodModePick && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setActiveCardId(null);
+                                                                        onGodModePick(card);
+                                                                    }}
+                                                                    className="text-[9px] rounded-full px-2 py-1 font-semibold tracking-wide uppercase bg-amber-600/90 text-white hover:bg-amber-500 flex items-center gap-0.5"
+                                                                >
+                                                                    <Wrench className="w-2.5 h-2.5" /> Swap
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 type="button"
                                                                 onClick={(event) => {
                                                                     event.stopPropagation();
+                                                                    if (!canPlay) return;
                                                                     setActiveCardId(null);
-                                                                    onGodModePick(card);
+                                                                    onPlayCard(card);
                                                                 }}
-                                                                className="text-[9px] rounded-full px-2 py-1 font-semibold tracking-wide uppercase bg-amber-600/90 text-white hover:bg-amber-500 flex items-center gap-0.5"
+                                                                disabled={!canPlay}
+                                                                className={clsx(
+                                                                    'text-[9px] rounded-full px-2.5 py-1 font-semibold tracking-wide uppercase transition-all',
+                                                                    canPlay
+                                                                        ? gameMode === 'can-cup'
+                                                                            ? 'bg-cyan-600/90 text-white hover:bg-cyan-500'
+                                                                            : 'bg-purple-600/90 text-white hover:bg-purple-500'
+                                                                        : 'bg-gray-700/70 text-gray-400 cursor-not-allowed'
+                                                                )}
                                                             >
-                                                                <Wrench className="w-2.5 h-2.5" /> Swap
+                                                                {canPlay ? 'Play' : disabled ? 'Wait turn' : (gameMode === 'can-cup' ? 'Play' : 'No mana')}
                                                             </button>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                if (!canPlay) return;
-                                                                setActiveCardId(null);
-                                                                onPlayCard(card);
-                                                            }}
-                                                            disabled={!canPlay}
-                                                            className={clsx(
-                                                                'text-[9px] rounded-full px-2.5 py-1 font-semibold tracking-wide uppercase transition-all',
-                                                                canPlay
-                                                                    ? gameMode === 'can-cup'
-                                                                        ? 'bg-cyan-600/90 text-white hover:bg-cyan-500'
-                                                                        : 'bg-purple-600/90 text-white hover:bg-purple-500'
-                                                                    : 'bg-gray-700/70 text-gray-400 cursor-not-allowed'
-                                                            )}
-                                                        >
-                                                            {canPlay ? 'Play' : disabled ? 'Wait turn' : (gameMode === 'can-cup' ? 'Play' : 'No mana')}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

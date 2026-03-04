@@ -1,7 +1,7 @@
 import { GameMode, PendingCanCupSipResolution, Player } from '../../../types/game';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import { Beer, Droplets, FlaskConical, Shield } from 'lucide-react';
+import { Beer, FlaskConical, Shield } from 'lucide-react';
 
 interface ModernPlayerAvatarProps {
     player: Player;
@@ -70,8 +70,8 @@ export function ModernPlayerAvatar({
     const pendingWaterBottomPercent = Math.max(0, totalLiquidPercent - pendingWaterLayerPercent);
     const pendingBeerLayerPercent = Math.min(pendingBeerPercent, beerLayerPercent);
     const pendingBeerBottomPercent = Math.max(0, totalLiquidPercent - waterLayerPercent - pendingBeerLayerPercent);
-    const mugWidth = compact ? 40 : 48;
-    const mugHeight = compact ? 62 : 72;
+    const mugWidth = compact ? 44 : 54;
+    const mugHeight = compact ? 66 : 80;
     const avatarSizeClass = compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]';
 
     if (gameMode === 'can-cup') {
@@ -95,7 +95,7 @@ export function ModernPlayerAvatar({
                 >
                     {player.name}
                 </span>
-                <div className="relative flex flex-col items-center gap-1.5 pl-10">
+                <div className="relative flex flex-col items-center gap-1">
                     <div className="relative">
                         {isCurrentTurn && (
                             <motion.div
@@ -153,12 +153,12 @@ export function ModernPlayerAvatar({
                                 />
                             )}
 
-                            <div className="absolute inset-x-1.5 top-1.5 bottom-1.5 pointer-events-none">
-                                {Array.from({ length: 9 }).map((_, index) => (
+                            <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none">
+                                {Array.from({ length: Math.max(1, canCupCapacity - 1) }).map((_, index) => (
                                     <div
                                         key={`sip-line-${player.id}-${index}`}
-                                        className="absolute left-0 right-0 h-[1.5px] bg-white/75"
-                                        style={{ bottom: `${(index + 1) * 10}%` }}
+                                        className="absolute left-1 right-1 h-[2px] bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                                        style={{ bottom: `${((index + 1) / canCupCapacity) * 100}%` }}
                                     />
                                 ))}
                             </div>
@@ -166,29 +166,17 @@ export function ModernPlayerAvatar({
                             <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent" />
                         </motion.div>
 
-                        <div
-                            className="absolute rounded-r-full border-2 border-l-0 border-amber-200/45 bg-amber-950/25 shadow-[0_0_8px_rgba(251,191,36,0.2)]"
-                            style={{
-                                width: compact ? 8 : 10,
-                                height: compact ? 18 : 22,
-                                right: compact ? -6 : -8,
-                                top: compact ? 15 : 18,
-                            }}
-                        />
+
                     </div>
 
-                    <div className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-950/60 px-1.5 py-0.5 text-[9px] font-semibold text-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+                    <div className="flex items-center gap-1 mt-0.5">
+                        <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-300/40 bg-amber-950/60 px-1.5 py-0.5 text-[9px] font-semibold text-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
                             <Beer className="w-2.5 h-2.5" />
                             x{canCupState.emptyCans}
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/45 bg-indigo-900/75 px-1.5 py-0.5 text-[9px] text-indigo-100 shadow-[0_0_8px_rgba(129,140,248,0.25)]">
+                        <span className="inline-flex items-center gap-0.5 rounded-full border border-indigo-300/45 bg-indigo-900/75 px-1.5 py-0.5 text-[9px] text-indigo-100 shadow-[0_0_8px_rgba(129,140,248,0.25)]">
                             <Shield className="w-2.5 h-2.5" />
                             {canCupState.deflectCharges}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/45 bg-cyan-900/75 px-1.5 py-0.5 text-[9px] text-cyan-100 shadow-[0_0_8px_rgba(34,211,238,0.25)]">
-                            <Droplets className="w-2.5 h-2.5" />
-                            {canCupState.waterSips}
                         </span>
                     </div>
                 </div>

@@ -12,30 +12,51 @@
   user-select: none;
 }
 
-/* Fix mobile viewport height */
-html, body {
+/* Fix mobile viewport height — Safari URL bar workaround */
+:root {
+  --app-height: 100dvh;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+html {
   margin: 0;
   padding: 0;
-  min-height: 100dvh;
   height: 100%;
   width: 100%;
-  overflow: hidden;
-  position: relative;
   background: #020617;
   overscroll-behavior: none;
 }
 
-#root {
-  min-height: 100dvh;
-  height: 100%;
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  min-height: var(--app-height);
+  width: 100%;
   background: #020617;
-  overflow: hidden;
+  overscroll-behavior: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100%;
+  min-height: var(--app-height);
+  background: #020617;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
 }
 
 /* Prevent iOS double-tap zoom */
-button, a {
+button,
+a {
   touch-action: manipulation;
 }
 
@@ -59,9 +80,11 @@ button, a {
   0% {
     box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
   }
+
   50% {
     box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
   }
+
   100% {
     box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
   }
@@ -80,9 +103,11 @@ button, a {
   0% {
     filter: hue-rotate(0deg) saturate(1);
   }
+
   50% {
     filter: hue-rotate(6deg) saturate(1.08);
   }
+
   100% {
     filter: hue-rotate(0deg) saturate(1);
   }
@@ -92,9 +117,11 @@ button, a {
   0% {
     filter: hue-rotate(0deg);
   }
+
   50% {
     filter: hue-rotate(10deg);
   }
+
   100% {
     filter: hue-rotate(0deg);
   }
@@ -104,15 +131,19 @@ button, a {
   0% {
     transform: rotate(0deg);
   }
+
   25% {
     transform: rotate(-3deg);
   }
+
   50% {
     transform: rotate(0deg);
   }
+
   75% {
     transform: rotate(3deg);
   }
+
   100% {
     transform: rotate(0deg);
   }

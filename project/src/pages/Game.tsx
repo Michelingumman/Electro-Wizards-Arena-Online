@@ -119,6 +119,21 @@ export function Game() {
     !hasValidPlayer
   );
 
+  useEffect(() => {
+    if (!usesArenaLayout) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [usesArenaLayout]);
+
   const handlePlayCard = async (card: Card) => {
     if (!currentPlayer || !isCurrentTurn) return;
     if (party?.pendingChallenge) return;
@@ -317,7 +332,7 @@ export function Game() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p className="text-xl text-purple-100">Loading game...</p>
@@ -328,7 +343,7 @@ export function Game() {
 
   if (error || !party || !currentPlayer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-gray-900 to-purple-900">
         <div className="text-center">
           <p className="text-xl text-red-400 mb-4">{error || 'Game not found'}</p>
           <button onClick={() => navigate('/')} className="text-purple-400 hover:text-purple-300">
@@ -368,11 +383,14 @@ export function Game() {
   };
 
   return (
-    <div className={clsx(
-      "bg-gradient-to-b from-gray-900 to-purple-900 relative",
-      usesArenaLayout ? "h-screen h-[100dvh] overflow-hidden" : "min-h-screen overflow-auto",
-      isPlayerDrunk && "drunk-player-view"
-    )}>
+    <div
+      className={clsx(
+        "bg-gradient-to-b from-gray-900 to-purple-900 relative",
+        usesArenaLayout ? "overflow-hidden" : "min-h-screen min-h-[100dvh] overflow-auto",
+        isPlayerDrunk && "drunk-player-view"
+      )}
+      style={usesArenaLayout ? { height: 'calc(var(--app-height, 100dvh) - var(--sat, 0px) - var(--sab, 0px))' } : undefined}
+    >
       {isPlayerDrunk && (
         <div className="absolute inset-0 backdrop-blur-sm pointer-events-none z-10 bg-amber-900/10" />
       )}

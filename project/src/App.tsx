@@ -5,7 +5,7 @@ import { Game } from './pages/Game';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen min-h-[100dvh] bg-gray-900 text-white">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/game/:partyId" element={<Game />} />
