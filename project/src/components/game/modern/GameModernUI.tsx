@@ -34,7 +34,7 @@ interface GameModernUIProps {
     pendingCanCupSipForCurrentPlayer?: PendingCanCupSipResolution | null;
     onResolvePendingCanCupSips?: () => Promise<void>;
     onSetReactionChallengeReady?: () => Promise<void>;
-    onPressReactionChallenge?: () => Promise<void>;
+    onPressReactionChallenge?: (reactionTimeMs: number) => Promise<void>;
     challengeSetupCard: Card | null;
     onChallengeSetupConfirm: (duelistOneId: string, duelistTwoId: string) => Promise<void>;
     onChallengeSetupCancel: () => void;

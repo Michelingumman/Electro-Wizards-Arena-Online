@@ -283,10 +283,10 @@ export function Game() {
     }
   };
 
-  const handlePressReactionChallenge = async () => {
+  const handlePressReactionChallenge = async (reactionTimeMs: number) => {
     if (!currentPlayer) return;
     try {
-      await pressReactionChallenge(currentPlayer.id);
+      await pressReactionChallenge(currentPlayer.id, reactionTimeMs);
     } catch (error) {
       console.error('Error pressing reaction challenge:', error);
     }

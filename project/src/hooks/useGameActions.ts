@@ -609,6 +609,7 @@ export function useGameActions(partyId: string) {
           updatedReactionState.redAt = now + redDelay;
           updatedReactionState.yellowAt = now + redDelay + yellowDelay;
           updatedReactionState.greenAt = now + redDelay + yellowDelay + greenDelay;
+          console.log(`[SYNC-GEN] Countdown generated! local serverNow()=${now}. target greenAt=${updatedReactionState.greenAt}. Delays: ${redDelay}, ${yellowDelay}, ${greenDelay}`);
         }
 
         transaction.update(partyRef, {
@@ -625,7 +626,7 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId]);
 
-  const pressReactionChallenge = useCallback(async (playerId: string) => {
+  const pressReactionChallenge = useCallback(async (playerId: string, reactionTimeMs: number) => {
     const partyRef = doc(db, 'parties', partyId);
 
     try {
@@ -648,7 +649,7 @@ export function useGameActions(partyId: string) {
           throw new Error('Reaction challenge has not started');
         }
         if (reactionState.phase === 'resolved') {
-          return;
+          return; // Already resolved
         }
 
         const duelistIds = [pendingChallenge.duelistOneId, pendingChallenge.duelistTwoId];
@@ -656,15 +657,34 @@ export function useGameActions(partyId: string) {
           throw new Error('Only duelists can press');
         }
 
-        const now = serverNow();
-        if (!reactionState.greenAt || now < reactionState.greenAt) {
-          throw new Error('Too early - wait for green');
+        // Initialize reactionTimes record if it doesn't exist
+        const updatedReactionTimes = { ...(reactionState.reactionTimes || {}) };
+
+        // Prevent re-submission
+        if (playerId in updatedReactionTimes) {
+          return;
         }
 
-        const winnerId = playerId;
-        const loserId = duelistIds.find((id) => id !== winnerId);
-        if (!loserId) {
-          throw new Error('Could not determine loser');
+        // Record player's exact DOM reaction time
+        updatedReactionTimes[playerId] = reactionTimeMs;
+
+        // If only 1 player has pressed, save their time and wait for the other.
+        if (Object.keys(updatedReactionTimes).length < 2) {
+          transaction.update(partyRef, {
+            'pendingChallenge.reactionGame.reactionTimes': updatedReactionTimes
+          });
+          return;
+        }
+
+        // --- BOTH PLAYERS HAVE PRESSED! ---
+        // Find who has the lowest reaction time in milliseconds
+        const entries = Object.entries(updatedReactionTimes);
+        let winnerId = entries[0][0];
+        let loserId = entries[1][0];
+
+        if (entries[1][1] < entries[0][1]) {
+          winnerId = entries[1][0];
+          loserId = entries[0][0];
         }
 
         const updatedPlayers = party.players.map((player) => ({
@@ -680,11 +700,12 @@ export function useGameActions(partyId: string) {
         if (!challengeOwner) {
           throw new Error('Challenge owner not found');
         }
+
+        // Swap out the card
         const usedCardIndex = challengeOwner.cards.findIndex((entry) => entry.id === pendingChallenge.card.id);
-        if (usedCardIndex === -1) {
-          throw new Error('Challenge card not found in owner hand');
+        if (usedCardIndex !== -1) {
+          challengeOwner.cards[usedCardIndex] = drawNewCard('can-cup');
         }
-        challengeOwner.cards[usedCardIndex] = drawNewCard('can-cup');
 
         const loserSipPenalty = canCupSipsPerCan * 2;
         const existingPenalty = nextPendingCanCupSips[loserId];
@@ -697,7 +718,7 @@ export function useGameActions(partyId: string) {
           sourcePlayerId: winnerId,
           sourceCardId: pendingChallenge.card.id,
           sourceCardName: pendingChallenge.card.name,
-          updatedAt: now,
+          updatedAt: serverNow(),
         };
         nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, canCupSipsPerCan);
 
