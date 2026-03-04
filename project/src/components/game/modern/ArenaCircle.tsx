@@ -22,7 +22,7 @@ interface ArenaCircleProps {
     onTargetSelect: (targetId: string) => Promise<void>;
     onChallengeCardClick?: () => void;
     onReactionReady?: () => Promise<void>;
-    onReactionPress?: () => Promise<void>;
+    onReactionPress?: (reactionTimeMs: number) => Promise<void>;
     gameMode?: GameMode;
     topInset?: number;
     bottomInset?: number;
@@ -41,10 +41,10 @@ function getOpponentAngle(index: number, count: number): number {
 // Returns {x, y} as fractions of halfWidth/halfHeight from center (-1 to 1)
 function getCanCupOpponentPositions(count: number, tightLayout = false): { x: number; y: number }[] {
     switch (count) {
-        case 1: return [{ x: 0, y: tightLayout ? -0.58 : -0.52 }];
+        case 1: return [{ x: 0, y: tightLayout ? -0.70 : -0.66 }];
         case 2: return [
-            { x: tightLayout ? -0.74 : -0.72, y: tightLayout ? -0.10 : -0.08 },
-            { x: tightLayout ? 0.74 : 0.72, y: tightLayout ? -0.10 : -0.08 },
+            { x: tightLayout ? -0.74 : -0.72, y: tightLayout ? -0.34 : -0.30 },
+            { x: tightLayout ? 0.74 : 0.72, y: tightLayout ? -0.34 : -0.30 },
         ];
         case 3: return [
             // 4 players total: opponent 1 left, opponent 2 right, opponent 3 top-center
@@ -87,8 +87,8 @@ function getCanCupOpponentPositions(count: number, tightLayout = false): { x: nu
 function getCanCupUserPosition(opponentCount: number, tightLayout = false): { x: number; y: number } {
     if (opponentCount >= 4) return { x: 0, y: tightLayout ? 0.66 : 0.84 };
     if (opponentCount === 3) return { x: 0, y: tightLayout ? 0.74 : 0.87 };
-    if (opponentCount === 1) return { x: 0, y: tightLayout ? 0.64 : 0.72 };
-    return { x: 0, y: tightLayout ? 0.82 : 0.9 };
+    if (opponentCount === 1) return { x: 0, y: tightLayout ? 0.55 : 0.60 };
+    return { x: 0, y: tightLayout ? 0.60 : 0.68 };
 }
 
 function angleToXY(deg: number, radiusX: number, radiusY: number) {
@@ -469,13 +469,44 @@ export function ArenaCircle({
         ? players.find((player) => player.id === pendingChallenge.duelistTwoId)?.name ?? 'Duelist 2'
         : 'Duelist 2';
 
+    // Store the exact physical ms when the screen turned green locally
+    const localGreenLitAtRef = useRef<number | null>(null);
+
     useEffect(() => {
         if (!isReactionChallengeCard || !reactionState || reactionState.phase === 'resolved') return;
-        if (reactionState.phase === 'countdown' || isReactionGreen) {
-            const timer = setInterval(() => setReactionNow(serverNow()), 80);
-            return () => clearInterval(timer);
+
+        let animationFrameId: number;
+        let loggedGreen = false;
+
+        // Reset the green lit ref when a new challenge starts
+        if (reactionState.phase === 'countdown') {
+            localGreenLitAtRef.current = null;
         }
-        return;
+
+        const targetGreenAt = typeof reactionState.greenAt === 'number' ? reactionState.greenAt : 0;
+
+        const tick = () => {
+            const current = serverNow();
+            setReactionNow(current);
+
+            if (targetGreenAt > 0 && current >= targetGreenAt && !loggedGreen) {
+                // The exact millisecond the DOM realizes it should render green:
+                localGreenLitAtRef.current = performance.now();
+                console.log(`[SYNC-UI] GREEN LIGHT HIT! serverNow()=${current}, target greenAt=${targetGreenAt}, Diff=${current - targetGreenAt}ms`);
+                loggedGreen = true;
+            }
+
+            if (!loggedGreen) {
+                animationFrameId = requestAnimationFrame(tick);
+            }
+        };
+
+        if (reactionState.phase === 'countdown' && !isReactionGreen) {
+            console.log(`[SYNC-UI] Starting countdown monitor. target greenAt=${targetGreenAt}`);
+            animationFrameId = requestAnimationFrame(tick);
+        }
+
+        return () => cancelAnimationFrame(animationFrameId);
     }, [isReactionChallengeCard, reactionState, isReactionGreen]);
 
     const handleReactionReadyClick = async () => {
@@ -489,10 +520,18 @@ export function ArenaCircle({
     };
 
     const handleReactionPressClick = async () => {
+        // Measure exact physical gap between DOM turning green and the screen tap
+        const tapTime = performance.now();
+        const reactionTimeMs = localGreenLitAtRef.current
+            ? Math.round(tapTime - localGreenLitAtRef.current)
+            : 9999; // Fallback if tapped too early or missed
+
+        console.log(`[SYNC-ACTION] Player TAPPED! Exact Physical Reaction Time: ${reactionTimeMs}ms`);
+
         if (!onReactionPress || submittingReactionPress) return;
         setSubmittingReactionPress(true);
         try {
-            await onReactionPress();
+            await onReactionPress(reactionTimeMs);
         } finally {
             setSubmittingReactionPress(false);
         }

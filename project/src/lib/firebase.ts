@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getDatabase, ref, onValue } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -8,47 +9,41 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
 };
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const rtdb = getDatabase(app);
 
-// ─── Server Clock Sync ───────────────────────────────────────────
-// Estimates the offset between this device's clock and the Firestore
-// server clock. Used to keep reaction-game green-light timing fair
-// across devices with different local clocks.
+// ─── Server Clock Sync (RTDB V2 WITH DEEP LOGGING) ──────────────
 let _serverOffset = 0;
 let _offsetReady = false;
 
 export async function initServerTimeOffset(): Promise<void> {
-  try {
-    const tempId = `_sync_${Math.random().toString(36).slice(2, 10)}`;
-    const tempRef = doc(db, '_timeSync', tempId);
-    const beforeMs = Date.now();
-    await setDoc(tempRef, { t: serverTimestamp() });
-    const snap = await getDoc(tempRef);
-    const afterMs = Date.now();
-    const serverMs: number = (snap.data()?.t as { toMillis(): number })?.toMillis?.() ?? afterMs;
-    // Server timestamp was set approximately at the midpoint of the round-trip
-    _serverOffset = serverMs - Math.round((beforeMs + afterMs) / 2);
-    _offsetReady = true;
-    // Clean up the temp doc (fire and forget)
-    deleteDoc(tempRef).catch(() => { });
-  } catch (e) {
-    console.warn('[serverSync] Failed to estimate offset, using 0:', e);
-    _serverOffset = 0;
-    _offsetReady = true;
-  }
+  if (_offsetReady) return;
+
+  console.log('[SYNC] initServerTimeOffset initializing. RTDB URL:', firebaseConfig.databaseURL);
+  const offsetRef = ref(rtdb, '.info/serverTimeOffset');
+  onValue(offsetRef, (snap) => {
+    const offset = snap.val();
+    if (typeof offset === 'number') {
+      _serverOffset = offset;
+      _offsetReady = true;
+      console.log(`[SYNC] offset updated -> ${offset}ms. Current local time: ${Date.now()}. Adjusted server time: ${serverNow()}`);
+    } else {
+      console.warn('[SYNC] offset is not a number:', offset);
+    }
+  });
 }
 
-/** Returns the current time aligned to the Firestore server clock. */
+/** Returns local time adjusted by the Firebase server offset. */
 export function serverNow(): number {
   return Date.now() + _serverOffset;
 }
 
-/** Whether the offset has been estimated at least once. */
 export function isServerTimeReady(): boolean {
   return _offsetReady;
 }
