@@ -143,6 +143,30 @@ export const CAN_CUP_CARDS: CardBase[] = [
     requiresTarget: true,
     color: 'emerald',
   },
+  {
+    id: 'cc-spill',
+    name: 'Vaska För I Helvete!',
+    description: 'Bort med alla vattensklunkar och blockeringar från målet! De får även 1 straffklunk.',
+    manaCost: 2,
+    sipCost: 2,
+    rarity: CardRarity.RARE, // Can be Epic depending on balance
+    type: 'targeted',
+    effect: { type: 'canCupRemoveDefense', value: 1 }, // value 1 represents the penalty sip
+    requiresTarget: true,
+    color: 'red',
+  },
+  {
+    id: 'cc-evaporation',
+    name: 'Ökentorka',
+    description: 'Alla spelares vattensklunkar förångas direkt. Ingen är säker.',
+    manaCost: 3,
+    sipCost: 3,
+    rarity: CardRarity.RARE,
+    type: 'aoe',
+    effect: { type: 'canCupRemoveDefense', value: 0 },
+    requiresTarget: false,
+    color: 'orange',
+  },
 
   // ─── EPIC ─────────────────────────────────────────────────────────────────
   {
@@ -193,6 +217,54 @@ export const CAN_CUP_CARDS: CardBase[] = [
     requiresTarget: true,
     color: 'rose',
   },
+  {
+    id: 'cc-tax-the-sober',
+    name: 'Skatt På Nykterhet',
+    description: 'Den med minst tomma burkar får ta 5 klunkar. (Vid lika lottas det mellan dem)',
+    manaCost: 4,
+    sipCost: 4,
+    rarity: CardRarity.EPIC,
+    type: 'auto-targeted', // Custom engine logic or UI
+    effect: { type: 'canCupTaxSober', value: 5 },
+    requiresTarget: false, // Automatically picks the target logic wise
+    color: 'fuchsia',
+  },
+  {
+    id: 'cc-flamingo',
+    name: 'Flamingon',
+    description: 'Alla ställer sig på ett ben. Den som spelade kortet är domare. Första som tappar balansen tar 5 klunkar.',
+    manaCost: 3,
+    sipCost: 3,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: { type: 'null', value: 0 },
+      loserEffect: { type: 'canCupSip', value: 5 },
+    },
+    requiresTarget: false, // Everyone but caster
+    isChallenge: true,
+    color: 'purple',
+  },
+  {
+    id: 'cc-tongue-twister',
+    name: 'Tungvrickaren',
+    description: 'Välj ett offer. De måste läsa en sjukt svår tungvrickare felfritt. Stakar de sig tar de 3 klunkar.',
+    manaCost: 2,
+    sipCost: 2,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: { type: 'null', value: 0 },
+      loserEffect: { type: 'canCupSip', value: 3 },
+    },
+    requiresTarget: true,
+    isChallenge: true,
+    color: 'purple',
+  },
 
   // ─── LEGENDARY ────────────────────────────────────────────────────────────
   {
@@ -214,5 +286,19 @@ export const CAN_CUP_CARDS: CardBase[] = [
     isLegendary: true,
     color: 'amber',
     flavorText: 'Guld är guld. Snabbast hand överlever.',
+  },
+  {
+    id: 'cc-give-empty-can',
+    name: 'Panta Min Burk!',
+    description: 'Ge bort en av dina tomma burkar till en stackare. *Varning: Mycket trasig mekanik, förvänta dig bråk.*',
+    manaCost: 5,
+    sipCost: 5,
+    rarity: CardRarity.LEGENDARY,
+    type: 'targeted',
+    effect: { type: 'canCupGiveEmptyCan', value: 1 },
+    requiresTarget: true,
+    isLegendary: true,
+    color: 'amber',
+    flavorText: 'Pantamera!',
   },
 ];

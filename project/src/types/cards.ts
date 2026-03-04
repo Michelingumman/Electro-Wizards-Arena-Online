@@ -75,6 +75,9 @@ export type EffectType =
   'canCupSwap' |
   'canCupReflect' |
   'canCupVampire' |
+  'canCupRemoveDefense' |
+  'canCupGiveEmptyCan' |
+  'canCupTaxSober' |
   'null'; // For effects that don't do anything
 
 export interface Challenge {
@@ -89,7 +92,7 @@ export interface CardEffect {
   challenge?: Challenge;
   winnerEffect?: CardEffect;
   loserEffect?: CardEffect;
-  challengeEffects?: any; // Added to fix lint
+  challengeEffects?: unknown; // Added to fix lint
 }
 
 export interface CardBase {

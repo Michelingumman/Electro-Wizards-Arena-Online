@@ -145,3 +145,30 @@ export const setSipsLeft = (player: Player, nextSipsLeft: number, sipsPerCan?: n
   state.sipsLeft = Math.min(normalizedSipsPerCan, Math.max(0, Math.round(nextSipsLeft)));
   return state;
 };
+
+export const canCupRemoveDefense = (player: Player, sipsPerCan?: number): CanCupState => {
+  const state = ensureCanCupState(player, sipsPerCan);
+  state.waterSips = 0;
+  state.deflectCharges = 0;
+  return state;
+};
+
+export const canCupGiveEmptyCan = (source: Player, target: Player, sipsPerCan?: number): void => {
+  const sourceState = ensureCanCupState(source, sipsPerCan);
+  const targetState = ensureCanCupState(target, sipsPerCan);
+
+  if (sourceState.emptyCans > 0) {
+    sourceState.emptyCans -= 1;
+    targetState.emptyCans += 1;
+  }
+};
+
+export const getPlayersWithFewestEmptyCans = (players: Player[], sipsPerCan?: number): Player[] => {
+  if (players.length === 0) return [];
+
+  // Ensure all have state
+  players.forEach(p => ensureCanCupState(p, sipsPerCan));
+
+  const minCans = Math.min(...players.map(p => p.canCup!.emptyCans));
+  return players.filter(p => p.canCup!.emptyCans === minCans);
+};
