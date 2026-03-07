@@ -6,6 +6,7 @@ import { Users, Swords, X } from 'lucide-react';
 interface ChallengeParticipantsModalProps {
     card: Card;
     players: Player[];
+    currentPlayerId: string;
     onConfirm: (duelistOneId: string, duelistTwoId: string) => Promise<void>;
     onCancel: () => void;
 }
@@ -13,10 +14,14 @@ interface ChallengeParticipantsModalProps {
 export function ChallengeParticipantsModal({
     card,
     players,
+    currentPlayerId,
     onConfirm,
     onCancel,
 }: ChallengeParticipantsModalProps) {
-    const [duelistOneId, setDuelistOneId] = useState('');
+    const isSingleTargetChallenge = card.name === 'Tungvrickaren';
+
+    // For single target challenges, default Duelist 1 to the current turn player
+    const [duelistOneId, setDuelistOneId] = useState(() => isSingleTargetChallenge ? currentPlayerId : '');
     const [duelistTwoId, setDuelistTwoId] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -83,27 +88,33 @@ export function ChallengeParticipantsModal({
 
                     <div className="space-y-3 px-4 py-4">
                         <p className="text-xs text-gray-300">
-                            Choose both duelists before publishing this challenge to the arena.
+                            {isSingleTargetChallenge
+                                ? 'Choose a target for this challenge.'
+                                : 'Choose both duelists before publishing this challenge to the arena.'}
                         </p>
 
-                        <label className="block">
-                            <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Duelist 1</span>
-                            <select
-                                value={duelistOneId}
-                                onChange={(event) => setDuelistOneId(event.target.value)}
-                                className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
-                            >
-                                <option value="">Select player...</option>
-                                {players.map((player) => (
-                                    <option key={player.id} value={player.id}>
-                                        {player.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        {!isSingleTargetChallenge && (
+                            <label className="block">
+                                <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Duelist 1</span>
+                                <select
+                                    value={duelistOneId}
+                                    onChange={(event) => setDuelistOneId(event.target.value)}
+                                    className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                                >
+                                    <option value="">Select player...</option>
+                                    {players.map((player) => (
+                                        <option key={player.id} value={player.id}>
+                                            {player.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
 
                         <label className="block">
-                            <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Duelist 2</span>
+                            <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">
+                                {isSingleTargetChallenge ? 'Välj offer (Target)' : 'Duelist 2'}
+                            </span>
                             <select
                                 value={duelistTwoId}
                                 onChange={(event) => setDuelistTwoId(event.target.value)}

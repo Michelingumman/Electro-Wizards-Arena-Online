@@ -268,7 +268,7 @@ export function ModernCardHand({
 
                                             <div className="px-2.5 py-2 bg-black/35 flex-1 flex flex-col justify-between min-h-0">
                                                 <p className={clsx(
-                                                    'text-[10px] leading-snug text-gray-300',
+                                                    'text-[10px] leading-snug text-gray-300 whitespace-pre-line',
                                                     isActive
                                                         ? 'line-clamp-none overflow-y-auto pr-1'
                                                         : 'line-clamp-3 min-h-[40px]'

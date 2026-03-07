@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/gameConfig';
 import clsx from 'clsx';
 import { GameClassicUI } from '../components/game/classic/GameClassicUI';
 import { GameModernUI } from '../components/game/modern/GameModernUI';
-import { isCanCupReactionChallengeCard } from '../utils/canCupChallengeHelpers';
+import { isCanCupNoSetupChallengeCard, isCanCupReactionChallengeCard } from '../utils/canCupChallengeHelpers';
 import { isChallengeCard } from '../utils/challengeCard';
 
 export function Game() {
@@ -25,6 +25,7 @@ export function Game() {
     startChallengeCard,
     setReactionChallengeReady,
     pressReactionChallenge,
+    dismissReactionChallengeResults,
     drinkMana,
     resolveChallengeCard,
     resolveCanCupSips,
@@ -214,14 +215,12 @@ export function Game() {
     const isChallenge = isChallengeCard(card);
 
     if (isChallenge) {
-      const isCircleChallengeWithoutParticipantSetup =
+      const isChallengeWithoutParticipantSetup =
         gameMode === 'can-cup' &&
-        (card.id === 'cc-category-random' ||
-          /go around the circle/i.test(card.description) ||
-          /category/i.test(card.name));
+        isCanCupNoSetupChallengeCard(card);
 
       if (usesArenaLayout) {
-        if (isCircleChallengeWithoutParticipantSetup) {
+        if (isChallengeWithoutParticipantSetup) {
           try {
             await startChallengeCard(currentPlayer.id, card);
             setSelectedCard(null);
@@ -342,6 +341,15 @@ export function Game() {
     }
   };
 
+  const handleDismissReactionChallengeResults = async () => {
+    if (!currentPlayer) return;
+    try {
+      await dismissReactionChallengeResults(currentPlayer.id);
+    } catch (error) {
+      console.error('Error dismissing reaction challenge results:', error);
+    }
+  };
+
   const handleDrink = async () => {
     if (!currentPlayer) return;
     try {
@@ -427,6 +435,7 @@ export function Game() {
     onResolvePendingCanCupSips: handleResolvePendingCanCupSips,
     onSetReactionChallengeReady: handleSetReactionChallengeReady,
     onPressReactionChallenge: handlePressReactionChallenge,
+    onDismissReactionChallengeResults: handleDismissReactionChallengeResults,
     challengeSetupCard,
     onChallengeSetupConfirm: handleChallengeSetupConfirm,
     onChallengeSetupCancel: handleChallengeSetupCancel,

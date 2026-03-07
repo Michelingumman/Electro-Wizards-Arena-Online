@@ -97,7 +97,7 @@ export function ModernPlayerAvatar({
                     className={clsx(
                         compact ? 'text-[12px]' : 'text-[14px]',
                         'font-semibold tracking-[0.02em] max-w-[130px] truncate text-center leading-tight drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]',
-                        isCurrentTurn ? 'text-indigo-100' : 'text-gray-200'
+                        isCurrentTurn ? 'text-indigo-100 text-[15px] drop-shadow-[0_0_12px_rgba(224,231,255,0.85)] scale-105 transition-transform' : 'text-gray-200'
                     )}
                 >
                     {player.name}
@@ -106,25 +106,28 @@ export function ModernPlayerAvatar({
                     <div className="relative">
                         {isCurrentTurn && (
                             <motion.div
-                                className="absolute -inset-3 rounded-[20px] bg-indigo-400/30 blur-xl"
-                                animate={{ opacity: [0.35, 0.8, 0.35], scale: [1, 1.08, 1] }}
-                                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                                className={clsx(
+                                    "absolute -inset-6 rounded-[22px] blur-2xl z-0",
+                                    isYou ? "bg-cyan-400/50" : "bg-indigo-400/50"
+                                )}
+                                animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.25, 1] }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                             />
                         )}
 
                         <motion.div
                             className={clsx(
-                                'relative rounded-[16px] border overflow-hidden bg-slate-950/45',
+                                'relative rounded-[16px] overflow-hidden bg-slate-950/45 z-10',
                                 isYou
-                                    ? 'border-cyan-300/80 shadow-[0_0_18px_rgba(34,211,238,0.35)]'
+                                    ? (isCurrentTurn
+                                        ? 'border-2 border-cyan-300 shadow-[0_0_50px_rgba(34,211,238,0.95)] ring-4 ring-cyan-400/80'
+                                        : 'border border-cyan-300/80 shadow-[0_0_18px_rgba(34,211,238,0.35)]')
                                     : isCurrentTurn
-                                        ? 'border-indigo-300/80 shadow-[0_0_18px_rgba(129,140,248,0.38)]'
-                                        : 'border-slate-400/70',
+                                        ? 'border-2 border-indigo-400 shadow-[0_0_50px_rgba(129,140,248,0.95)] ring-4 ring-indigo-500/80'
+                                        : 'border border-slate-400/70',
                                 isTargetable && 'ring-2 ring-rose-400/70 ring-offset-2 ring-offset-[#120d1f]'
                             )}
                             style={{ width: mugWidth, height: mugHeight }}
-                            animate={isCurrentTurn ? { scale: [1, 1.03, 1] } : undefined}
-                            transition={isCurrentTurn ? { repeat: Infinity, duration: 1.4 } : undefined}
                         >
                             <motion.div
                                 className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-amber-700/95 via-amber-500/92 to-amber-300/85"
@@ -213,27 +216,41 @@ export function ModernPlayerAvatar({
                 className={clsx(
                     compact ? 'text-[12px]' : 'text-[14px]',
                     'font-semibold tracking-[0.02em] max-w-[116px] truncate text-center leading-tight drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]',
-                    isCurrentTurn ? 'text-purple-200' : 'text-gray-300'
+                    isCurrentTurn ? 'text-purple-100 text-[15px] drop-shadow-[0_0_10px_rgba(216,180,254,0.95)] scale-105 transition-transform' : 'text-gray-300'
                 )}
             >
                 {player.name}
             </span>
             {isCurrentTurn && (
-                <span className="text-[9px] uppercase tracking-[0.18em] text-purple-200/90">
-                    Turn
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-200 drop-shadow-[0_0_8px_rgba(168,85,247,0.9)] animate-pulse">
+                    Current Turn
                 </span>
             )}
 
-            <div className="flex items-center gap-2">
-                <div
+            <div className="flex items-center gap-2 relative">
+                {/* Glowing Background Halo outside the hidden context */}
+                {isCurrentTurn && (
+                    <motion.div
+                        className={clsx(
+                            "absolute -inset-6 rounded-full blur-2xl z-0",
+                            isYou ? "bg-cyan-400/50" : "bg-purple-500/50"
+                        )}
+                        animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.25, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                )}
+
+                <motion.div
                     className={clsx(
-                        'relative rounded-full overflow-hidden border',
+                        'relative rounded-full overflow-hidden z-10',
                         avatarSizeClass,
                         isYou
-                            ? 'border-cyan-300/70 shadow-[0_0_16px_rgba(34,211,238,0.35)]'
+                            ? (isCurrentTurn
+                                ? 'border-2 border-cyan-300 shadow-[0_0_50px_rgba(34,211,238,0.95)] ring-4 ring-cyan-400/80'
+                                : 'border border-cyan-300/70 shadow-[0_0_16px_rgba(34,211,238,0.35)]')
                             : isCurrentTurn
-                                ? 'border-purple-300/70 shadow-[0_0_16px_rgba(168,85,247,0.35)]'
-                                : 'border-gray-600/70',
+                                ? 'border-2 border-purple-400 shadow-[0_0_50px_rgba(168,85,247,0.95)] ring-4 ring-purple-500/80'
+                                : 'border border-gray-600/70',
                         isTargetable && 'ring-2 ring-red-400/70 ring-offset-2 ring-offset-gray-950'
                     )}
                 >
@@ -246,9 +263,8 @@ export function ModernPlayerAvatar({
 
                     {isCurrentTurn && (
                         <>
-                            <div className="absolute -inset-2 rounded-full bg-purple-500/30 blur-md animate-pulse" />
-                            <div className="absolute inset-0 rounded-full border-2 border-purple-300/80 shadow-[0_0_18px_rgba(168,85,247,0.65)]" />
-                            <div className="absolute inset-0 rounded-full border-2 border-purple-400/70 animate-ping opacity-30" />
+                            <div className="absolute inset-0 rounded-full border-2 border-purple-300/90 shadow-[0_0_35px_rgba(168,85,247,0.95)]" />
+                            <div className="absolute inset-0 rounded-full border-2 border-purple-400/80 animate-ping opacity-50" />
                         </>
                     )}
 
@@ -264,7 +280,7 @@ export function ModernPlayerAvatar({
                             {drunkTimerText}
                         </span>
                     </div>
-                </div>
+                </motion.div>
 
                 <div className="relative h-8 min-w-[36px] shrink-0 rounded-lg border border-blue-300/45 bg-blue-950/65 px-1.5 shadow-[0_0_8px_rgba(56,189,248,0.22)]">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -292,9 +308,11 @@ export function ModernPlayerAvatar({
                 <span className="text-gray-300">{Math.round(intakePercent)}%</span>
             </div>
 
-            {isTargetable && (
-                <span className="text-[8px] text-red-400 font-semibold uppercase animate-pulse">Target</span>
-            )}
-        </motion.div>
+            {
+                isTargetable && (
+                    <span className="text-[8px] text-red-400 font-semibold uppercase animate-pulse">Target</span>
+                )
+            }
+        </motion.div >
     );
 }

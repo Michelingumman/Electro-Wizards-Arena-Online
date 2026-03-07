@@ -19,6 +19,19 @@ export const CAN_CUP_CATEGORIES = [
   'Saker man hittar i en bar',
 ];
 
+export const CAN_CUP_TONGUE_TWISTERS = [
+  'Sex laxar i en laxask.',
+  'Sju sjösjuka sjömän sköttes av sju sköna sjuksköterskor.',
+  'Flyg fula fluga, flyg! Och den fula flugan flög.',
+  'Packa pappas kappsäck.',
+  'Kvist friskt, raska kvastar.',
+  'Knut satt vid en knut och knöt en knut, när Knut hade knutit knuten var knuten knuten.',
+  'Droskkusken Max kuskar med raska droskhästar.',
+  'En barfotad arab badar i en bäck.',
+  'Sex snabba snigel-snappande snokar snodde snopet snoken snabbt.',
+  'Sjuttiosju sköna sjuksköterskor sköter sju sjösjuka sjömän på skeppet Shanghai.',
+];
+
 export const CAN_CUP_CARDS: CardBase[] = [
   // ─── COMMON ──────────────────────────────────────────────────────────────
   {
@@ -36,12 +49,12 @@ export const CAN_CUP_CARDS: CardBase[] = [
   {
     id: 'cc-social',
     name: 'Skål!',
-    description: 'Alla tar 1 klunk.',
-    manaCost: 1,
-    sipCost: 1,
+    description: 'Alla ANDRA tar 2 klunkar.',
+    manaCost: 2,
+    sipCost: 2,
     rarity: CardRarity.COMMON,
     type: 'aoe',
-    effect: { type: 'canCupAoESip', value: 1 },
+    effect: { type: 'canCupAoESip', value: 2 },
     requiresTarget: false,
     color: 'cyan',
   },
@@ -59,7 +72,7 @@ export const CAN_CUP_CARDS: CardBase[] = [
   },
   {
     id: 'cc-sip-deflection',
-    name: 'Avvisning',
+    name: 'Block',
     description: 'Blockera nästa tvingade klunk.',
     manaCost: 0,
     sipCost: 0,
@@ -207,7 +220,7 @@ export const CAN_CUP_CARDS: CardBase[] = [
   },
   {
     id: 'cc-the-chug',
-    name: 'BOTTEN UPP',
+    name: 'Svep!',
     description: 'Motståndaren måste supa klart sin burk!',
     manaCost: 3,
     sipCost: 3,
@@ -244,6 +257,24 @@ export const CAN_CUP_CARDS: CardBase[] = [
       loserEffect: { type: 'canCupSip', value: 5 },
     },
     requiresTarget: false, // Everyone but caster
+    isChallenge: true,
+    color: 'purple',
+  },
+  {
+    id: 'cc-clash-royale-mega-draft',
+    name: 'Clash Royale Mega Draft',
+    description: 'Välj två duellanter. De öppnar Clash Royale och kör en Classic Mega Draft-duell. När matchen är klar väljer ni vinnare här. Förloraren tar 6 klunkar.',
+    manaCost: 3,
+    sipCost: 3,
+    rarity: CardRarity.EPIC,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: { type: 'null', value: 0 },
+      loserEffect: { type: 'canCupSip', value: 6 },
+    },
+    requiresTarget: true,
     isChallenge: true,
     color: 'purple',
   },
@@ -288,8 +319,28 @@ export const CAN_CUP_CARDS: CardBase[] = [
     flavorText: 'Guld är guld. Snabbast hand överlever.',
   },
   {
+    id: 'cc-bottom-race-random',
+    name: 'BOTTENRACE',
+    description: 'Du får en slumpad motståndare. Ni racear till botten av burken ni har just nu. Bordet avgör vinnaren. Vinnaren får 10 shields.',
+    manaCost: 5,
+    sipCost: 5,
+    rarity: CardRarity.LEGENDARY,
+    type: 'challenge',
+    effect: {
+      type: 'challenge',
+      value: 0,
+      winnerEffect: { type: 'canCupDeflect', value: 10 },
+      loserEffect: { type: 'null', value: 0 },
+    },
+    requiresTarget: false,
+    isChallenge: true,
+    isLegendary: true,
+    color: 'amber',
+    flavorText: 'Hoppas din burk inte redan är tom...',
+  },
+  {
     id: 'cc-give-empty-can',
-    name: 'Panta Min Burk!',
+    name: 'PANTA MIN BURK!',
     description: 'Ge bort en av dina tomma burkar till en stackare. *Varning: Mycket trasig mekanik, förvänta dig bråk.*',
     manaCost: 5,
     sipCost: 5,

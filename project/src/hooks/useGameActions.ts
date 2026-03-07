@@ -20,7 +20,12 @@ import {
   swapSipsLeft,
   topUpSips,
 } from '../utils/canCupMechanics';
-import { isCanCupReactionChallengeCard } from '../utils/canCupChallengeHelpers';
+import {
+  isCanCupReactionChallengeCard,
+  isCanCupBottomRaceChallengeCard,
+  isCanCupNoSetupChallengeCard
+} from '../utils/canCupChallengeHelpers';
+import { CAN_CUP_CATEGORIES, CAN_CUP_TONGUE_TWISTERS } from '../config/cards/pools/canCup';
 
 export function useGameActions(partyId: string) {
   const effectManager = new EffectManager();
@@ -34,31 +39,34 @@ export function useGameActions(partyId: string) {
     const winner = players.find(p => (p.canCup?.emptyCans ?? 0) >= cansToWin);
     return winner?.id ?? null;
   };
-  const CAN_CUP_CATEGORY_POOL = [
-    'Beer brands',
-    'Countries',
-    'Car brands',
-    'Ski brands',
-    'Universities',
-    'Liquor brands',
-    'Football teams',
-    'Movie titles',
-    'Music artists',
-    'Cities',
-  ];
-  const isCanCupCircleChallenge = (card: Card): boolean =>
+  const isCanCupCategoryChallenge = (card: Card): boolean =>
     card.id === 'cc-category-random' ||
-    /go around the circle/i.test(card.description) ||
-    /category/i.test(card.name);
+    /^kategori\b/i.test(card.name) ||
+    /nämn saker inom/i.test(card.description);
   const getChallengeCardForPendingState = (card: Card, gameMode: GameMode): Card => {
-    if (!(gameMode === 'can-cup' && isCanCupCircleChallenge(card))) return card;
-    const category = CAN_CUP_CATEGORY_POOL[Math.floor(Math.random() * CAN_CUP_CATEGORY_POOL.length)];
-    const baseName = card.name.includes(':') ? card.name.split(':')[0].trim() : card.name;
-    return {
-      ...card,
-      name: `${baseName}: ${category.toUpperCase()}`,
-      description: `Category: ${category}. First to fail takes the sip penalty.`,
-    };
+    if (gameMode !== 'can-cup') return card;
+
+    // Tungvrickaren
+    if (card.name === 'Tungvrickaren' && !card.description.includes('felfritt: "')) {
+      const twister = CAN_CUP_TONGUE_TWISTERS[Math.floor(Math.random() * CAN_CUP_TONGUE_TWISTERS.length)];
+      return {
+        ...card,
+        description: `Läs denna felfritt: "${twister}"\nStakar du dig tar du 3 klunkar.`,
+      };
+    }
+
+    // Kategori
+    if (isCanCupCategoryChallenge(card) && !card.name.includes(':')) {
+      const category = CAN_CUP_CATEGORIES[Math.floor(Math.random() * CAN_CUP_CATEGORIES.length)];
+      const baseName = card.name.includes(':') ? card.name.split(':')[0].trim() : card.name;
+      return {
+        ...card,
+        name: `${baseName}: ${category}`,
+        description: `Nämn saker inom "${category}". Den som missar tar 3 klunkar.`,
+      };
+    }
+
+    return card;
   };
   const getNextTurnPlayerId = (players: Party['players'], currentPlayerId: string): string => {
     const currentPlayerIndex = players.findIndex((player) => player.id === currentPlayerId);
@@ -525,15 +533,32 @@ export function useGameActions(partyId: string) {
         const gameMode = getGameMode(party);
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         let nextPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
-        const requiresParticipantSetup = !(gameMode === 'can-cup' && isCanCupCircleChallenge(card));
+        const isRandomOpponentChallenge = gameMode === 'can-cup' && isCanCupBottomRaceChallengeCard(card);
+        const requiresParticipantSetup = !(
+          gameMode === 'can-cup' &&
+          isCanCupNoSetupChallengeCard(card)
+        );
         const pendingChallengeCard = getChallengeCardForPendingState(card, gameMode);
         const player = updatedPlayers.find((entry) => entry.id === playerId);
         if (!player) throw new Error('Player not found');
+
+        let resolvedDuelistOneId = duelistOneId;
+        let resolvedDuelistTwoId = duelistTwoId;
+        if (isRandomOpponentChallenge) {
+          const opponents = updatedPlayers.filter((entry) => entry.id !== playerId);
+          if (opponents.length === 0) {
+            throw new Error('No valid opponent found for this challenge');
+          }
+          const randomOpponent = opponents[Math.floor(Math.random() * opponents.length)];
+          resolvedDuelistOneId = playerId;
+          resolvedDuelistTwoId = randomOpponent.id;
+        }
+
         if (requiresParticipantSetup) {
-          if (!duelistOneId || !duelistTwoId) throw new Error('Two duelists are required');
-          if (duelistOneId === duelistTwoId) throw new Error('Duelists must be unique players');
-          const duelistOne = updatedPlayers.find((entry) => entry.id === duelistOneId);
-          const duelistTwo = updatedPlayers.find((entry) => entry.id === duelistTwoId);
+          if (!resolvedDuelistOneId || !resolvedDuelistTwoId) throw new Error('Two duelists are required');
+          if (resolvedDuelistOneId === resolvedDuelistTwoId) throw new Error('Duelists must be unique players');
+          const duelistOne = updatedPlayers.find((entry) => entry.id === resolvedDuelistOneId);
+          const duelistTwo = updatedPlayers.find((entry) => entry.id === resolvedDuelistTwoId);
           if (!duelistOne || !duelistTwo) throw new Error('Selected duelists not found');
         }
 
@@ -571,9 +596,10 @@ export function useGameActions(partyId: string) {
           card: sanitizeCardForFirestore(pendingChallengeCard),
           createdAt: Date.now(),
         };
-        if (requiresParticipantSetup && duelistOneId && duelistTwoId) {
-          pendingChallengePayload.duelistOneId = duelistOneId;
-          pendingChallengePayload.duelistTwoId = duelistTwoId;
+        const hasResolvedDuelists = Boolean(resolvedDuelistOneId && resolvedDuelistTwoId);
+        if (hasResolvedDuelists && resolvedDuelistOneId && resolvedDuelistTwoId) {
+          pendingChallengePayload.duelistOneId = resolvedDuelistOneId;
+          pendingChallengePayload.duelistTwoId = resolvedDuelistTwoId;
           if (gameMode === 'can-cup' && isCanCupReactionChallengeCard(pendingChallengeCard)) {
             pendingChallengePayload.reactionGame = {
               mode: 'reaction',
@@ -594,7 +620,9 @@ export function useGameActions(partyId: string) {
             beforeStats,
             updatedPlayers,
             playerId,
-            targetId: requiresParticipantSetup ? duelistOneId : undefined,
+            targetId: isRandomOpponentChallenge
+              ? resolvedDuelistTwoId
+              : (requiresParticipantSetup ? resolvedDuelistOneId : undefined),
             cardId: card.id,
             cardName: pendingChallengeCard.name,
             cardType: card.effect.type,
@@ -712,18 +740,13 @@ export function useGameActions(partyId: string) {
           throw new Error('Only duelists can press');
         }
 
-        // Initialize reactionTimes record if it doesn't exist
         const updatedReactionTimes = { ...(reactionState.reactionTimes || {}) };
-
-        // Prevent re-submission
         if (playerId in updatedReactionTimes) {
           return;
         }
 
-        // Record player's exact DOM reaction time
-        updatedReactionTimes[playerId] = reactionTimeMs;
+        updatedReactionTimes[playerId] = Math.max(0, Math.round(reactionTimeMs));
 
-        // If only 1 player has pressed, save their time and wait for the other.
         if (Object.keys(updatedReactionTimes).length < 2) {
           transaction.update(partyRef, {
             'pendingChallenge.reactionGame.reactionTimes': updatedReactionTimes
@@ -731,8 +754,6 @@ export function useGameActions(partyId: string) {
           return;
         }
 
-        // --- BOTH PLAYERS HAVE PRESSED! ---
-        // Find who has the lowest reaction time in milliseconds
         const entries = Object.entries(updatedReactionTimes);
         let winnerId = entries[0][0];
         let loserId = entries[1][0];
@@ -740,6 +761,69 @@ export function useGameActions(partyId: string) {
         if (entries[1][1] < entries[0][1]) {
           winnerId = entries[1][0];
           loserId = entries[0][0];
+        }
+
+        transaction.update(partyRef, {
+          pendingChallenge: {
+            ...pendingChallenge,
+            reactionGame: {
+              mode: 'reaction',
+              phase: 'resolved',
+              readyPlayerIds: Array.from(new Set([...(reactionState.readyPlayerIds ?? []), ...duelistIds])),
+              countdownStartedAt: reactionState.countdownStartedAt,
+              redAt: reactionState.redAt,
+              yellowAt: reactionState.yellowAt,
+              greenAt: reactionState.greenAt,
+              reactionTimes: updatedReactionTimes,
+              winnerId,
+              loserId,
+              resolvedAt: serverNow(),
+            },
+          },
+        });
+      });
+      return true;
+    } catch (error) {
+      console.error('Error resolving reaction challenge press:', error);
+      throw error;
+    }
+  }, [partyId]);
+
+  const dismissReactionChallengeResults = useCallback(async (playerId: string) => {
+    const partyRef = doc(db, 'parties', partyId);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        if (!partyDoc.exists()) throw new Error('Party not found');
+        const party = partyDoc.data() as Party;
+        if (getGameMode(party) !== 'can-cup') return;
+
+        const pendingChallenge = party.pendingChallenge;
+        if (!pendingChallenge || !isCanCupReactionChallengeCard(pendingChallenge.card)) {
+          throw new Error('No resolved reaction challenge to dismiss');
+        }
+        if (pendingChallenge.playerId !== playerId) {
+          throw new Error('Only the challenge owner can dismiss reaction results');
+        }
+        if (!pendingChallenge.duelistOneId || !pendingChallenge.duelistTwoId) {
+          throw new Error('Reaction challenge duelists are missing');
+        }
+
+        const reactionState = pendingChallenge.reactionGame;
+        if (!reactionState || reactionState.phase !== 'resolved') {
+          throw new Error('Reaction challenge results are not ready yet');
+        }
+
+        const winnerId = reactionState.winnerId;
+        const loserId = reactionState.loserId;
+        if (!winnerId || !loserId || winnerId === loserId) {
+          throw new Error('Reaction challenge winner/loser could not be determined');
+        }
+
+        const duelistIds = [pendingChallenge.duelistOneId, pendingChallenge.duelistTwoId];
+        if (!duelistIds.includes(winnerId) || !duelistIds.includes(loserId)) {
+          throw new Error('Resolved duelists are invalid');
         }
 
         const updatedPlayers = party.players.map((player) => ({
@@ -756,7 +840,6 @@ export function useGameActions(partyId: string) {
           throw new Error('Challenge owner not found');
         }
 
-        // Swap out the card
         const usedCardIndex = challengeOwner.cards.findIndex((entry) => entry.id === pendingChallenge.card.id);
         if (usedCardIndex !== -1) {
           challengeOwner.cards[usedCardIndex] = drawNewCard('can-cup');
@@ -802,7 +885,7 @@ export function useGameActions(partyId: string) {
       });
       return true;
     } catch (error) {
-      console.error('Error resolving reaction challenge press:', error);
+      console.error('Error dismissing reaction challenge results:', error);
       throw error;
     }
   }, [partyId]);
@@ -1870,6 +1953,7 @@ export function useGameActions(partyId: string) {
     startChallengeCard,
     setReactionChallengeReady,
     pressReactionChallenge,
+    dismissReactionChallengeResults,
     resolveChallengeCard,
     resolveCanCupSips,
     drinkMana,

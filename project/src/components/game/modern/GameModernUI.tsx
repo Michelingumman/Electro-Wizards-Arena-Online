@@ -36,6 +36,7 @@ interface GameModernUIProps {
     onResolvePendingCanCupSips?: () => Promise<void>;
     onSetReactionChallengeReady?: () => Promise<void>;
     onPressReactionChallenge?: (reactionTimeMs: number) => Promise<void>;
+    onDismissReactionChallengeResults?: () => Promise<void>;
     challengeSetupCard: Card | null;
     onChallengeSetupConfirm: (duelistOneId: string, duelistTwoId: string) => Promise<void>;
     onChallengeSetupCancel: () => void;
@@ -63,6 +64,7 @@ export function GameModernUI({
     onResolvePendingCanCupSips,
     onSetReactionChallengeReady,
     onPressReactionChallenge,
+    onDismissReactionChallengeResults,
     challengeSetupCard,
     onChallengeSetupConfirm,
     onChallengeSetupCancel,
@@ -293,6 +295,7 @@ export function GameModernUI({
                                 onChallengeCardClick={onOpenPendingChallenge}
                                 onReactionReady={onSetReactionChallengeReady}
                                 onReactionPress={onPressReactionChallenge}
+                                onReactionResultsDismiss={onDismissReactionChallengeResults}
                                 gameMode={gameMode}
                                 topInset={arenaTopInset}
                                 bottomInset={arenaBottomInset}
@@ -358,6 +361,7 @@ export function GameModernUI({
                 <ChallengeParticipantsModal
                     card={challengeSetupCard}
                     players={party.players}
+                    currentPlayerId={currentPlayer.id}
                     onConfirm={onChallengeSetupConfirm}
                     onCancel={onChallengeSetupCancel}
                 />

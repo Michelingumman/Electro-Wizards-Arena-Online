@@ -231,6 +231,17 @@ export function drawNewCard(gameMode: GameMode = 'classic'): CardBase {
     };
   }
 
+  // Assign random tongue twister for the Tungvrickaren card on draw
+  if (card.id === 'cc-tongue-twister') {
+    const { CAN_CUP_TONGUE_TWISTERS } = require('../config/cards/pools/canCup');
+    const twister = CAN_CUP_TONGUE_TWISTERS[Math.floor(Math.random() * CAN_CUP_TONGUE_TWISTERS.length)];
+    return {
+      ...card,
+      description: `"${twister}"`,
+      id: generateCardId()
+    };
+  }
+
   return {
     ...card,
     id: generateCardId()

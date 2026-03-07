@@ -219,64 +219,125 @@ export function ChallengeModal({
               </div>
             )}
 
-            {/* Winner Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-purple-200">Winner</label>
-              <select
-                value={winnerId}
-                onChange={(e) => setWinnerId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
-              >
-                <option value="">Select winner...</option>
-                {eligiblePlayers.map(player => (
-                  <option key={player.id} value={player.id}>
-                    {player.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Loser Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-purple-200">Loser</label>
-              <select
-                value={loserId}
-                onChange={(e) => setLoserId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
-              >
-                <option value="">Select loser...</option>
-                {eligiblePlayers.map(player => (
-                  <option
-                    key={player.id}
-                    value={player.id}
-                    disabled={player.id === winnerId}
+            {/* Winner/Loser Selection */}
+            {card.name === 'Tungvrickaren' && eligiblePlayers.length >= 2 ? (
+              <div className="space-y-3 bg-black/20 rounded-lg p-4 border border-purple-500/20">
+                <p className="text-center text-sm font-medium text-purple-200">
+                  Lyckades {eligiblePlayers[1]?.name} läsa tungvrickaren felfritt?
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setWinnerId(eligiblePlayers[1].id);
+                      setLoserId(eligiblePlayers[0].id);
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${winnerId === eligiblePlayers[1].id
+                      ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-[0_0_15px_rgba(52,211,153,0.4)]'
+                      : 'bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50'
+                      }`}
                   >
-                    {player.name} {player.id === winnerId ? '(Winner)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Effects Preview */}
-            {(
-              <div className="bg-black/20 rounded-lg p-3 space-y-2">
-                <h4 className="text-sm font-medium text-purple-200">Challenge Effects:</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
-                    <p className="text-green-400">
-                      Winner {winnerId ? `(${eligiblePlayers.find(p => p.id === winnerId)?.name})` : ''}: {effects.winEffect}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Wine className="w-4 h-4 text-red-400" />
-                    <p className="text-red-400">
-                      Loser {loserId ? `(${eligiblePlayers.find(p => p.id === loserId)?.name})` : ''}: {effects.loseEffect}
-                    </p>
-                  </div>
+                    <span className="font-bold text-sm">Godkänd (Pass)</span>
+                    <span className="text-[10px] opacity-80 mt-1">Ingen dricker</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setWinnerId(eligiblePlayers[0].id);
+                      setLoserId(eligiblePlayers[1].id);
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${winnerId === eligiblePlayers[0].id
+                      ? 'bg-rose-600/90 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                      : 'bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50'
+                      }`}
+                  >
+                    <span className="font-bold text-sm">Underkänd (Fail)</span>
+                    <span className="text-[10px] opacity-80 mt-1">{eligiblePlayers[1]?.name} dricker 3</span>
+                  </button>
                 </div>
               </div>
+            ) : card.name === 'Flamingon' ? (
+              <div className="space-y-3 bg-black/20 rounded-lg p-4 border border-fuchsia-500/20">
+                <p className="text-center text-sm font-medium text-fuchsia-200">
+                  Vem tappade balansen först? (Who lost first?)
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {eligiblePlayers.map(player => (
+                    <button
+                      key={player.id}
+                      onClick={() => {
+                        setLoserId(player.id);
+                        // Just set winner to whoever isn't the loser to satisfy canConfirm.
+                        // Flamingo has null winner effect anyway.
+                        const anyWinner = eligiblePlayers.find(p => p.id !== player.id);
+                        if (anyWinner) setWinnerId(anyWinner.id);
+                      }}
+                      className={`py-2 px-3 rounded-lg border text-sm transition-all truncate ${loserId === player.id
+                        ? 'bg-fuchsia-600/90 border-fuchsia-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.4)]'
+                        : 'bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50'
+                        }`}
+                    >
+                      {player.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-purple-200">Winner</label>
+                  <select
+                    value={winnerId}
+                    onChange={(e) => setWinnerId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
+                  >
+                    <option value="">Select winner...</option>
+                    {eligiblePlayers.map(player => (
+                      <option key={player.id} value={player.id}>
+                        {player.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-purple-200">Loser</label>
+                  <select
+                    value={loserId}
+                    onChange={(e) => setLoserId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:ring-2 focus:ring-purple-500/20"
+                  >
+                    <option value="">Select loser...</option>
+                    {eligiblePlayers.map(player => (
+                      <option
+                        key={player.id}
+                        value={player.id}
+                        disabled={player.id === winnerId}
+                      >
+                        {player.name} {player.id === winnerId ? '(Winner)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
+
+            {/* Effects Preview */}
+            <div className="bg-black/20 rounded-lg p-3 space-y-2">
+              <h4 className="text-sm font-medium text-purple-200">Challenge Effects:</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  <p className="text-green-400">
+                    Winner {winnerId ? `(${eligiblePlayers.find(p => p.id === winnerId)?.name})` : ''}: {effects.winEffect}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Wine className="w-4 h-4 text-red-400" />
+                  <p className="text-red-400">
+                    Loser {loserId ? `(${eligiblePlayers.find(p => p.id === loserId)?.name})` : ''}: {effects.loseEffect}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Footer */}

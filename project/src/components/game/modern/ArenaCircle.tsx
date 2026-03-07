@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Card, Party, Player, GameMode, isAfterskiMode } from '../../../types/game';
 import { ModernPlayerAvatar } from './ModernPlayerAvatar';
 import { animate, AnimatePresence, motion, useMotionValue } from 'framer-motion';
-import { Sword } from 'lucide-react';
+import { Sword, X } from 'lucide-react';
 import { GAME_CONFIG } from '../../../config/gameConfig';
-import { isCanCupReactionChallengeCard as isCanCupReactionChallengeCardUtil } from '../../../utils/canCupChallengeHelpers';
+import {
+    isCanCupBottomRaceChallengeCard,
+    isCanCupCircleChallengeCard,
+    isCanCupReactionChallengeCard as isCanCupReactionChallengeCardUtil,
+} from '../../../utils/canCupChallengeHelpers';
 import { isChallengeCard } from '../../../utils/challengeCard';
 import { serverNow } from '../../../lib/firebase';
 
@@ -25,6 +29,7 @@ interface ArenaCircleProps {
     onChallengeCardClick?: () => void;
     onReactionReady?: () => Promise<void>;
     onReactionPress?: (reactionTimeMs: number) => Promise<void>;
+    onReactionResultsDismiss?: () => Promise<void>;
     gameMode?: GameMode;
     topInset?: number;
     bottomInset?: number;
@@ -169,6 +174,7 @@ export function ArenaCircle({
     onChallengeCardClick,
     onReactionReady,
     onReactionPress,
+    onReactionResultsDismiss,
     gameMode = 'afterski',
     topInset = 0,
     bottomInset = 0,
@@ -417,6 +423,7 @@ export function ArenaCircle({
     const [reactionNow, setReactionNow] = useState(serverNow());
     const [submittingReactionReady, setSubmittingReactionReady] = useState(false);
     const [submittingReactionPress, setSubmittingReactionPress] = useState(false);
+    const [submittingReactionDismiss, setSubmittingReactionDismiss] = useState(false);
     const projX = useMotionValue(0);
     const projY = useMotionValue(0);
     const projectileTone = isCanCup
@@ -481,46 +488,98 @@ export function ArenaCircle({
     const duelistTwoName = pendingChallenge?.duelistTwoId
         ? players.find((player) => player.id === pendingChallenge.duelistTwoId)?.name ?? 'Duelist 2'
         : 'Duelist 2';
+    const hasExplicitDuelists = Boolean(pendingChallenge?.duelistOneId && pendingChallenge?.duelistTwoId);
+    const isCircleChallenge = isCanCupCircleChallengeCard(pendingChallenge?.card);
+    const isFlamingoChallenge = Boolean(pendingChallenge && /flamingon/i.test(pendingChallenge.card.name));
+    const isCategoryChallenge = Boolean(pendingChallenge && /^kategori\b/i.test(pendingChallenge.card.name));
+    const isBottomRaceChallenge = isCanCupBottomRaceChallengeCard(pendingChallenge?.card);
+    const categoryFromName = pendingChallenge?.card.name.match(/kategori\s*:\s*(.+)$/i)?.[1]?.trim() ?? null;
+    const categoryFromDescription = pendingChallenge?.card.description.match(/"([^"]+)"/)?.[1]?.trim() ?? null;
+    const categoryLabel = categoryFromName || categoryFromDescription;
+    const challengeParticipantsLabel = (() => {
+        if (!pendingChallenge) return '';
+        if (pendingChallenge.card.name === 'Tungvrickaren') {
+            return `${duelistOneName} utmanar ${duelistTwoName} att läsa...`;
+        }
+        if (isFlamingoChallenge) {
+            return `Alla utom ${challengeOwnerName}`;
+        }
+        if (isCategoryChallenge || (isCircleChallenge && !hasExplicitDuelists)) {
+            return categoryLabel ? `Kategori: ${categoryLabel}` : 'Kategori-runda (alla)';
+        }
+        if (hasExplicitDuelists) {
+            return `${duelistOneName} VS ${duelistTwoName}`;
+        }
+        if (isBottomRaceChallenge) {
+            return 'Slumpar motståndare...';
+        }
+        return 'Alla spelare';
+    })();
+    const reactionTimes = reactionState?.reactionTimes ?? {};
+    const reactionWinnerId = reactionState?.winnerId;
+    const reactionLoserId = reactionState?.loserId;
+    const reactionWinnerName = reactionWinnerId
+        ? players.find((player) => player.id === reactionWinnerId)?.name ?? 'Winner'
+        : 'Winner';
+    const reactionRows = reactionDuelistIds.map((duelistId) => ({
+        id: duelistId,
+        name: players.find((player) => player.id === duelistId)?.name ?? 'Duelist',
+        time: typeof reactionTimes[duelistId] === 'number' ? reactionTimes[duelistId] : null,
+    }));
 
     // Store the exact physical ms when the screen turned green locally
     const localGreenLitAtRef = useRef<number | null>(null);
+    const countdownSessionKeyRef = useRef<string>('');
 
     useEffect(() => {
-        if (!isReactionChallengeCard || !reactionState || reactionState.phase === 'resolved') return;
+        if (!isReactionChallengeCard || !reactionState || reactionState.phase !== 'countdown') return;
 
-        let animationFrameId: number;
-        let loggedGreen = false;
+        let animationFrameId: number | undefined;
+        const targetGreenAt = typeof reactionState.greenAt === 'number' ? reactionState.greenAt : 0;
+        const sessionKey = `${reactionState.countdownStartedAt ?? 0}:${targetGreenAt}`;
 
-        // Reset the green lit ref when a new challenge starts
-        if (reactionState.phase === 'countdown') {
+        if (sessionKey !== countdownSessionKeyRef.current) {
+            countdownSessionKeyRef.current = sessionKey;
             localGreenLitAtRef.current = null;
         }
-
-        const targetGreenAt = typeof reactionState.greenAt === 'number' ? reactionState.greenAt : 0;
 
         const tick = () => {
             const current = serverNow();
             setReactionNow(current);
 
-            if (targetGreenAt > 0 && current >= targetGreenAt && !loggedGreen) {
-                // The exact millisecond the DOM realizes it should render green:
-                localGreenLitAtRef.current = performance.now();
+            if (targetGreenAt > 0 && current >= targetGreenAt) {
+                if (localGreenLitAtRef.current === null) {
+                    localGreenLitAtRef.current = performance.now();
+                }
                 console.log(`[SYNC-UI] GREEN LIGHT HIT! serverNow()=${current}, target greenAt=${targetGreenAt}, Diff=${current - targetGreenAt}ms`);
-                loggedGreen = true;
+                return;
             }
 
-            if (!loggedGreen) {
-                animationFrameId = requestAnimationFrame(tick);
-            }
+            animationFrameId = requestAnimationFrame(tick);
         };
 
-        if (reactionState.phase === 'countdown' && !isReactionGreen) {
+        if (targetGreenAt > 0) {
             console.log(`[SYNC-UI] Starting countdown monitor. target greenAt=${targetGreenAt}`);
             animationFrameId = requestAnimationFrame(tick);
         }
 
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [isReactionChallengeCard, reactionState, isReactionGreen]);
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [
+        isReactionChallengeCard,
+        reactionState?.phase,
+        reactionState?.countdownStartedAt,
+        reactionState?.greenAt,
+    ]);
+
+    useEffect(() => {
+        if (reactionPhaseLabel === 'green' && localGreenLitAtRef.current === null) {
+            localGreenLitAtRef.current = performance.now();
+        }
+    }, [reactionPhaseLabel]);
 
     const handleReactionReadyClick = async () => {
         if (!onReactionReady || submittingReactionReady) return;
@@ -535,9 +594,12 @@ export function ArenaCircle({
     const handleReactionPressClick = async () => {
         // Measure exact physical gap between DOM turning green and the screen tap
         const tapTime = performance.now();
-        const reactionTimeMs = localGreenLitAtRef.current
-            ? Math.round(tapTime - localGreenLitAtRef.current)
-            : 9999; // Fallback if tapped too early or missed
+        const fallbackFromServerTime = reactionState?.greenAt
+            ? Math.max(0, Math.round(serverNow() - reactionState.greenAt))
+            : 0;
+        const reactionTimeMs = localGreenLitAtRef.current !== null
+            ? Math.max(0, Math.round(tapTime - localGreenLitAtRef.current))
+            : fallbackFromServerTime;
 
         console.log(`[SYNC-ACTION] Player TAPPED! Exact Physical Reaction Time: ${reactionTimeMs}ms`);
 
@@ -547,6 +609,16 @@ export function ArenaCircle({
             await onReactionPress(reactionTimeMs);
         } finally {
             setSubmittingReactionPress(false);
+        }
+    };
+
+    const handleReactionDismissClick = async () => {
+        if (!onReactionResultsDismiss || submittingReactionDismiss || !canResolvePendingChallenge) return;
+        setSubmittingReactionDismiss(true);
+        try {
+            await onReactionResultsDismiss();
+        } finally {
+            setSubmittingReactionDismiss(false);
         }
     };
 
@@ -765,9 +837,9 @@ export function ArenaCircle({
                                         ? 'text-cyan-100/90'
                                         : 'text-purple-200/90'
                                     }`}>
-                                    {duelistOneName} VS {duelistTwoName}
+                                    {challengeParticipantsLabel}
                                 </p>
-                                <p className={`mt-1 text-xs leading-relaxed line-clamp-3 ${isReactionChallengeCard
+                                <p className={`mt-1 text-xs leading-relaxed line-clamp-3 whitespace-pre-line ${isReactionChallengeCard
                                     ? 'text-amber-50/90'
                                     : gameMode === 'can-cup'
                                         ? 'text-cyan-50/80'
@@ -824,6 +896,44 @@ export function ArenaCircle({
                                                 </button>
                                             </div>
                                         )}
+                                        {reactionPhaseLabel === 'resolved' && (
+                                            <div className="mt-2 space-y-1.5">
+                                                {reactionRows.map((entry) => (
+                                                    <div
+                                                        key={`reaction-result-${entry.id}`}
+                                                        className={`flex items-center justify-between rounded-md border px-2 py-1 text-[11px] ${entry.id === reactionWinnerId
+                                                            ? 'border-emerald-200/45 bg-emerald-900/40 text-emerald-100'
+                                                            : entry.id === reactionLoserId
+                                                                ? 'border-rose-200/40 bg-rose-900/40 text-rose-100'
+                                                                : 'border-amber-200/25 bg-amber-950/35 text-amber-50/90'
+                                                            }`}
+                                                    >
+                                                        <span className="font-semibold">{entry.name}</span>
+                                                        <span>{entry.time !== null ? `${entry.time} ms` : '--'}</span>
+                                                    </div>
+                                                ))}
+                                                <p className="text-center text-[11px] font-semibold text-amber-50">
+                                                    {reactionWinnerName} vann reaktionsduellen
+                                                </p>
+                                                {canResolvePendingChallenge ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleReactionDismissClick}
+                                                        disabled={submittingReactionDismiss}
+                                                        className="w-full rounded-lg border border-amber-200/45 bg-amber-500/90 px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <X className="h-3.5 w-3.5" />
+                                                            {submittingReactionDismiss ? 'Closing results...' : 'Press to continue'}
+                                                        </span>
+                                                    </button>
+                                                ) : (
+                                                    <p className="text-center text-[11px] text-amber-100/90">
+                                                        {challengeOwnerName} stänger resultatet när alla hunnit se.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 <div className="mt-2 flex items-center justify-between text-xs">
@@ -838,7 +948,9 @@ export function ArenaCircle({
                                                 ? 'Green! Duelists tap now'
                                                 : reactionPhaseLabel === 'countdown'
                                                     ? 'Countdown running...'
-                                                    : 'Accept duel to start')
+                                                    : reactionPhaseLabel === 'resolved'
+                                                        ? (canResolvePendingChallenge ? 'Press X to continue' : `${challengeOwnerName} visar resultaten`)
+                                                        : 'Accept duel to start')
                                             : canResolvePendingChallenge
                                                 ? 'Tap to resolve'
                                                 : `${challengeOwnerName} is resolving`}
@@ -849,52 +961,54 @@ export function ArenaCircle({
                     )}
                 </AnimatePresence>
 
-                {opponents.map((player, index) => {
-                    const pos = useCanCupPlacement && canCupOpponentPositions[index]
-                        ? canCupPosToCoord(canCupOpponentPositions[index])
-                        : spreadFromCenter(angleToXY(getAngle(index, total - 1), radiusX, radiusY));
-                    const projectedIntake = getProjectedIntake(player);
-                    return (
-                        <motion.div
-                            key={player.id}
-                            className="absolute z-20"
-                            style={{
-                                left: pos.x + halfX,
-                                top: pos.y + centerY + OFFSET_Y,
-                                translateX: '-50%',
-                                translateY: '-50%',
-                            }}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{
-                                type: 'spring',
-                                stiffness: 260,
-                                damping: 20,
-                                delay: 0.1 + index * 0.08,
-                            }}
-                        >
-                            <ModernPlayerAvatar
-                                player={player}
-                                isCurrentTurn={player.id === currentTurn}
-                                isTargetable={Boolean(
-                                    selectedCard?.requiresTarget &&
-                                    (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
-                                )}
-                                isDrunk={gameMode === 'can-cup' ? false : projectedIntake >= drunkThreshold * 0.8}
-                                drunkThreshold={drunkThreshold}
-                                projectedManaIntake={projectedIntake}
-                                drunkSeconds={getProjectedDrunkSeconds(player)}
-                                drunkTimeLimitSeconds={drunkTimeLimitSeconds}
-                                maxMana={maxMana}
-                                onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}
-                                gameMode={gameMode}
-                                canCupSipsPerCan={settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN}
-                                pendingCanCupSip={pendingCanCupSips?.[player.id]}
-                                compact={useCompactAvatars}
-                            />
-                        </motion.div>
-                    );
-                })}
+                {
+                    opponents.map((player, index) => {
+                        const pos = useCanCupPlacement && canCupOpponentPositions[index]
+                            ? canCupPosToCoord(canCupOpponentPositions[index])
+                            : spreadFromCenter(angleToXY(getAngle(index, total - 1), radiusX, radiusY));
+                        const projectedIntake = getProjectedIntake(player);
+                        return (
+                            <motion.div
+                                key={player.id}
+                                className="absolute z-20"
+                                style={{
+                                    left: pos.x + halfX,
+                                    top: pos.y + centerY + OFFSET_Y,
+                                    translateX: '-50%',
+                                    translateY: '-50%',
+                                }}
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{
+                                    type: 'spring',
+                                    stiffness: 260,
+                                    damping: 20,
+                                    delay: 0.1 + index * 0.08,
+                                }}
+                            >
+                                <ModernPlayerAvatar
+                                    player={player}
+                                    isCurrentTurn={player.id === currentTurn}
+                                    isTargetable={Boolean(
+                                        selectedCard?.requiresTarget &&
+                                        (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
+                                    )}
+                                    isDrunk={gameMode === 'can-cup' ? false : projectedIntake >= drunkThreshold * 0.8}
+                                    drunkThreshold={drunkThreshold}
+                                    projectedManaIntake={projectedIntake}
+                                    drunkSeconds={getProjectedDrunkSeconds(player)}
+                                    drunkTimeLimitSeconds={drunkTimeLimitSeconds}
+                                    maxMana={maxMana}
+                                    onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}
+                                    gameMode={gameMode}
+                                    canCupSipsPerCan={settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN}
+                                    pendingCanCupSip={pendingCanCupSips?.[player.id]}
+                                    compact={useCompactAvatars}
+                                />
+                            </motion.div>
+                        );
+                    })
+                }
 
                 <motion.div
                     className="absolute z-20"

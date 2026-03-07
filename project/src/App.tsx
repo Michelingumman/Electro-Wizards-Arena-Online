@@ -10,7 +10,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen min-h-[100dvh] bg-gray-900 text-white">
         <Routes>
           <Route path="/" element={<Home />} />

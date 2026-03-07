@@ -60,6 +60,7 @@ export interface PendingChallenge {
     redAt?: number;
     yellowAt?: number;
     greenAt?: number;
+    reactionTimes?: Record<string, number>;
     winnerId?: string;
     loserId?: string;
     resolvedAt?: number;
