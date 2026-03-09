@@ -44,6 +44,12 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski' }: Att
             case 'canCupSwap': return 'bytte burk med';
             case 'canCupVampire': return 'stal klunkar från';
             case 'canCupReflect': return 'studsa klunkar till';
+            case 'canCupHolyAlliance': return 'bildade pakt med';
+            case 'canCupRockBottom': return 'drog ner';
+            case 'canCupRussianRoulette': return 'snurrade flaskan på';
+            case 'canCupLegendaryHeist': return 'kapade legendary från';
+            case 'canCupPenaltyDrink': return 'skålade med';
+            case 'canCupTaxSober': return 'straffade the sober one';
             default: return 'spelade';
         }
     };
@@ -66,12 +72,18 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski' }: Att
             case 'canCupDoubleTrouble':
             case 'canCupBottomsUpPrep':
             case 'canCupBottenUpp':
+            case 'canCupRockBottom':
+            case 'canCupRussianRoulette':
+            case 'canCupPenaltyDrink':
+            case 'canCupTaxSober':
                 return <Wine className={clsx(cls, "text-cyan-300")} />;
             case 'canCupWater':
             case 'canCupTopUp':
                 return <Droplets className={clsx(cls, "text-cyan-300")} />;
             case 'canCupDeflect':
             case 'canCupSwap':
+            case 'canCupHolyAlliance':
+            case 'canCupLegendaryHeist':
                 return <Sparkles className={clsx(cls, "text-indigo-300")} />;
             default: return <Sparkles className={clsx(cls, "text-purple-400")} />;
         }
@@ -101,6 +113,12 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski' }: Att
             case 'canCupSwap':
             case 'canCupVampire':
             case 'canCupReflect':
+            case 'canCupRockBottom':
+            case 'canCupRussianRoulette':
+            case 'canCupPenaltyDrink':
+            case 'canCupHolyAlliance':
+            case 'canCupLegendaryHeist':
+            case 'canCupTaxSober':
                 return 'border-cyan-500/30 bg-cyan-950/35';
             default: return defaultTone;
         }

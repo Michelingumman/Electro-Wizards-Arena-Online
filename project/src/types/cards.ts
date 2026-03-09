@@ -82,6 +82,11 @@ export type EffectType =
   'canCupRemoveDefense' |
   'canCupGiveEmptyCan' |
   'canCupTaxSober' |
+  'canCupHolyAlliance' |
+  'canCupRockBottom' |
+  'canCupRussianRoulette' |
+  'canCupLegendaryHeist' |
+  'canCupPenaltyDrink' |
   'null'; // For effects that don't do anything
 
 export interface Challenge {
@@ -96,7 +101,7 @@ export interface CardEffect {
   challenge?: Challenge;
   winnerEffect?: CardEffect;
   loserEffect?: CardEffect;
-  challengeEffects?: unknown; // Added to fix lint
+  challengeEffects?: any; // Changed to any to fix lint
 }
 
 export interface CardBase {

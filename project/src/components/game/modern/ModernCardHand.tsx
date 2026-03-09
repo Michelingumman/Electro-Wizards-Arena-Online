@@ -97,15 +97,20 @@ export function ModernCardHand({
             case 'canCupDoubleTrouble':
             case 'canCupBottomsUpPrep':
             case 'canCupBottenUpp':
+            case 'canCupRockBottom':
+            case 'canCupRussianRoulette':
+            case 'canCupPenaltyDrink':
                 return <Flame className={cls} />;
             case 'canCupWater':
             case 'canCupTopUp':
+            case 'canCupHolyAlliance':
                 return <Droplets className={cls} />;
             case 'canCupDeflect':
             case 'canCupSwap':
             case 'canCupReflect':
                 return <Shield className={cls} />;
             case 'canCupVampire':
+            case 'canCupLegendaryHeist':
                 return <Zap className={cls} />;
             case 'roulette':
                 return <ScrollText className={cls} />;

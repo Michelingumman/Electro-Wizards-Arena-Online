@@ -3,6 +3,7 @@ import { CAN_CUP_CARD_POOL, CARD_POOL, generateCardId } from '../config/cards';
 import { RARITY_WEIGHTS } from '../config/cards/rarities';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { GameMode } from '../types/game';
+import { CAN_CUP_CATEGORIES, CAN_CUP_TONGUE_TWISTERS } from '../config/cards/pools/canCup';
 
 
 
@@ -159,6 +160,44 @@ function getWeightsForMode(gameMode: GameMode): Record<CardRarity, number> {
   return gameMode === 'can-cup' ? CAN_CUP_RARITY_WEIGHTS : RARITY_WEIGHTS;
 }
 
+function buildDrawnCard(card: CardBase): CardBase {
+  // Check if the drawn card is the Charader!!! card and update its description
+  if (card.name === 'Charader!!!') {
+    const word = getRandomWord();
+    return {
+      ...card,
+      description: `YOUR WORD: "${word}". Make everybody guess your word, the person who guesses it first gets +5 Mana, you get +3 HP, and the rest takes a shot.`,
+      id: generateCardId(),
+    };
+  }
+
+  // Assign random category for the Kategori card on draw
+  if (card.id === 'cc-category-random') {
+    const category = CAN_CUP_CATEGORIES[Math.floor(Math.random() * CAN_CUP_CATEGORIES.length)];
+    return {
+      ...card,
+      name: `Kategori: ${category}`,
+      description: `Nämn saker inom "${category}". Den som missar tar 3 klunkar.`,
+      id: generateCardId(),
+    };
+  }
+
+  // Assign random tongue twister for the Tungvrickaren card on draw
+  if (card.id === 'cc-tongue-twister') {
+    const twister = CAN_CUP_TONGUE_TWISTERS[Math.floor(Math.random() * CAN_CUP_TONGUE_TWISTERS.length)];
+    return {
+      ...card,
+      description: `"${twister}"`,
+      id: generateCardId(),
+    };
+  }
+
+  return {
+    ...card,
+    id: generateCardId(),
+  };
+}
+
 /**
  * Generates the initial hand of cards for a player.
  */
@@ -207,59 +246,25 @@ export function drawNewCard(gameMode: GameMode = 'classic'): CardBase {
   }
 
   const card = pool[Math.floor(Math.random() * pool.length)];
+  return buildDrawnCard(card);
+}
 
-
-  // Check if the drawn card is the Charader!!! card and update its description
-  if (card.name === 'Charader!!!') {
-    const word = getRandomWord();
-    return {
-      ...card,
-      description: `YOUR WORD: "${word}". Make everybody guess your word, the person who guesses it first gets +5 Mana, you get +3 HP, and the rest takes a shot.`,
-      id: generateCardId()
-    };
+/**
+ * Draws a new card from an explicit rarity bucket.
+ */
+export function drawCardByRarity(rarity: CardRarity, gameMode: GameMode = 'classic'): CardBase {
+  const pool = getCardByRarity(rarity, gameMode);
+  if (pool.length === 0) {
+    throw new Error(`No cards available for rarity "${rarity}" in mode "${gameMode}"`);
   }
 
-  // Assign random category for the Kategori card on draw
-  if (card.id === 'cc-category-random') {
-    const { CAN_CUP_CATEGORIES } = require('../config/cards/pools/canCup');
-    const category = CAN_CUP_CATEGORIES[Math.floor(Math.random() * CAN_CUP_CATEGORIES.length)];
-    return {
-      ...card,
-      name: `Kategori: ${category}`,
-      description: `Nämn saker inom "${category}". Den som missar tar 3 klunkar.`,
-      id: generateCardId()
-    };
-  }
-
-  // Assign random tongue twister for the Tungvrickaren card on draw
-  if (card.id === 'cc-tongue-twister') {
-    const { CAN_CUP_TONGUE_TWISTERS } = require('../config/cards/pools/canCup');
-    const twister = CAN_CUP_TONGUE_TWISTERS[Math.floor(Math.random() * CAN_CUP_TONGUE_TWISTERS.length)];
-    return {
-      ...card,
-      description: `"${twister}"`,
-      id: generateCardId()
-    };
-  }
-
-  return {
-    ...card,
-    id: generateCardId()
-  };
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  return buildDrawnCard(card);
 }
 
 /**
  * Draws a legendary card.
  */
 export function drawLegendaryCard(): CardBase {
-  const legendaryCards = getCardByRarity(CardRarity.LEGENDARY, 'classic');
-  if (legendaryCards.length === 0) {
-    throw new Error('No legendary cards available');
-  }
-
-  const card = legendaryCards[Math.floor(Math.random() * legendaryCards.length)];
-  return {
-    ...card,
-    id: generateCardId()
-  };
+  return drawCardByRarity(CardRarity.LEGENDARY, 'classic');
 }
