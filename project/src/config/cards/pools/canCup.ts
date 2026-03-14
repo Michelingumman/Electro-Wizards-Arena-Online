@@ -315,7 +315,7 @@ export const CAN_CUP_CARDS: CardBase[] = [
   {
     id: 'cc-flamingo',
     name: 'Flamingon',
-    description: 'Alla står på ett ben. Första som trillar tar 5 klunkar.',
+    description: 'Alla andra spelare står på ett ben. Första som trillar tar 5 klunkar.',
     manaCost: 2,
     sipCost: 2,
     rarity: CardRarity.EPIC,
@@ -360,7 +360,7 @@ export const CAN_CUP_CARDS: CardBase[] = [
       type: 'challenge',
       value: 0,
       winnerEffect: { type: 'null', value: 0 },
-      loserEffect: { type: 'canCupSip', value: 3 },
+      loserEffect: { type: 'canCupSip', value: 4 },
     },
     requiresTarget: true,
     isChallenge: true,
