@@ -9,7 +9,6 @@ export const isAfterskiMode = (gameMode?: GameMode | null): boolean =>
 export interface CanCupState {
   sipsLeft: number;
   waterSips: number;
-  deflectCharges: number;
   emptyCans: number;
   pendingResolution?: boolean;
 }
@@ -73,11 +72,43 @@ export interface PendingCanCupSipResolution {
   totalSips: number;
   beerSipsToConsume: number;
   waterSipsToConsume: number;
-  deflectSipsToConsume: number;
   sourcePlayerId?: string;
   sourceCardId?: string;
   sourceCardName?: string;
   updatedAt: number;
+}
+
+export interface GameActionSegment {
+  playerId: string;
+  targetId?: string;
+  cardId: string;
+  cardName: string;
+  cardType: string;
+  cardRarity: string;
+  cardDescription: string;
+  manaCost?: number;
+  attackerManaDelta?: number;
+  targetManaDelta?: number;
+  targetDamage?: number;
+  targetManaIntakeDelta?: number;
+  affectedPlayerIds?: string[];
+  timestamp?: number;
+  label?: string;
+}
+
+export interface PendingCanCupFollowUp {
+  responderId: string;
+  turnOwnerId: string;
+  sourcePlayerId: string;
+  originalTargetId: string;
+  sipCount: number;
+  sourceCardId: string;
+  sourceCardName: string;
+  sourceCardType: string;
+  sourceCardRarity: string;
+  sourceCardDescription: string;
+  originalAction: GameActionSegment;
+  createdAt: number;
 }
 
 export interface Party {
@@ -93,6 +124,7 @@ export interface Party {
   lastAction?: GameAction;
   pendingChallenge?: PendingChallenge | null;
   pendingCanCupSips?: Record<string, PendingCanCupSipResolution> | null;
+  pendingCanCupFollowUp?: PendingCanCupFollowUp | null;
   previousState?: {
     players: Player[];
     currentTurn: string;
@@ -102,21 +134,8 @@ export interface Party {
   expiresAt?: number;
 }
 
-export interface GameAction {
-  playerId: string;
-  targetId?: string;
-  cardId: string;
-  cardName: string;
-  cardType: string;
-  cardRarity: string;
-  cardDescription: string;
-  manaCost?: number;
-  attackerManaDelta?: number;
-  targetManaDelta?: number;
-  targetDamage?: number;
-  targetManaIntakeDelta?: number;
-  affectedPlayerIds?: string[];
-  timestamp?: number;
+export interface GameAction extends GameActionSegment {
+  segments?: GameActionSegment[];
 }
 
 export interface GameSettings {

@@ -72,9 +72,9 @@ export type EffectType =
   'canCupAoESip' |
   'canCupWater' |
   'canCupDeflect' |
+  'canCupBathroomBreak' |
   'canCupTopUp' |
   'canCupDoubleTrouble' |
-  'canCupBottomsUpPrep' |
   'canCupBottenUpp' |
   'canCupSwap' |
   'canCupReflect' |
@@ -83,6 +83,7 @@ export type EffectType =
   'canCupGiveEmptyCan' |
   'canCupTaxSober' |
   'canCupHolyAlliance' |
+  'canCupRelaySip' |
   'canCupRockBottom' |
   'canCupRussianRoulette' |
   'canCupLegendaryHeist' |
@@ -118,6 +119,8 @@ export interface CardBase {
   color?: string;
   isLegendary?: boolean;
   flavorText?: string;
+  challengeParticipantMode?: 'manual' | 'owner-target';
+  challengeOutcomeRule?: 'standard' | 'owner-safe';
 }
 
 export interface CardStats {

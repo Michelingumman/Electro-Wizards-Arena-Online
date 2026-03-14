@@ -1,7 +1,7 @@
 import { GameMode, PendingCanCupSipResolution, Player } from '../../../types/game';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import { Beer, FlaskConical, Shield } from 'lucide-react';
+import { Beer, FlaskConical } from 'lucide-react';
 
 interface ModernPlayerAvatarProps {
     player: Player;
@@ -53,18 +53,25 @@ export function ModernPlayerAvatar({
     const canCupState = player.canCup ?? {
         sipsLeft: canCupCapacity,
         waterSips: 0,
-        deflectCharges: 0,
         emptyCans: 0,
     };
+    const legacyDeflectCharges = Math.max(
+        0,
+        Math.round(((player.canCup as (Player['canCup'] & { deflectCharges?: number }) | undefined)?.deflectCharges ?? 0))
+    );
     const beerSips = Math.max(0, Math.min(canCupCapacity, Math.round(canCupState.sipsLeft)));
-    const waterSips = Math.max(0, Math.round(canCupState.waterSips));
+    const waterSips = Math.max(0, Math.round(canCupState.waterSips)) + legacyDeflectCharges;
     const beerPercent = Math.min(100, Math.max(0, (beerSips / canCupCapacity) * 100));
     const waterPercent = Math.min(100, Math.max(0, (waterSips / canCupCapacity) * 100));
     const totalLiquidPercent = Math.min(100, beerPercent + waterPercent);
     const waterLayerPercent = Math.min(waterPercent, totalLiquidPercent);
     const waterLayerBottomPercent = Math.max(0, totalLiquidPercent - waterLayerPercent);
     const beerLayerPercent = Math.max(0, totalLiquidPercent - waterLayerPercent);
-    const pendingWaterSips = Math.max(0, Math.round(pendingCanCupSip?.waterSipsToConsume ?? 0));
+    const legacyPendingDeflectSips = Math.max(
+        0,
+        Math.round(((pendingCanCupSip as (PendingCanCupSipResolution & { deflectSipsToConsume?: number }) | undefined)?.deflectSipsToConsume ?? 0))
+    );
+    const pendingWaterSips = Math.max(0, Math.round(pendingCanCupSip?.waterSipsToConsume ?? 0)) + legacyPendingDeflectSips;
     const pendingBeerSips = Math.max(0, Math.round(pendingCanCupSip?.beerSipsToConsume ?? 0));
     const pendingWaterPercent = Math.min(100, Math.max(0, (pendingWaterSips / canCupCapacity) * 100));
     const pendingBeerPercent = Math.min(100, Math.max(0, (pendingBeerSips / canCupCapacity) * 100));
@@ -76,6 +83,7 @@ export function ModernPlayerAvatar({
     const mugHeight = compact ? 66 : 80;
     const avatarSizeClass = compact ? 'w-[64px] h-[64px]' : 'w-[72px] h-[72px]';
     const drunkTimerSeconds = Math.max(0, drunkSeconds ?? player.drunkSeconds ?? 0);
+    const isUntargetable = Boolean(player.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0));
     const drunkTimerProgress = !drunkTimeLimitSeconds || drunkTimeLimitSeconds <= 0
         ? 0
         : drunkTimerSeconds / drunkTimeLimitSeconds;
@@ -187,10 +195,11 @@ export function ModernPlayerAvatar({
                             <Beer className="w-2.5 h-2.5" />
                             x{canCupState.emptyCans}
                         </span>
-                        <span className="inline-flex items-center gap-0.5 rounded-full border border-indigo-300/45 bg-indigo-900/75 px-1.5 py-0.5 text-[9px] text-indigo-100 shadow-[0_0_8px_rgba(129,140,248,0.25)]">
-                            <Shield className="w-2.5 h-2.5" />
-                            {canCupState.deflectCharges}
-                        </span>
+                        {isUntargetable && (
+                            <span className="inline-flex items-center rounded-full border border-cyan-300/45 bg-cyan-950/65 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-100 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
+                                WC
+                            </span>
+                        )}
                     </div>
                 </div>
 

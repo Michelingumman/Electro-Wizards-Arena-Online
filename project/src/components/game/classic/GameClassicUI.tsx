@@ -45,6 +45,8 @@ export function GameClassicUI({
     selectedCard,
     setSelectedCard
 }: GameClassicUIProps) {
+    const isUntargetablePlayer = (player: Player) =>
+        Boolean(player.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0));
 
     return (
         <div className="max-w-6xl mx-auto p-4 relative z-20">
@@ -72,6 +74,7 @@ export function GameClassicUI({
                                 isCurrentTurn={player.id === party.currentTurn}
                                 isTargetable={Boolean(
                                     selectedCard?.requiresTarget &&
+                                    !isUntargetablePlayer(player) &&
                                     (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
                                 )}
                                 onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}

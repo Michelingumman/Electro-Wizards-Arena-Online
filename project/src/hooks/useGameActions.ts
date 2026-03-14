@@ -1,7 +1,17 @@
 import { useCallback } from 'react';
 import { doc, runTransaction } from 'firebase/firestore';
 import { db, serverNow } from '../lib/firebase';
-import { Card, GameMode, Party, PendingCanCupSipResolution, Player, isAfterskiMode } from '../types/game';
+import {
+  Card,
+  GameAction,
+  GameActionSegment,
+  GameMode,
+  Party,
+  PendingCanCupFollowUp,
+  PendingCanCupSipResolution,
+  Player,
+  isAfterskiMode,
+} from '../types/game';
 import { CardRarity } from '../types/cards';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { drawCardByRarity, drawLegendaryCard, drawNewCard } from '../utils/cardGeneration';
@@ -10,12 +20,12 @@ import { isChallengeCard, isNamingChallengeCard } from '../utils/challengeCard';
 import { CardEnhancer } from '../utils/cardEnhancer';
 import { EffectManager } from '../utils/effectManager';
 import {
-  addDeflectCharges,
   addWaterSips,
   applyDirectSips,
   applyForcedSips,
   canCupGiveEmptyCan,
   canCupRemoveDefense,
+  getReducedTargetedSipCount,
   getPlayersWithFewestEmptyCans,
   sanitizeSipsPerCan,
   swapSipsLeft,
@@ -36,6 +46,8 @@ export function useGameActions(partyId: string) {
     sanitizeSipsPerCan(party.settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN);
   const getCanCupCansToWin = (party: Party): number =>
     party.settings?.canCupCansToWin ?? 5;
+  const getCanCupPlayCost = (card: Pick<Card, 'manaCost' | 'sipCost'>): number =>
+    Math.max(0, Math.round(card.sipCost ?? card.manaCost ?? 0));
   const checkCanCupWinner = (players: Party['players'], cansToWin: number): string | null => {
     const winner = players.find(p => (p.canCup?.emptyCans ?? 0) >= cansToWin);
     return winner?.id ?? null;
@@ -77,7 +89,8 @@ export function useGameActions(partyId: string) {
   };
   const clonePlayerForSimulation = (player: Party['players'][number]): Party['players'][number] => ({
     ...player,
-    canCup: player.canCup ? { ...player.canCup } : undefined,
+    ...(player.canCup ? { canCup: { ...player.canCup } } : {}),
+    ...(player.effects ? { effects: [...player.effects] } : {}),
   });
 
   const normalizePendingCanCupSips = (
@@ -94,7 +107,6 @@ export function useGameActions(partyId: string) {
         totalSips,
         beerSipsToConsume: Math.max(0, Math.round(entry.beerSipsToConsume || 0)),
         waterSipsToConsume: Math.max(0, Math.round(entry.waterSipsToConsume || 0)),
-        deflectSipsToConsume: Math.max(0, Math.round(entry.deflectSipsToConsume || 0)),
         updatedAt: entry.updatedAt || Date.now(),
       };
       return acc;
@@ -122,7 +134,6 @@ export function useGameActions(partyId: string) {
         totalSips,
         beerSipsToConsume: result.appliedSips,
         waterSipsToConsume: result.blockedByWater,
-        deflectSipsToConsume: result.blockedByDeflect,
         updatedAt: Date.now(),
       };
     });
@@ -146,12 +157,11 @@ export function useGameActions(partyId: string) {
         drunkSeconds: Math.max(0, Math.round(player.drunkSeconds || 0)),
         canCupSipsLeft: player.canCup?.sipsLeft ?? null,
         canCupWaterSips: player.canCup?.waterSips ?? null,
-        canCupDeflectCharges: player.canCup?.deflectCharges ?? null,
         canCupEmptyCans: player.canCup?.emptyCans ?? null,
       },
     ]));
 
-  const buildLastActionPayload = ({
+  const buildGameActionSegment = ({
     beforeStats,
     updatedPlayers,
     playerId,
@@ -166,6 +176,7 @@ export function useGameActions(partyId: string) {
     targetManaDeltaOverride,
     targetManaIntakeDeltaOverride,
     affectedPlayerIdsOverride,
+    label,
   }: {
     beforeStats: Map<string, {
       mana: number;
@@ -173,7 +184,6 @@ export function useGameActions(partyId: string) {
       drunkSeconds: number;
       canCupSipsLeft: number | null;
       canCupWaterSips: number | null;
-      canCupDeflectCharges: number | null;
       canCupEmptyCans: number | null;
     }>;
     updatedPlayers: Party['players'];
@@ -189,6 +199,7 @@ export function useGameActions(partyId: string) {
     targetManaDeltaOverride?: number;
     targetManaIntakeDeltaOverride?: number;
     affectedPlayerIdsOverride?: string[];
+    label?: string;
   }) => {
     const attackerBefore = beforeStats.get(playerId);
     const attackerAfter = updatedPlayers.find((player) => player.id === playerId);
@@ -228,7 +239,6 @@ export function useGameActions(partyId: string) {
           Math.abs((player.drunkSeconds || 0) - before.drunkSeconds) > 0.001 ||
           (player.canCup?.sipsLeft ?? null) !== before.canCupSipsLeft ||
           (player.canCup?.waterSips ?? null) !== before.canCupWaterSips ||
-          (player.canCup?.deflectCharges ?? null) !== before.canCupDeflectCharges ||
           (player.canCup?.emptyCans ?? null) !== before.canCupEmptyCans
         );
       })
@@ -238,7 +248,7 @@ export function useGameActions(partyId: string) {
       ? affectedPlayerIdsOverride
       : detectedAffectedPlayerIds;
 
-    const payload: NonNullable<Party['lastAction']> = {
+    const payload: GameActionSegment = {
       playerId,
       cardId,
       cardName,
@@ -255,12 +265,78 @@ export function useGameActions(partyId: string) {
     if (typeof targetDamage === 'number') payload.targetDamage = targetDamage;
     if (typeof targetManaIntakeDelta === 'number') payload.targetManaIntakeDelta = targetManaIntakeDelta;
     if (affectedPlayerIds.length > 0) payload.affectedPlayerIds = affectedPlayerIds;
+    if (label) payload.label = label;
 
     return payload;
   };
 
+  const buildLastActionPayload = ({
+    segmentsOverride,
+    ...segmentArgs
+  }: Parameters<typeof buildGameActionSegment>[0] & {
+    segmentsOverride?: GameActionSegment[];
+  }): GameAction => {
+    const primarySegment = buildGameActionSegment(segmentArgs);
+    const segments = segmentsOverride && segmentsOverride.length > 0
+      ? segmentsOverride
+      : [primarySegment];
+
+    return {
+      ...primarySegment,
+      segments,
+      timestamp: Date.now(),
+    };
+  };
+
   const sanitizeCardForFirestore = (card: Card): Card =>
     JSON.parse(JSON.stringify(card)) as Card;
+  const hasUntargetableEffect = (player?: Pick<Player, 'effects'> | null): boolean =>
+    Boolean(player?.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0));
+  const addOrRefreshUntargetableEffect = (player: Player, duration: number, stackId = 'untargetable') => {
+    const normalizedDuration = Math.max(1, Math.round(duration));
+    const existingEffects = player.effects || [];
+    const existingUntargetable = existingEffects.find((effect) => effect.stackId === stackId);
+
+    if (existingUntargetable) {
+      existingUntargetable.duration = Math.max(existingUntargetable.duration, normalizedDuration);
+      player.effects = [...existingEffects];
+      return;
+    }
+
+    player.effects = [
+      ...existingEffects.filter((effect) => effect.stackId !== stackId),
+      {
+        stackId,
+        type: 'untargetable',
+        value: 0,
+        duration: normalizedDuration,
+      },
+    ];
+  };
+  const decrementUntargetableEffects = (player: Player) => {
+    if (!player.effects || player.effects.length === 0) return;
+
+    player.effects = player.effects
+      .map((effect) => (
+        effect.type === 'untargetable'
+          ? { ...effect, duration: Math.max(0, effect.duration - 1) }
+          : effect
+      ))
+      .filter((effect) => effect.duration > 0);
+
+    if (player.effects.length === 0) {
+      delete player.effects;
+    }
+  };
+  const getCanCupFollowUpCandidates = (
+    players: Party['players'],
+    responderId: string
+  ): Party['players'] => players.filter((entry) => entry.id !== responderId && !hasUntargetableEffect(entry));
+  const assertNoPendingCanCupFollowUp = (party: Party) => {
+    if (getGameMode(party) === 'can-cup' && party.pendingCanCupFollowUp) {
+      throw new Error('Resolve the pending pass-along target first');
+    }
+  };
 
   const applyCanCupCardEffect = ({
     card,
@@ -284,6 +360,19 @@ export function useGameActions(partyId: string) {
     let nextPendingCanCupSips = normalizePendingCanCupSips(pendingCanCupSips);
     let resolvedTargetId = target.id;
     let replacementCardForPlayedCard: Card | null = null;
+    let pendingCanCupFollowUp: Pick<
+      PendingCanCupFollowUp,
+      'responderId' |
+      'turnOwnerId' |
+      'sourcePlayerId' |
+      'originalTargetId' |
+      'sipCount' |
+      'sourceCardId' |
+      'sourceCardName' |
+      'sourceCardType' |
+      'sourceCardRarity' |
+      'sourceCardDescription'
+    > | null = null;
 
     const isLegendaryHandCard = (handCard: Card): boolean =>
       handCard.rarity === CardRarity.LEGENDARY || Boolean(handCard.isLegendary);
@@ -293,7 +382,6 @@ export function useGameActions(partyId: string) {
         player.canCup = {
           sipsLeft: sipsPerCan,
           waterSips: 0,
-          deflectCharges: 0,
           emptyCans: 0,
           pendingResolution: false,
         };
@@ -312,7 +400,6 @@ export function useGameActions(partyId: string) {
         totalSips: existingTotal + totalSipsToQueue,
         beerSipsToConsume: existing?.beerSipsToConsume ?? 0,
         waterSipsToConsume: existing?.waterSipsToConsume ?? 0,
-        deflectSipsToConsume: existing?.deflectSipsToConsume ?? 0,
         sourcePlayerId: playerId,
         sourceCardId: card.id,
         sourceCardName: card.name,
@@ -324,14 +411,23 @@ export function useGameActions(partyId: string) {
       return totalSipsToQueue;
     };
 
-    const playCostSips = Math.max(0, Math.round(card.sipCost ?? card.manaCost ?? 0));
+    const queueTargetedSips = (targetPlayerId: string, sipCount: number) => {
+      const targetPlayer = updatedPlayers.find((entry) => entry.id === targetPlayerId);
+      const reducedSipCount = targetPlayer
+        ? getReducedTargetedSipCount(targetPlayer, sipCount, sipsPerCan)
+        : Math.max(0, Math.round(sipCount));
+
+      return queueForcedSips(targetPlayerId, reducedSipCount);
+    };
+
+    const playCostSips = getCanCupPlayCost(card);
     if (playCostSips > 0) {
       queueForcedSips(playerId, playCostSips);
     }
 
     switch (card.effect.type) {
       case 'canCupSip': {
-        targetSipCommand += queueForcedSips(target.id, card.effect.value);
+        targetSipCommand += queueTargetedSips(target.id, card.effect.value);
         break;
       }
       case 'canCupAoESip': {
@@ -351,8 +447,14 @@ export function useGameActions(partyId: string) {
         nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, sipsPerCan);
         break;
       }
+      case 'canCupBathroomBreak': {
+        addOrRefreshUntargetableEffect(player, updatedPlayers.length, 'bathroom-break');
+        affectedPlayerIds.add(player.id);
+        break;
+      }
       case 'canCupDeflect': {
-        addDeflectCharges(player, card.effect.value, sipsPerCan);
+        // Legacy compatibility: old shield effects now grant the same amount as water sips.
+        addWaterSips(player, card.effect.value, sipsPerCan);
         affectedPlayerIds.add(player.id);
         nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, sipsPerCan);
         break;
@@ -364,21 +466,25 @@ export function useGameActions(partyId: string) {
         break;
       }
       case 'canCupDoubleTrouble': {
-        targetSipCommand += queueForcedSips(target.id, card.effect.value);
+        targetSipCommand += queueTargetedSips(target.id, card.effect.value);
         break;
       }
-      case 'canCupBottomsUpPrep': {
-        const alreadyQueued = nextPendingCanCupSips[target.id]?.totalSips ?? 0;
-        const simulatedTarget = clonePlayerForSimulation(target);
-        if (alreadyQueued > 0) {
-          applyForcedSips(simulatedTarget, alreadyQueued, sipsPerCan);
-        } else {
-          applyForcedSips(simulatedTarget, 0, sipsPerCan);
+      case 'canCupRelaySip': {
+        targetSipCommand += queueTargetedSips(target.id, card.effect.value);
+        if (getCanCupFollowUpCandidates(updatedPlayers, target.id).length > 0) {
+          pendingCanCupFollowUp = {
+            responderId: target.id,
+            turnOwnerId: playerId,
+            sourcePlayerId: playerId,
+            originalTargetId: target.id,
+            sipCount: Math.max(1, Math.round(card.effect.value)),
+            sourceCardId: card.id,
+            sourceCardName: card.name,
+            sourceCardType: card.effect.type,
+            sourceCardRarity: card.rarity,
+            sourceCardDescription: card.description,
+          };
         }
-        const remainingBeer = simulatedTarget.canCup?.sipsLeft ?? sipsPerCan;
-        const remainingWater = simulatedTarget.canCup?.waterSips ?? 0;
-        const requiredToLeaveOneBeer = Math.max(0, remainingWater + Math.max(0, remainingBeer - 1));
-        targetSipCommand += queueForcedSips(target.id, requiredToLeaveOneBeer);
         break;
       }
       case 'canCupSwap': {
@@ -393,7 +499,7 @@ export function useGameActions(partyId: string) {
         const targetCanCup = ensureCanCupState(target, sipsPerCan);
         const remainingSips = targetCanCup.sipsLeft + targetCanCup.waterSips;
         if (remainingSips > 0) {
-          targetSipCommand += queueForcedSips(target.id, remainingSips);
+          targetSipCommand += queueTargetedSips(target.id, remainingSips);
         }
         break;
       }
@@ -413,7 +519,7 @@ export function useGameActions(partyId: string) {
         if (myPending && myPending.totalSips > 0) {
           const sipsToTransfer = myPending.totalSips;
           delete nextPendingCanCupSips[player.id];
-          queueForcedSips(target.id, sipsToTransfer);
+          targetSipCommand += queueTargetedSips(target.id, sipsToTransfer);
           affectedPlayerIds.add(player.id);
           affectedPlayerIds.add(target.id);
         }
@@ -425,6 +531,9 @@ export function useGameActions(partyId: string) {
 
         if (isAoeDefenseRemoval) {
           updatedPlayers.forEach((entry) => {
+            if (entry.id === playerId) {
+              return;
+            }
             canCupRemoveDefense(entry, sipsPerCan);
             affectedPlayerIds.add(entry.id);
             if (penaltySips > 0) {
@@ -438,7 +547,7 @@ export function useGameActions(partyId: string) {
           canCupRemoveDefense(target, sipsPerCan);
           affectedPlayerIds.add(target.id);
           if (penaltySips > 0) {
-            targetSipCommand += queueForcedSips(target.id, penaltySips);
+            targetSipCommand += queueTargetedSips(target.id, penaltySips);
           }
         }
 
@@ -465,7 +574,7 @@ export function useGameActions(partyId: string) {
         break;
       }
       case 'canCupLegendaryHeist': {
-        const opponents = updatedPlayers.filter((entry) => entry.id !== player.id);
+        const opponents = updatedPlayers.filter((entry) => entry.id !== player.id && !hasUntargetableEffect(entry));
         if (opponents.length === 0) {
           resolvedTargetId = player.id;
           const penaltySips = Math.max(0, Math.round(card.effect.value));
@@ -500,11 +609,12 @@ export function useGameActions(partyId: string) {
       }
       case 'canCupTaxSober': {
         const taxSips = Math.max(0, Math.round(card.effect.value));
-        const candidates = getPlayersWithFewestEmptyCans(updatedPlayers, sipsPerCan);
+        const candidates = getPlayersWithFewestEmptyCans(updatedPlayers, sipsPerCan)
+          .filter((entry) => !hasUntargetableEffect(entry));
         if (candidates.length > 0 && taxSips > 0) {
           const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
           resolvedTargetId = randomCandidate.id;
-          targetSipCommand += queueForcedSips(randomCandidate.id, taxSips);
+          targetSipCommand += queueTargetedSips(randomCandidate.id, taxSips);
         }
         break;
       }
@@ -517,6 +627,14 @@ export function useGameActions(partyId: string) {
             addWaterSips(target, waterBonus, sipsPerCan);
             affectedPlayerIds.add(target.id);
           }
+
+          // Everyone else takes 2 sips
+          updatedPlayers.forEach((p) => {
+            if (p.id !== player.id && (!target || p.id !== target.id)) {
+              queueTargetedSips(p.id, 2);
+            }
+          });
+
           nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, sipsPerCan);
         }
         break;
@@ -526,18 +644,19 @@ export function useGameActions(partyId: string) {
         const emptyCans = player.canCup?.emptyCans ?? 0;
         const totalDamage = baseDamage + (2 * emptyCans);
         if (totalDamage > 0) {
-          targetSipCommand += queueForcedSips(target.id, totalDamage);
+          targetSipCommand += queueTargetedSips(target.id, totalDamage);
         }
         break;
       }
       case 'canCupRussianRoulette': {
-        if (updatedPlayers.length > 0) {
-          const randomVictim = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
+        const eligibleVictims = updatedPlayers.filter((entry) => !hasUntargetableEffect(entry));
+        if (eligibleVictims.length > 0) {
+          const randomVictim = eligibleVictims[Math.floor(Math.random() * eligibleVictims.length)];
           resolvedTargetId = randomVictim.id;
           const victimCanCup = ensureCanCupState(randomVictim, sipsPerCan);
           const remainingSips = victimCanCup.sipsLeft + victimCanCup.waterSips;
           if (remainingSips > 0) {
-            targetSipCommand += queueForcedSips(randomVictim.id, remainingSips);
+            targetSipCommand += queueTargetedSips(randomVictim.id, remainingSips);
           }
         }
         break;
@@ -564,6 +683,7 @@ export function useGameActions(partyId: string) {
       resolvedTargetId,
       affectedPlayerIds: Array.from(affectedPlayerIds),
       pendingCanCupSips: nextPendingCanCupSips,
+      pendingCanCupFollowUp,
       replacementCardForPlayedCard,
     };
   };
@@ -580,7 +700,8 @@ export function useGameActions(partyId: string) {
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
 
-        const updatedPlayers = [...party.players];
+        const updatedPlayers = party.players.map(clonePlayerForSimulation);
+        updatedPlayers.forEach(decrementUntargetableEffects);
 
         // Find next player's turn
         const currentPlayerIndex = updatedPlayers.findIndex(p => p.id === playerId);
@@ -589,6 +710,7 @@ export function useGameActions(partyId: string) {
 
         // Only update the currentTurn field, preserving all other fields
         transaction.update(partyRef, {
+          players: updatedPlayers,
           currentTurn: nextPlayerId,
         });
       });
@@ -615,26 +737,29 @@ export function useGameActions(partyId: string) {
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
         if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
+        assertNoPendingCanCupFollowUp(party);
         if (!isChallengeCard(card)) throw new Error('This card is not a challenge card');
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
         const gameMode = getGameMode(party);
+        const effectiveCard = card;
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         let nextPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
-        const isRandomOpponentChallenge = gameMode === 'can-cup' && isCanCupBottomRaceChallengeCard(card);
+        const isRandomOpponentChallenge = gameMode === 'can-cup' && isCanCupBottomRaceChallengeCard(effectiveCard);
+        const usesOwnerTargetSetup = gameMode === 'can-cup' && effectiveCard.challengeParticipantMode === 'owner-target';
         const requiresParticipantSetup = !(
           gameMode === 'can-cup' &&
-          isCanCupNoSetupChallengeCard(card)
+          isCanCupNoSetupChallengeCard(effectiveCard)
         );
-        const pendingChallengeCard = getChallengeCardForPendingState(card, gameMode);
+        const pendingChallengeCard = getChallengeCardForPendingState(effectiveCard, gameMode);
         const player = updatedPlayers.find((entry) => entry.id === playerId);
         if (!player) throw new Error('Player not found');
 
-        let resolvedDuelistOneId = duelistOneId;
+        let resolvedDuelistOneId = usesOwnerTargetSetup ? playerId : duelistOneId;
         let resolvedDuelistTwoId = duelistTwoId;
         if (isRandomOpponentChallenge) {
-          const opponents = updatedPlayers.filter((entry) => entry.id !== playerId);
+          const opponents = updatedPlayers.filter((entry) => entry.id !== playerId && !hasUntargetableEffect(entry));
           if (opponents.length === 0) {
             throw new Error('No valid opponent found for this challenge');
           }
@@ -649,16 +774,24 @@ export function useGameActions(partyId: string) {
           const duelistOne = updatedPlayers.find((entry) => entry.id === resolvedDuelistOneId);
           const duelistTwo = updatedPlayers.find((entry) => entry.id === resolvedDuelistTwoId);
           if (!duelistOne || !duelistTwo) throw new Error('Selected duelists not found');
+          if (usesOwnerTargetSetup && resolvedDuelistOneId !== playerId) {
+            throw new Error('The challenge owner must be one of the duelists');
+          }
+          const targetedDuelists = [duelistOne, duelistTwo]
+            .filter((entry) => entry.id !== playerId);
+          if (targetedDuelists.some((entry) => hasUntargetableEffect(entry))) {
+            throw new Error('Untargetable players cannot be chosen for this challenge');
+          }
         }
 
-        const hasCard = player.cards.some((entry) => entry.id === card.id);
+        const hasCard = player.cards.some((entry) => entry.id === effectiveCard.id);
         if (!hasCard) throw new Error('Challenge card not found in hand');
-        if (gameMode !== 'can-cup' && player.mana < card.manaCost) throw new Error('Not enough mana for challenge card');
+        if (gameMode !== 'can-cup' && player.mana < effectiveCard.manaCost) throw new Error('Not enough mana for challenge card');
         if (gameMode !== 'can-cup') {
-          player.mana = Math.max(0, player.mana - card.manaCost);
+          player.mana = Math.max(0, player.mana - effectiveCard.manaCost);
         }
         if (gameMode === 'can-cup') {
-          const playCostSips = Math.max(0, Math.round(card.sipCost ?? card.manaCost ?? 0));
+          const playCostSips = getCanCupPlayCost(effectiveCard);
           if (playCostSips > 0) {
             const existing = nextPendingCanCupSips[playerId];
             nextPendingCanCupSips[playerId] = {
@@ -666,10 +799,9 @@ export function useGameActions(partyId: string) {
               totalSips: (existing?.totalSips ?? 0) + playCostSips,
               beerSipsToConsume: existing?.beerSipsToConsume ?? 0,
               waterSipsToConsume: existing?.waterSipsToConsume ?? 0,
-              deflectSipsToConsume: existing?.deflectSipsToConsume ?? 0,
               sourcePlayerId: playerId,
-              sourceCardId: card.id,
-              sourceCardName: card.name,
+              sourceCardId: effectiveCard.id,
+              sourceCardName: effectiveCard.name,
               updatedAt: Date.now(),
             };
             nextPendingCanCupSips = recalculatePendingCanCupSips(
@@ -711,13 +843,15 @@ export function useGameActions(partyId: string) {
             playerId,
             targetId: isRandomOpponentChallenge
               ? resolvedDuelistTwoId
-              : (requiresParticipantSetup ? resolvedDuelistOneId : undefined),
-            cardId: card.id,
+              : usesOwnerTargetSetup
+                ? resolvedDuelistTwoId
+                : (requiresParticipantSetup ? resolvedDuelistOneId : undefined),
+            cardId: effectiveCard.id,
             cardName: pendingChallengeCard.name,
-            cardType: card.effect.type,
-            cardRarity: card.rarity,
+            cardType: effectiveCard.effect.type,
+            cardRarity: effectiveCard.rarity,
             cardDescription: pendingChallengeCard.description,
-            manaCost: card.manaCost,
+            manaCost: gameMode === 'can-cup' ? getCanCupPlayCost(effectiveCard) : effectiveCard.manaCost,
           }),
         });
       });
@@ -916,9 +1050,8 @@ export function useGameActions(partyId: string) {
         }
 
         const updatedPlayers = party.players.map((player) => ({
-          ...player,
+          ...clonePlayerForSimulation(player),
           cards: [...player.cards],
-          canCup: player.canCup ? { ...player.canCup } : undefined,
         }));
         const beforeStats = snapshotPlayerStats(updatedPlayers);
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
@@ -941,7 +1074,6 @@ export function useGameActions(partyId: string) {
           totalSips: (existingPenalty?.totalSips ?? 0) + loserSipPenalty,
           beerSipsToConsume: existingPenalty?.beerSipsToConsume ?? 0,
           waterSipsToConsume: existingPenalty?.waterSipsToConsume ?? 0,
-          deflectSipsToConsume: existingPenalty?.deflectSipsToConsume ?? 0,
           sourcePlayerId: winnerId,
           sourceCardId: pendingChallenge.card.id,
           sourceCardName: pendingChallenge.card.name,
@@ -964,7 +1096,7 @@ export function useGameActions(partyId: string) {
             cardType: pendingChallenge.card.effect.type,
             cardRarity: pendingChallenge.card.rarity,
             cardDescription: pendingChallenge.card.description,
-            manaCost: pendingChallenge.card.manaCost,
+            manaCost: getCanCupPlayCost(pendingChallenge.card),
             targetDamageOverride: loserSipPenalty,
             targetManaDeltaOverride: -loserSipPenalty,
             targetManaIntakeDeltaOverride: 0,
@@ -982,6 +1114,7 @@ export function useGameActions(partyId: string) {
   // Apply a card effect
   const applyCardEffect = useCallback(async (playerId: string, targetId: string, card: Card) => {
     const partyRef = doc(db, 'parties', partyId);
+    let shouldEndTurnAfterAction = true;
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -991,26 +1124,31 @@ export function useGameActions(partyId: string) {
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
         if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
+        assertNoPendingCanCupFollowUp(party);
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
         const gameMode = getGameMode(party);
+        const effectiveCard = card;
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         const player = updatedPlayers.find(p => p.id === playerId);
         const target = updatedPlayers.find(p => p.id === targetId);
 
         if (!player) throw new Error('Player not found');
         if (!target) throw new Error('Target not found');
+        if (target.id !== playerId && effectiveCard.requiresTarget && hasUntargetableEffect(target)) {
+          throw new Error('Target player is untargetable');
+        }
 
         if (gameMode === 'can-cup') {
-          const cardIndex = player.cards.findIndex(c => c.id === card.id);
+          const cardIndex = player.cards.findIndex(c => c.id === effectiveCard.id);
           if (cardIndex === -1) {
             throw new Error('Card not found in player hand');
           }
 
           const normalizedPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
           const canCupResult = applyCanCupCardEffect({
-            card,
+            card: effectiveCard,
             player,
             target,
             updatedPlayers,
@@ -1021,26 +1159,36 @@ export function useGameActions(partyId: string) {
 
           player.cards[cardIndex] = canCupResult.replacementCardForPlayedCard ?? drawNewCard(gameMode);
           const actionTargetId = canCupResult.resolvedTargetId ?? targetId;
+          const actionPayload = buildLastActionPayload({
+            beforeStats,
+            updatedPlayers,
+            playerId,
+            targetId: actionTargetId,
+            cardId: effectiveCard.id,
+            cardName: effectiveCard.name,
+            cardType: effectiveCard.effect.type,
+            cardRarity: effectiveCard.rarity,
+            cardDescription: effectiveCard.description,
+            manaCost: getCanCupPlayCost(effectiveCard),
+            targetDamageOverride: canCupResult.targetSipCommand,
+            targetManaDeltaOverride: canCupResult.targetSipCommand > 0 ? -canCupResult.targetSipCommand : 0,
+            targetManaIntakeDeltaOverride: 0,
+            affectedPlayerIdsOverride: canCupResult.affectedPlayerIds,
+          });
+          const pendingCanCupFollowUp = canCupResult.pendingCanCupFollowUp
+            ? {
+              ...canCupResult.pendingCanCupFollowUp,
+              originalAction: actionPayload.segments?.[0] ?? actionPayload,
+              createdAt: Date.now(),
+            }
+            : null;
+          shouldEndTurnAfterAction = !pendingCanCupFollowUp;
 
           transaction.update(partyRef, {
             players: updatedPlayers,
             pendingCanCupSips: toPendingCanCupSipsField(canCupResult.pendingCanCupSips),
-            lastAction: buildLastActionPayload({
-              beforeStats,
-              updatedPlayers,
-              playerId,
-              targetId: actionTargetId,
-              cardId: card.id,
-              cardName: card.name,
-              cardType: card.effect.type,
-              cardRarity: card.rarity,
-              cardDescription: card.description,
-              manaCost: card.manaCost,
-              targetDamageOverride: canCupResult.targetSipCommand,
-              targetManaDeltaOverride: canCupResult.targetSipCommand > 0 ? -canCupResult.targetSipCommand : 0,
-              targetManaIntakeDeltaOverride: 0,
-              affectedPlayerIdsOverride: canCupResult.affectedPlayerIds,
-            }),
+            pendingCanCupFollowUp,
+            lastAction: actionPayload,
           });
 
           // Check Can Cup winner after card effect
@@ -1618,7 +1766,9 @@ export function useGameActions(partyId: string) {
       });
 
       // End turn and decay mana intake
-      await endTurn(playerId);
+      if (shouldEndTurnAfterAction) {
+        await endTurn(playerId);
+      }
 
       return true;
     } catch (error) {
@@ -1646,22 +1796,24 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) {
           throw new Error('Not player\'s turn');
         }
+        assertNoPendingCanCupFollowUp(party);
         if (party.pendingChallenge && party.pendingChallenge.playerId !== playerId) {
           throw new Error('Only the challenge owner can resolve this challenge');
         }
 
+        const gameMode = getGameMode(party);
         const challengeCard = card ?? party.pendingChallenge?.card;
         if (!challengeCard) {
           throw new Error('Challenge card data is missing');
         }
-        if (!isChallengeCard(challengeCard)) {
-          console.error('Challenge effects not defined for this card:', challengeCard);
-          throw new Error('Challenge effects not defined for this card: ' + challengeCard.name);
+        const resolvedChallengeCard = challengeCard;
+        if (!isChallengeCard(resolvedChallengeCard)) {
+          console.error('Challenge effects not defined for this card:', resolvedChallengeCard);
+          throw new Error('Challenge effects not defined for this card: ' + resolvedChallengeCard.name);
         }
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
-        const gameMode = getGameMode(party);
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         const winner = updatedPlayers.find(p => p.id === winnerId);
         const loser = updatedPlayers.find(p => p.id === loserId);
@@ -1688,10 +1840,10 @@ export function useGameActions(partyId: string) {
           throw new Error('Challenge owner not found');
         }
         if (!party.pendingChallenge && gameMode !== 'can-cup') {
-          if (challengeOwner.mana < challengeCard.manaCost) {
+          if (challengeOwner.mana < resolvedChallengeCard.manaCost) {
             throw new Error('Not enough mana for challenge card');
           }
-          challengeOwner.mana = Math.max(0, challengeOwner.mana - challengeCard.manaCost);
+          challengeOwner.mana = Math.max(0, challengeOwner.mana - resolvedChallengeCard.manaCost);
         }
 
         let winnerEffect;
@@ -1702,18 +1854,18 @@ export function useGameActions(partyId: string) {
         let nextPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
 
         try {
-          if (challengeCard.effect.winnerEffect && challengeCard.effect.loserEffect) {
-            winnerEffect = challengeCard.effect.winnerEffect;
-            loserEffect = challengeCard.effect.loserEffect;
-          } else if (challengeCard.effect.challenge?.winnerEffect && challengeCard.effect.challenge?.loserEffect) {
-            winnerEffect = challengeCard.effect.challenge.winnerEffect;
-            loserEffect = challengeCard.effect.challenge.loserEffect;
-          } else if (challengeCard.effect.challengeEffects?.winner && challengeCard.effect.challengeEffects?.loser) {
-            winnerEffect = challengeCard.effect.challengeEffects.winner;
-            loserEffect = challengeCard.effect.challengeEffects.loser;
+          if (resolvedChallengeCard.effect.winnerEffect && resolvedChallengeCard.effect.loserEffect) {
+            winnerEffect = resolvedChallengeCard.effect.winnerEffect;
+            loserEffect = resolvedChallengeCard.effect.loserEffect;
+          } else if (resolvedChallengeCard.effect.challenge?.winnerEffect && resolvedChallengeCard.effect.challenge?.loserEffect) {
+            winnerEffect = resolvedChallengeCard.effect.challenge.winnerEffect;
+            loserEffect = resolvedChallengeCard.effect.challenge.loserEffect;
+          } else if (resolvedChallengeCard.effect.challengeEffects?.winner && resolvedChallengeCard.effect.challengeEffects?.loser) {
+            winnerEffect = resolvedChallengeCard.effect.challengeEffects.winner;
+            loserEffect = resolvedChallengeCard.effect.challengeEffects.loser;
           } else {
             // Fallback for cards with non-standard effects
-            switch (challengeCard.id) {
+            switch (resolvedChallengeCard.id) {
               case 'ol-havf':
                 winnerEffect = { type: 'mana', value: 5 };
                 loserEffect = { type: 'manaIntake', value: 10 };
@@ -1731,14 +1883,14 @@ export function useGameActions(partyId: string) {
                 loserEffect = { type: 'manaIntakeMultiply', value: 2 };
                 break;
               default:
-                if (isNamingChallengeCard(challengeCard)) {
+                if (isNamingChallengeCard(resolvedChallengeCard)) {
                   // 'Name the most' cards
                   const value = 5; // Default value for naming challenges
                   winnerEffect = { type: 'manaStealer', value: value };
                   loserEffect = { type: 'manaBurn', value: value };
                 } else {
-                  console.error('Unable to determine challenge effects for card', challengeCard);
-                  throw new Error('Unable to determine challenge effects for card: ' + challengeCard.name);
+                  console.error('Unable to determine challenge effects for card', resolvedChallengeCard);
+                  throw new Error('Unable to determine challenge effects for card: ' + resolvedChallengeCard.name);
                 }
             }
           }
@@ -1758,10 +1910,9 @@ export function useGameActions(partyId: string) {
                 totalSips: existingTotal + totalSipsToQueue,
                 beerSipsToConsume: existing?.beerSipsToConsume ?? 0,
                 waterSipsToConsume: existing?.waterSipsToConsume ?? 0,
-                deflectSipsToConsume: existing?.deflectSipsToConsume ?? 0,
                 sourcePlayerId: playerId,
-                sourceCardId: challengeCard.id,
-                sourceCardName: challengeCard.name,
+                sourceCardId: resolvedChallengeCard.id,
+                sourceCardName: resolvedChallengeCard.name,
                 updatedAt: Date.now(),
               };
 
@@ -1790,7 +1941,7 @@ export function useGameActions(partyId: string) {
                   nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, canCupSipsPerCan);
                   return 0;
                 case 'canCupDeflect':
-                  addDeflectCharges(effectTarget, effect.value, canCupSipsPerCan);
+                  addWaterSips(effectTarget, effect.value, canCupSipsPerCan);
                   affectedPlayers.add(effectTarget.id);
                   nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, canCupSipsPerCan);
                   return 0;
@@ -1800,8 +1951,14 @@ export function useGameActions(partyId: string) {
               }
             };
 
-            applyCanCupChallengeEffect(winner, winnerEffect);
-            challengeTargetSipCount = applyCanCupChallengeEffect(loser, loserEffect);
+            if (resolvedChallengeCard.challengeOutcomeRule === 'owner-safe') {
+              if (winner.id === playerId) {
+                challengeTargetSipCount = applyCanCupChallengeEffect(loser, loserEffect);
+              }
+            } else {
+              applyCanCupChallengeEffect(winner, winnerEffect);
+              challengeTargetSipCount = applyCanCupChallengeEffect(loser, loserEffect);
+            }
           } else {
             if (winnerEffect?.type === 'manaStealer') {
               const stealAmount = Math.min(loser.mana, winnerEffect.value);
@@ -1814,8 +1971,8 @@ export function useGameActions(partyId: string) {
             }
 
             // Apply effects to winner and loser
-            const winnerResult = applyChallengeEffect(winner, winnerEffect, maxMana, challengeCard);
-            const loserResult = applyChallengeEffect(loser, loserEffect, maxMana, challengeCard);
+            const winnerResult = applyChallengeEffect(winner, winnerEffect, maxMana, resolvedChallengeCard);
+            const loserResult = applyChallengeEffect(loser, loserEffect, maxMana, resolvedChallengeCard);
 
             Object.assign(winner, winnerResult);
             Object.assign(loser, loserResult);
@@ -1831,7 +1988,7 @@ export function useGameActions(partyId: string) {
           throw new Error('Player not found');
         }
 
-        const cardIndex = player.cards.findIndex(c => c.id === challengeCard.id);
+        const cardIndex = player.cards.findIndex(c => c.id === resolvedChallengeCard.id);
         if (cardIndex === -1) {
           throw new Error('Card not found in player\'s hand');
         }
@@ -1857,12 +2014,12 @@ export function useGameActions(partyId: string) {
             updatedPlayers,
             playerId: winnerId,
             targetId: loserId,
-            cardId: challengeCard.id,
-            cardName: challengeCard.name,
-            cardType: challengeCard.effect.type,
-            cardRarity: challengeCard.rarity,
-            cardDescription: challengeCard.description,
-            manaCost: challengeCard.manaCost,
+            cardId: resolvedChallengeCard.id,
+            cardName: resolvedChallengeCard.name,
+            cardType: resolvedChallengeCard.effect.type,
+            cardRarity: resolvedChallengeCard.rarity,
+            cardDescription: resolvedChallengeCard.description,
+            manaCost: gameMode === 'can-cup' ? getCanCupPlayCost(resolvedChallengeCard) : resolvedChallengeCard.manaCost,
             targetDamageOverride: gameMode === 'can-cup' ? challengeTargetSipCount : undefined,
             targetManaDeltaOverride: gameMode === 'can-cup' ? (challengeTargetSipCount > 0 ? -challengeTargetSipCount : 0) : undefined,
             targetManaIntakeDeltaOverride: gameMode === 'can-cup' ? 0 : undefined,
@@ -1892,6 +2049,113 @@ export function useGameActions(partyId: string) {
     }
   }, [partyId, endTurn]);
 
+  const resolveCanCupFollowUpTarget = useCallback(async (playerId: string, targetId: string) => {
+    const partyRef = doc(db, 'parties', partyId);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        if (!partyDoc.exists()) throw new Error('Party not found');
+        const party = partyDoc.data() as Party;
+        if (getGameMode(party) !== 'can-cup') {
+          throw new Error('Pass-along targeting is only available in Can Cup');
+        }
+
+        const pendingFollowUp = party.pendingCanCupFollowUp;
+        if (!pendingFollowUp) {
+          throw new Error('No pending pass-along target to choose');
+        }
+        if (pendingFollowUp.responderId !== playerId) {
+          throw new Error('Only the struck player can choose the follow-up target');
+        }
+        if (targetId === playerId) {
+          throw new Error('You must choose someone else');
+        }
+
+        const updatedPlayers = party.players.map(clonePlayerForSimulation);
+        const beforeStats = snapshotPlayerStats(updatedPlayers);
+        const relayTarget = updatedPlayers.find((entry) => entry.id === targetId);
+        if (!relayTarget) {
+          throw new Error('Target player not found');
+        }
+        const isUntargetable = relayTarget.effects?.some(
+          (effect) => effect.stackId === 'untargetable' && effect.type === 'untargetable'
+        );
+        if (isUntargetable) {
+          throw new Error('Target player is untargetable');
+        }
+
+        if (!getCanCupFollowUpCandidates(updatedPlayers, playerId).some((entry) => entry.id === targetId)) {
+          throw new Error('Invalid follow-up target');
+        }
+
+        const nextPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
+        const canCupSipsPerCan = getCanCupSipsPerCan(party);
+        const reducedSipCount = getReducedTargetedSipCount(relayTarget, pendingFollowUp.sipCount, canCupSipsPerCan);
+        const existing = nextPendingCanCupSips[targetId];
+        nextPendingCanCupSips[targetId] = {
+          targetPlayerId: targetId,
+          totalSips: (existing?.totalSips ?? 0) + reducedSipCount,
+          beerSipsToConsume: existing?.beerSipsToConsume ?? 0,
+          waterSipsToConsume: existing?.waterSipsToConsume ?? 0,
+          sourcePlayerId: playerId,
+          sourceCardId: pendingFollowUp.sourceCardId,
+          sourceCardName: pendingFollowUp.sourceCardName,
+          updatedAt: Date.now(),
+        };
+
+        const recalculatedPendingCanCupSips = recalculatePendingCanCupSips(
+          nextPendingCanCupSips,
+          updatedPlayers,
+          canCupSipsPerCan
+        );
+        const responseSegment = buildGameActionSegment({
+          beforeStats,
+          updatedPlayers,
+          playerId,
+          targetId,
+          cardId: pendingFollowUp.sourceCardId,
+          cardName: pendingFollowUp.sourceCardName,
+          cardType: pendingFollowUp.sourceCardType,
+          cardRarity: pendingFollowUp.sourceCardRarity,
+          cardDescription: pendingFollowUp.sourceCardDescription,
+          manaCost: 0,
+          targetDamageOverride: reducedSipCount,
+          targetManaDeltaOverride: reducedSipCount > 0 ? -reducedSipCount : 0,
+          targetManaIntakeDeltaOverride: 0,
+          affectedPlayerIdsOverride: [playerId, targetId],
+          label: 'Pass-along',
+        });
+        const combinedAffectedPlayerIds = Array.from(new Set([
+          ...(pendingFollowUp.originalAction.affectedPlayerIds ?? []),
+          ...(responseSegment.affectedPlayerIds ?? []),
+        ]));
+        const chainedLastAction: GameAction = {
+          ...pendingFollowUp.originalAction,
+          affectedPlayerIds: combinedAffectedPlayerIds.length > 0
+            ? combinedAffectedPlayerIds
+            : pendingFollowUp.originalAction.affectedPlayerIds,
+          segments: [
+            pendingFollowUp.originalAction,
+            responseSegment,
+          ],
+          timestamp: Date.now(),
+        };
+
+        transaction.update(partyRef, {
+          pendingCanCupSips: toPendingCanCupSipsField(recalculatedPendingCanCupSips),
+          pendingCanCupFollowUp: null,
+          lastAction: chainedLastAction,
+          currentTurn: getNextTurnPlayerId(updatedPlayers, pendingFollowUp.turnOwnerId),
+        });
+      });
+      return true;
+    } catch (error) {
+      console.error('Error resolving Can Cup pass-along target:', error);
+      throw error;
+    }
+  }, [partyId]);
+
   const resolveCanCupSips = useCallback(async (playerId: string) => {
     const partyRef = doc(db, 'parties', partyId);
 
@@ -1901,6 +2165,7 @@ export function useGameActions(partyId: string) {
         if (!partyDoc.exists()) throw new Error('Party not found');
         const party = partyDoc.data() as Party;
         if (getGameMode(party) !== 'can-cup') return;
+        assertNoPendingCanCupFollowUp(party);
 
         const pendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
         const resolution = pendingCanCupSips[playerId];
@@ -1952,6 +2217,7 @@ export function useGameActions(partyId: string) {
         const party = partyDoc.data() as Party;
         const gameMode = getGameMode(party);
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
+        assertNoPendingCanCupFollowUp(party);
 
         const beforeStats = snapshotPlayerStats(party.players);
 
@@ -2045,6 +2311,7 @@ export function useGameActions(partyId: string) {
     pressReactionChallenge,
     dismissReactionChallengeResults,
     resolveChallengeCard,
+    resolveCanCupFollowUpTarget,
     resolveCanCupSips,
     drinkMana,
     godModeSwapCard,

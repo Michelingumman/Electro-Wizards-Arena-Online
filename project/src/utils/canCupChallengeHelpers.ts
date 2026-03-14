@@ -37,7 +37,7 @@ export function isCanCupBottomRaceChallengeCard(card?: CanCupChallengeLike | nul
   const winnerEffect = card.effect?.winnerEffect ?? card.effect?.challenge?.winnerEffect;
   return Boolean(
     card.requiresTarget === false &&
-    winnerEffect?.type === 'canCupDeflect' &&
+    (winnerEffect?.type === 'canCupWater' || winnerEffect?.type === 'canCupDeflect') &&
     (winnerEffect?.value ?? 0) >= 8
   );
 }

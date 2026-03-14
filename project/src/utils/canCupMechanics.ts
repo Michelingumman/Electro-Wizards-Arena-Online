@@ -4,7 +4,6 @@ import { CanCupState, Player } from '../types/game';
 export interface SipResolution {
   appliedSips: number;
   blockedByWater: number;
-  blockedByDeflect: number;
   emptiedCans: number;
 }
 
@@ -21,10 +20,12 @@ export const ensureCanCupState = (player: Player, sipsPerCan?: number): CanCupSt
     player.canCup = {
       sipsLeft: normalizedSipsPerCan,
       waterSips: 0,
-      deflectCharges: 0,
       emptyCans: 0,
+      pendingResolution: false,
     };
   }
+
+  const legacyCanCupState = player.canCup as CanCupState & { deflectCharges?: number };
 
   player.canCup.sipsLeft = Math.min(
     normalizedSipsPerCan,
@@ -33,9 +34,10 @@ export const ensureCanCupState = (player: Player, sipsPerCan?: number): CanCupSt
   if (player.canCup.sipsLeft === 0) {
     player.canCup.sipsLeft = normalizedSipsPerCan;
   }
-  player.canCup.waterSips = Math.max(0, Math.round(player.canCup.waterSips ?? 0));
-  player.canCup.deflectCharges = Math.max(0, Math.round(player.canCup.deflectCharges ?? 0));
+  const legacyDeflectCharges = Math.max(0, Math.round(legacyCanCupState.deflectCharges ?? 0));
+  player.canCup.waterSips = Math.max(0, Math.round(player.canCup.waterSips ?? 0)) + legacyDeflectCharges;
   player.canCup.emptyCans = Math.max(0, Math.round(player.canCup.emptyCans ?? 0));
+  delete legacyCanCupState.deflectCharges;
 
   return player.canCup;
 };
@@ -52,17 +54,10 @@ export const applyForcedSips = (
   const result: SipResolution = {
     appliedSips: 0,
     blockedByWater: 0,
-    blockedByDeflect: 0,
     emptiedCans: 0,
   };
 
   for (let i = 0; i < total; i += 1) {
-    if (state.deflectCharges > 0) {
-      state.deflectCharges -= 1;
-      result.blockedByDeflect += 1;
-      continue;
-    }
-
     if (state.waterSips > 0) {
       state.waterSips -= 1;
       result.blockedByWater += 1;
@@ -94,7 +89,6 @@ export const applyDirectSips = (
   const result: SipResolution = {
     appliedSips: 0,
     blockedByWater: 0,
-    blockedByDeflect: 0,
     emptiedCans: 0,
   };
 
@@ -112,15 +106,17 @@ export const applyDirectSips = (
   return result;
 };
 
+export const getReducedTargetedSipCount = (
+  _player: Player,
+  sipCount: number,
+  _sipsPerCan?: number
+): number => {
+  return Math.max(0, Math.round(sipCount));
+};
+
 export const addWaterSips = (player: Player, amount: number, sipsPerCan?: number): CanCupState => {
   const state = ensureCanCupState(player, sipsPerCan);
   state.waterSips = Math.max(0, state.waterSips + Math.max(0, Math.round(amount)));
-  return state;
-};
-
-export const addDeflectCharges = (player: Player, amount: number, sipsPerCan?: number): CanCupState => {
-  const state = ensureCanCupState(player, sipsPerCan);
-  state.deflectCharges = Math.max(0, state.deflectCharges + Math.max(0, Math.round(amount)));
   return state;
 };
 
@@ -149,7 +145,6 @@ export const setSipsLeft = (player: Player, nextSipsLeft: number, sipsPerCan?: n
 export const canCupRemoveDefense = (player: Player, sipsPerCan?: number): CanCupState => {
   const state = ensureCanCupState(player, sipsPerCan);
   state.waterSips = 0;
-  state.deflectCharges = 0;
   return state;
 };
 

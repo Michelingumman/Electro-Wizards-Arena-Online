@@ -32,7 +32,6 @@ const createInitialPlayer = (
     canCup: {
       sipsLeft: GAME_CONFIG.CAN_CUP_SIPS_PER_CAN,
       waterSips: 0,
-      deflectCharges: 0,
       emptyCans: 0,
     },
   };
@@ -57,6 +56,7 @@ export function usePartyActions() {
       currentTurn: player.id,
       leaderId: player.id,
       pendingChallenge: null,
+      pendingCanCupFollowUp: null,
       settings: {
         maxMana: GAME_CONFIG.MAX_MANA,
         manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,

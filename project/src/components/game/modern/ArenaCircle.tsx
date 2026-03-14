@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, Party, Player, GameMode, isAfterskiMode } from '../../../types/game';
+import { Card, GameActionSegment, Party, PendingCanCupFollowUp, Player, GameMode, isAfterskiMode } from '../../../types/game';
 import { ModernPlayerAvatar } from './ModernPlayerAvatar';
 import { animate, AnimatePresence, motion, useMotionValue } from 'framer-motion';
 import { Sword, X } from 'lucide-react';
@@ -19,6 +19,7 @@ interface ArenaCircleProps {
     selectedCard: Card | null;
     lastAction?: Party['lastAction'];
     pendingChallenge?: Party['pendingChallenge'];
+    pendingCanCupFollowUp?: PendingCanCupFollowUp | null;
     pendingCanCupSips?: Party['pendingCanCupSips'];
     canResolvePendingChallenge?: boolean;
     isCurrentTurn: boolean;
@@ -164,6 +165,7 @@ export function ArenaCircle({
     selectedCard,
     lastAction,
     pendingChallenge,
+    pendingCanCupFollowUp,
     pendingCanCupSips,
     canResolvePendingChallenge = false,
     isCurrentTurn,
@@ -306,6 +308,8 @@ export function ArenaCircle({
         x: frac.x * halfX,
         y: frac.y * halfY,
     });
+    const isUntargetablePlayer = (player?: Player | null) =>
+        Boolean(player?.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0));
 
     const posOf = (id: string) => {
         if (useCanCupPlacement) {
@@ -321,103 +325,211 @@ export function ArenaCircle({
         return idx >= 0 ? spreadFromCenter(angleToXY(getAngle(idx, total - 1), radiusX, radiusY)) : null;
     };
 
-    const atkPos = lastAction?.playerId ? posOf(lastAction.playerId) : null;
-    const tgtPos = lastAction?.targetId ? posOf(lastAction.targetId) : null;
-    const hasLine = Boolean(atkPos && tgtPos && lastAction?.playerId !== lastAction?.targetId);
+    const actionSegments: GameActionSegment[] = lastAction
+        ? (lastAction.segments?.length ? lastAction.segments : [lastAction])
+        : [];
+    const getSegmentPalette = (segmentIndex: number) => {
+        if (!isCanCup) {
+            return {
+                glowStroke: 'rgba(239,68,68,0.24)',
+                start: '#ef4444',
+                end: '#fb923c',
+                arrow: '#f87171',
+                iconBorder: 'border-red-400/50',
+                iconBg: 'bg-gray-950/80',
+                iconShadow: 'shadow-[0_0_12px_rgba(248,113,113,0.4)]',
+                iconText: 'text-red-300',
+                badgeBorder: 'border-red-300/50',
+                badgeBg: 'bg-red-950/75',
+                badgeText: 'text-red-100',
+                badgeShadow: 'shadow-[0_0_10px_rgba(248,113,113,0.35)]',
+            };
+        }
 
-    const PLAYER_EDGE_OFFSET = isCanCup ? 50 : 28;
-    const lineGeometry: LineGeometry | null = hasLine && atkPos && tgtPos
-        ? (() => {
-            const sx = atkPos.x + halfX;
-            const sy = atkPos.y + centerY + OFFSET_Y;
-            const tx = tgtPos.x + halfX;
-            const ty = tgtPos.y + centerY + OFFSET_Y;
-            const dx = tx - sx;
-            const dy = ty - sy;
-            const distance = Math.hypot(dx, dy) || 1;
-            const closeDistanceFactor = Math.max(0, Math.min(1, 1 - distance / 260));
-            const ux = dx / distance;
-            const uy = dy / distance;
-            // For Can Cup: generous offset but never eat more than 30% of each end
-            // so the arrow always spans at least ~40% of the total distance
-            const edgeOffset = isCanCup
-                ? Math.min(PLAYER_EDGE_OFFSET, distance * 0.30)
-                : (distance > PLAYER_EDGE_OFFSET * 2 + 6 ? PLAYER_EDGE_OFFSET : 0);
-            const startX = sx + ux * edgeOffset;
-            const startY = sy + uy * edgeOffset;
-            const endX = tx - ux * edgeOffset;
-            const endY = ty - uy * edgeOffset;
-            const lineDx = endX - startX;
-            const lineDy = endY - startY;
-            const lineDistance = Math.max(1, Math.hypot(lineDx, lineDy));
-            const nearAdjacent = closeDistanceFactor > 0.55;
-            const baseMidX = (startX + endX) / 2;
-            const baseMidY = (startY + endY) / 2;
-            const normalX = -lineDy / lineDistance;
-            const normalY = lineDx / lineDistance;
+        if (segmentIndex === 0) {
+            return {
+                glowStroke: 'rgba(251,191,36,0.24)',
+                start: '#fbbf24',
+                end: '#fdba74',
+                arrow: '#f59e0b',
+                iconBorder: 'border-amber-400/50',
+                iconBg: 'bg-gray-950/80',
+                iconShadow: 'shadow-[0_0_12px_rgba(251,191,36,0.4)]',
+                iconText: 'text-amber-200',
+                badgeBorder: 'border-amber-300/50',
+                badgeBg: 'bg-amber-950/75',
+                badgeText: 'text-amber-100',
+                badgeShadow: 'shadow-[0_0_10px_rgba(251,191,36,0.35)]',
+            };
+        }
 
-            const curvature = isCanCup
-                ? Math.max(
-                    isTightCanCupLayout ? 48 : 30,
-                    Math.min(
-                        isTightCanCupLayout ? 140 : 116,
-                        lineDistance * ((isTightCanCupLayout ? 0.66 : 0.38) + closeDistanceFactor * (isTightCanCupLayout ? 0.24 : 0.24))
-                    )
+        return {
+            glowStroke: 'rgba(34,211,238,0.22)',
+            start: '#22d3ee',
+            end: '#34d399',
+            arrow: '#22d3ee',
+            iconBorder: 'border-cyan-400/50',
+            iconBg: 'bg-gray-950/80',
+            iconShadow: 'shadow-[0_0_12px_rgba(34,211,238,0.38)]',
+            iconText: 'text-cyan-100',
+            badgeBorder: 'border-cyan-300/50',
+            badgeBg: 'bg-cyan-950/75',
+            badgeText: 'text-cyan-100',
+            badgeShadow: 'shadow-[0_0_10px_rgba(34,211,238,0.32)]',
+        };
+    };
+    const buildLineGeometry = (segment: GameActionSegment, segmentIndex: number): LineGeometry | null => {
+        if (!segment.targetId || segment.playerId === segment.targetId) {
+            return null;
+        }
+
+        const atkPos = posOf(segment.playerId);
+        const tgtPos = posOf(segment.targetId);
+        if (!atkPos || !tgtPos) {
+            return null;
+        }
+
+        const PLAYER_EDGE_OFFSET = isCanCup ? 50 : 28;
+        const sx = atkPos.x + halfX;
+        const sy = atkPos.y + centerY + OFFSET_Y;
+        const tx = tgtPos.x + halfX;
+        const ty = tgtPos.y + centerY + OFFSET_Y;
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const distance = Math.hypot(dx, dy) || 1;
+        const closeDistanceFactor = Math.max(0, Math.min(1, 1 - distance / 260));
+        const ux = dx / distance;
+        const uy = dy / distance;
+        const edgeOffset = isCanCup
+            ? Math.min(PLAYER_EDGE_OFFSET, distance * 0.30)
+            : (distance > PLAYER_EDGE_OFFSET * 2 + 6 ? PLAYER_EDGE_OFFSET : 0);
+        const baseStartX = sx + ux * edgeOffset;
+        const baseStartY = sy + uy * edgeOffset;
+        const baseEndX = tx - ux * edgeOffset;
+        const baseEndY = ty - uy * edgeOffset;
+        const lineDx = baseEndX - baseStartX;
+        const lineDy = baseEndY - baseStartY;
+        const lineDistance = Math.max(1, Math.hypot(lineDx, lineDy));
+        const nearAdjacent = closeDistanceFactor > 0.55;
+        const normalX = -lineDy / lineDistance;
+        const normalY = lineDx / lineDistance;
+        const reverseSegmentIndex = actionSegments.findIndex((candidate, candidateIndex) =>
+            candidateIndex !== segmentIndex &&
+            candidate.playerId === segment.targetId &&
+            candidate.targetId === segment.playerId
+        );
+        const distributedLaneOffset = actionSegments.length > 1
+            ? (segmentIndex - (actionSegments.length - 1) / 2) * (isTightCanCupLayout ? 12 : 10)
+            : 0;
+        const laneOffset = isCanCup
+            ? reverseSegmentIndex >= 0
+                ? (segmentIndex < reverseSegmentIndex ? 1 : -1) * (isTightCanCupLayout ? 18 : 15)
+                : distributedLaneOffset
+            : 0;
+        const startX = baseStartX + normalX * laneOffset;
+        const startY = baseStartY + normalY * laneOffset;
+        const endX = baseEndX + normalX * laneOffset;
+        const endY = baseEndY + normalY * laneOffset;
+        const baseMidX = (startX + endX) / 2;
+        const baseMidY = (startY + endY) / 2;
+
+        const curvature = isCanCup
+            ? Math.max(
+                isTightCanCupLayout ? 48 : 30,
+                Math.min(
+                    isTightCanCupLayout ? 140 : 116,
+                    lineDistance * ((isTightCanCupLayout ? 0.66 : 0.38) + closeDistanceFactor * (isTightCanCupLayout ? 0.24 : 0.24))
                 )
-                : 0;
-            const arenaCenterX = halfX;
-            const arenaCenterY = centerY + OFFSET_Y;
+            ) + Math.abs(laneOffset) * 1.25
+            : 0;
+        const arenaCenterX = halfX;
+        const arenaCenterY = centerY + OFFSET_Y;
 
-            const candidateAX = baseMidX + normalX * curvature;
-            const candidateAY = baseMidY + normalY * curvature;
-            const candidateBX = baseMidX - normalX * curvature;
-            const candidateBY = baseMidY - normalY * curvature;
-            const candidateADistance = Math.hypot(candidateAX - arenaCenterX, candidateAY - arenaCenterY);
-            const candidateBDistance = Math.hypot(candidateBX - arenaCenterX, candidateBY - arenaCenterY);
-            const chosenControlX = curvature > 0 && candidateBDistance < candidateADistance ? candidateBX : candidateAX;
-            const chosenControlY = curvature > 0 && candidateBDistance < candidateADistance ? candidateBY : candidateAY;
-            const centerPull = isCanCup
-                ? Math.min(
-                    nearAdjacent ? 0.9 : 0.82,
-                    (isTightCanCupLayout ? 0.54 : 0.36) + closeDistanceFactor * (isTightCanCupLayout ? 0.34 : 0.34)
-                )
-                : 0;
-            const controlX = chosenControlX * (1 - centerPull) + arenaCenterX * centerPull;
-            const controlY = chosenControlY * (1 - centerPull) + arenaCenterY * centerPull;
+        const candidateAX = baseMidX + normalX * curvature;
+        const candidateAY = baseMidY + normalY * curvature;
+        const candidateBX = baseMidX - normalX * curvature;
+        const candidateBY = baseMidY - normalY * curvature;
+        const candidateADistance = Math.hypot(candidateAX - arenaCenterX, candidateAY - arenaCenterY);
+        const candidateBDistance = Math.hypot(candidateBX - arenaCenterX, candidateBY - arenaCenterY);
+        const preferredCurveSign = curvature > 0 && candidateBDistance < candidateADistance ? -1 : 1;
+        const curveSign = reverseSegmentIndex >= 0
+            ? (segmentIndex < reverseSegmentIndex ? preferredCurveSign : -preferredCurveSign)
+            : preferredCurveSign;
+        const chosenControlX = curveSign < 0 ? candidateBX : candidateAX;
+        const chosenControlY = curveSign < 0 ? candidateBY : candidateAY;
+        const centerPull = isCanCup
+            ? Math.min(
+                nearAdjacent ? 0.9 : 0.82,
+                (isTightCanCupLayout ? 0.54 : 0.36) + closeDistanceFactor * (isTightCanCupLayout ? 0.34 : 0.34)
+            )
+            : 0;
+        const controlX = chosenControlX * (1 - centerPull) + arenaCenterX * centerPull;
+        const controlY = chosenControlY * (1 - centerPull) + arenaCenterY * centerPull;
 
-            const badgeT = 0.5;
-            const baseBadgeX = quadraticPoint(badgeT, startX, controlX, endX);
-            const baseBadgeY = quadraticPoint(badgeT, startY, controlY, endY);
-            const badgeControlPull = isCanCup
-                ? Math.min(
-                    nearAdjacent ? 0.88 : 0.76,
-                    (isTightCanCupLayout ? 0.46 : 0.30) + closeDistanceFactor * (isTightCanCupLayout ? 0.34 : 0.28)
-                )
-                : 0;
-            const badgeX = baseBadgeX * (1 - badgeControlPull) + controlX * badgeControlPull;
-            const badgeY = baseBadgeY * (1 - badgeControlPull) + controlY * badgeControlPull;
-            const badgeTangentX = quadraticDerivative(badgeT, startX, controlX, endX);
-            const badgeTangentY = quadraticDerivative(badgeT, startY, controlY, endY);
-            const endTangentX = quadraticDerivative(0.96, startX, controlX, endX);
-            const endTangentY = quadraticDerivative(0.96, startY, controlY, endY);
+        const badgeT = 0.5;
+        const baseBadgeX = quadraticPoint(badgeT, startX, controlX, endX);
+        const baseBadgeY = quadraticPoint(badgeT, startY, controlY, endY);
+        const badgeControlPull = isCanCup
+            ? Math.min(
+                nearAdjacent ? 0.88 : 0.76,
+                (isTightCanCupLayout ? 0.46 : 0.30) + closeDistanceFactor * (isTightCanCupLayout ? 0.34 : 0.28)
+            )
+            : 0;
+        const badgeX = baseBadgeX * (1 - badgeControlPull) + controlX * badgeControlPull + normalX * laneOffset * 0.2;
+        const badgeY = baseBadgeY * (1 - badgeControlPull) + controlY * badgeControlPull + normalY * laneOffset * 0.2;
+        const badgeTangentX = quadraticDerivative(badgeT, startX, controlX, endX);
+        const badgeTangentY = quadraticDerivative(badgeT, startY, controlY, endY);
+        const endTangentX = quadraticDerivative(0.96, startX, controlX, endX);
+        const endTangentY = quadraticDerivative(0.96, startY, controlY, endY);
+
+        return {
+            startX,
+            startY,
+            endX,
+            endY,
+            controlX,
+            controlY,
+            distance: approximateQuadraticLength(startX, startY, controlX, controlY, endX, endY),
+            path: `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`,
+            midX: badgeX,
+            midY: badgeY,
+            midAngle: (Math.atan2(badgeTangentY, badgeTangentX) * 180) / Math.PI,
+            endAngle: (Math.atan2(endTangentY, endTangentX) * 180) / Math.PI,
+        };
+    };
+    const actionLineItems = actionSegments
+        .map((segment, segmentIndex) => {
+            const geometry = buildLineGeometry(segment, segmentIndex);
+            if (!geometry) {
+                return null;
+            }
+
+            const value = typeof segment.targetDamage === 'number' && segment.targetDamage > 0
+                ? segment.targetDamage
+                : typeof segment.targetManaDelta === 'number' && segment.targetManaDelta < 0
+                    ? Math.abs(segment.targetManaDelta)
+                    : null;
 
             return {
-                startX,
-                startY,
-                endX,
-                endY,
-                controlX,
-                controlY,
-                distance: approximateQuadraticLength(startX, startY, controlX, controlY, endX, endY),
-                path: `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`,
-                midX: badgeX,
-                midY: badgeY,
-                midAngle: (Math.atan2(badgeTangentY, badgeTangentX) * 180) / Math.PI,
-                endAngle: (Math.atan2(endTangentY, endTangentX) * 180) / Math.PI,
+                segment,
+                segmentIndex,
+                geometry,
+                value,
+                palette: getSegmentPalette(segmentIndex),
+                gradientId: `attack-line-${segment.cardId}-${segmentIndex}`.replace(/[^a-zA-Z0-9_-]/g, ''),
+                targetPos: segment.targetId ? posOf(segment.targetId) : null,
             };
-        })()
-        : null;
-    const lineGradientId = `attack-line-${lastAction?.cardId ?? 'none'}`.replace(/[^a-zA-Z0-9_-]/g, '');
+        })
+        .filter(Boolean) as Array<{
+            segment: GameActionSegment;
+            segmentIndex: number;
+            geometry: LineGeometry;
+            value: number | null;
+            palette: ReturnType<typeof getSegmentPalette>;
+            gradientId: string;
+            targetPos: ReturnType<typeof posOf>;
+        }>;
+    const primaryActionLine = actionLineItems[0] ?? null;
 
     const [showProjectile, setShowProjectile] = useState(false);
     const [reactionNow, setReactionNow] = useState(serverNow());
@@ -431,18 +543,18 @@ export function ArenaCircle({
         : 'bg-black/70 border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.5)]';
 
     useEffect(() => {
-        if (!hasLine || !lineGeometry || !lastAction) return;
+        if (!primaryActionLine || !lastAction) return;
         if (isCanCup) {
             setShowProjectile(false);
             return;
         }
 
-        projX.set(lineGeometry.startX);
-        projY.set(lineGeometry.startY);
+        projX.set(primaryActionLine.geometry.startX);
+        projY.set(primaryActionLine.geometry.startY);
         setShowProjectile(true);
 
-        const ctrlX = animate(projX, lineGeometry.endX, { duration: 0.45, ease: 'easeInOut' });
-        const ctrlY = animate(projY, lineGeometry.endY, { duration: 0.45, ease: 'easeInOut' });
+        const ctrlX = animate(projX, primaryActionLine.geometry.endX, { duration: 0.45, ease: 'easeInOut' });
+        const ctrlY = animate(projY, primaryActionLine.geometry.endY, { duration: 0.45, ease: 'easeInOut' });
 
         const timer = setTimeout(() => setShowProjectile(false), 500);
         return () => {
@@ -450,17 +562,33 @@ export function ArenaCircle({
             ctrlY.stop();
             clearTimeout(timer);
         };
-    }, [hasLine, isCanCup, lineGeometry?.startX, lineGeometry?.startY, lineGeometry?.endX, lineGeometry?.endY, lastAction?.cardId, projX, projY]);
+    }, [
+        isCanCup,
+        lastAction?.cardId,
+        primaryActionLine?.geometry.endX,
+        primaryActionLine?.geometry.endY,
+        primaryActionLine?.geometry.startX,
+        primaryActionLine?.geometry.startY,
+        projX,
+        projY,
+    ]);
 
-    const lineActionValue = typeof lastAction?.targetDamage === 'number' && lastAction.targetDamage > 0
-        ? lastAction.targetDamage
-        : typeof lastAction?.targetManaDelta === 'number' && lastAction.targetManaDelta < 0
-            ? Math.abs(lastAction.targetManaDelta)
-            : null;
-    const floatingDamage = isCanCup ? null : lineActionValue;
+    const floatingDamage = isCanCup ? null : (primaryActionLine?.value ?? null);
 
     const challengeOwnerName = pendingChallenge
         ? players.find((player) => player.id === pendingChallenge.playerId)?.name ?? 'player'
+        : '';
+    const pendingCanCupFollowUpResponderName = pendingCanCupFollowUp
+        ? players.find((player) => player.id === pendingCanCupFollowUp.responderId)?.name ?? 'player'
+        : '';
+    const isPendingCanCupFollowUpChooser = Boolean(
+        pendingCanCupFollowUp &&
+        pendingCanCupFollowUp.responderId === currentPlayer.id
+    );
+    const pendingCanCupFollowUpPrompt = pendingCanCupFollowUp
+        ? isPendingCanCupFollowUpChooser
+            ? `You got hit. Pick someone else to take ${pendingCanCupFollowUp.sipCount} sip${pendingCanCupFollowUp.sipCount === 1 ? '' : 's'}.`
+            : `Waiting for ${pendingCanCupFollowUpResponderName} to pass on ${pendingCanCupFollowUp.sipCount} sip${pendingCanCupFollowUp.sipCount === 1 ? '' : 's'}.`
         : '';
     const isReactionChallengeCard = isCanCupReactionChallengeCardUtil(pendingChallenge?.card);
     const reactionState = pendingChallenge?.reactionGame;
@@ -631,9 +759,9 @@ export function ArenaCircle({
         >
             <div className="relative" style={{ width: BOX_WIDTH, height: BOX_HEIGHT, transform: `translateY(${arenaYOffset}px)` }}>
                 <AnimatePresence>
-                    {hasLine && lineGeometry && lastAction && (
+                    {actionLineItems.map(({ segment, segmentIndex, geometry, palette, gradientId }) => (
                         <motion.svg
-                            key={`line-${lastAction.cardId}`}
+                            key={`line-${segment.cardId}-${segmentIndex}-${segment.timestamp ?? segmentIndex}`}
                             className="absolute inset-0 z-[25] pointer-events-none overflow-visible"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -641,15 +769,15 @@ export function ArenaCircle({
                             transition={{ duration: 0.25, ease: 'easeOut' }}
                         >
                             <defs>
-                                <linearGradient id={lineGradientId} gradientUnits="userSpaceOnUse" x1={lineGeometry.startX} y1={lineGeometry.startY} x2={lineGeometry.endX} y2={lineGeometry.endY}>
-                                    <stop offset="0%" stopColor={isCanCup ? '#fbbf24' : '#ef4444'} stopOpacity="0.95" />
-                                    <stop offset="100%" stopColor={isCanCup ? '#fdba74' : '#fb923c'} stopOpacity="0.92" />
+                                <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={geometry.startX} y1={geometry.startY} x2={geometry.endX} y2={geometry.endY}>
+                                    <stop offset="0%" stopColor={palette.start} stopOpacity="0.95" />
+                                    <stop offset="100%" stopColor={palette.end} stopOpacity="0.92" />
                                 </linearGradient>
                             </defs>
                             <motion.path
-                                d={lineGeometry.path}
+                                d={geometry.path}
                                 fill="none"
-                                stroke={isCanCup ? 'rgba(251,191,36,0.24)' : 'rgba(239,68,68,0.24)'}
+                                stroke={palette.glowStroke}
                                 strokeWidth={9}
                                 strokeLinecap="round"
                                 style={{ filter: 'blur(6px)' }}
@@ -659,9 +787,9 @@ export function ArenaCircle({
                                 transition={{ duration: 0.35, ease: 'easeOut' }}
                             />
                             <motion.path
-                                d={lineGeometry.path}
+                                d={geometry.path}
                                 fill="none"
-                                stroke={`url(#${lineGradientId})`}
+                                stroke={`url(#${gradientId})`}
                                 strokeWidth={3}
                                 strokeLinecap="round"
                                 initial={{ pathLength: 0 }}
@@ -670,20 +798,20 @@ export function ArenaCircle({
                                 transition={{ duration: 0.35, ease: 'easeOut' }}
                             />
                         </motion.svg>
-                    )}
+                    ))}
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {hasLine && lineGeometry && lastAction && (
+                    {actionLineItems.map(({ segment, segmentIndex, geometry, palette }) => (
                         <motion.div
-                            key={`arrow-${lastAction.cardId}`}
+                            key={`arrow-${segment.cardId}-${segmentIndex}-${segment.timestamp ?? segmentIndex}`}
                             className="absolute z-[27] pointer-events-none"
                             style={{
-                                left: lineGeometry.endX,
-                                top: lineGeometry.endY,
+                                left: geometry.endX,
+                                top: geometry.endY,
                                 translateX: '-50%',
                                 translateY: '-50%',
-                                rotate: `${lineGeometry.endAngle}deg`,
+                                rotate: `${geometry.endAngle}deg`,
                             }}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -695,54 +823,49 @@ export function ArenaCircle({
                                     height: 0,
                                     borderTop: '8px solid transparent',
                                     borderBottom: '8px solid transparent',
-                                    borderLeft: isCanCup ? '14px solid #f59e0b' : '14px solid #f87171',
-                                    filter: isCanCup
-                                        ? 'drop-shadow(0 0 8px rgba(251,191,36,0.7))'
-                                        : 'drop-shadow(0 0 8px rgba(248,113,113,0.7))',
+                                    borderLeft: `14px solid ${palette.arrow}`,
+                                    filter: `drop-shadow(0 0 8px ${palette.arrow}aa)`,
                                 }}
                             />
                         </motion.div>
-                    )}
+                    ))}
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {hasLine && lineGeometry && lastAction && (
+                    {actionLineItems.map(({ segment, segmentIndex, geometry, palette, value }) => (
                         <motion.div
-                            key={`sword-${lastAction.cardId}`}
+                            key={`sword-${segment.cardId}-${segmentIndex}-${segment.timestamp ?? segmentIndex}`}
                             className="absolute z-30 pointer-events-none"
                             style={{
-                                left: lineGeometry.midX,
-                                top: lineGeometry.midY,
+                                left: geometry.midX,
+                                top: geometry.midY,
                                 translateX: '-50%',
                                 translateY: '-50%',
-                                rotate: `${lineGeometry.midAngle}deg`,
+                                rotate: `${geometry.midAngle}deg`,
                             }}
                             initial={{ opacity: 0, scale: 0.7 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0 }}
                         >
                             <div className="flex items-center gap-1.5">
-                                <div className={`rounded-full p-1.5 ${isCanCup
-                                    ? 'border border-amber-400/50 bg-gray-950/80 shadow-[0_0_12px_rgba(251,191,36,0.4)]'
-                                    : 'border border-red-400/50 bg-gray-950/80 shadow-[0_0_12px_rgba(248,113,113,0.4)]'
-                                    }`}>
-                                    <Sword className={`w-3.5 h-3.5 ${isCanCup ? 'text-amber-200' : 'text-red-300'}`} />
+                                <div className={`rounded-full p-1.5 border ${palette.iconBorder} ${palette.iconBg} ${palette.iconShadow}`}>
+                                    <Sword className={`w-3.5 h-3.5 ${palette.iconText}`} />
                                 </div>
-                                {isCanCup && lineActionValue !== null && lineActionValue > 0 && (
+                                {isCanCup && value !== null && value > 0 && (
                                     <span
-                                        className="inline-block rounded-full border border-amber-300/50 bg-amber-950/75 px-2 py-0.5 text-[11px] font-bold text-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.35)]"
-                                        style={{ transform: `rotate(${-lineGeometry.midAngle}deg)` }}
+                                        className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${palette.badgeBorder} ${palette.badgeBg} ${palette.badgeText} ${palette.badgeShadow}`}
+                                        style={{ transform: `rotate(${-geometry.midAngle}deg)` }}
                                     >
-                                        {formatNumber(lineActionValue)}
+                                        {formatNumber(value)}
                                     </span>
                                 )}
                             </div>
                         </motion.div>
-                    )}
+                    ))}
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {showProjectile && lastAction && (
+                    {showProjectile && primaryActionLine && (
                         <motion.div
                             className="absolute z-40 pointer-events-none"
                             style={{ x: projX, y: projY, translateX: '-50%', translateY: '-50%' }}
@@ -759,13 +882,13 @@ export function ArenaCircle({
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {!isCanCup && !showProjectile && lastAction && lineGeometry && (
+                    {!isCanCup && !showProjectile && primaryActionLine && (
                         <motion.div
-                            key={`burst-${lastAction.cardId}`}
+                            key={`burst-${primaryActionLine.segment.cardId}`}
                             className="absolute z-30 pointer-events-none"
                             style={{
-                                left: lineGeometry.endX,
-                                top: lineGeometry.endY,
+                                left: primaryActionLine.geometry.endX,
+                                top: primaryActionLine.geometry.endY,
                                 translateX: '-50%',
                                 translateY: '-50%',
                             }}
@@ -779,13 +902,13 @@ export function ArenaCircle({
                 </AnimatePresence>
 
                 <AnimatePresence>
-                    {lastAction && tgtPos && floatingDamage !== null && (
+                    {primaryActionLine?.targetPos && floatingDamage !== null && (
                         <motion.div
-                            key={`dmg-${lastAction.cardId}`}
+                            key={`dmg-${primaryActionLine.segment.cardId}`}
                             className="absolute z-50 pointer-events-none whitespace-nowrap"
                             style={{
-                                left: tgtPos.x + halfX + 24,
-                                top: tgtPos.y + centerY + OFFSET_Y - 28,
+                                left: primaryActionLine.targetPos.x + halfX + 24,
+                                top: primaryActionLine.targetPos.y + centerY + OFFSET_Y - 28,
                             }}
                             initial={{ opacity: 0, y: 0, scale: 0.6 }}
                             animate={{ opacity: 1, y: -10, scale: 1 }}
@@ -795,6 +918,30 @@ export function ArenaCircle({
                             <span className="text-sm font-bold text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">
                                 -{formatNumber(floatingDamage)}
                             </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {pendingCanCupFollowUp && !pendingChallenge && (
+                        <motion.div
+                            key={`follow-up-prompt-${pendingCanCupFollowUp.createdAt}`}
+                            className="absolute left-1/2 top-1/2 z-[38] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        >
+                            <div className={`max-w-[240px] rounded-2xl border px-4 py-3 text-center backdrop-blur-sm ${isPendingCanCupFollowUpChooser
+                                ? 'border-cyan-300/55 bg-cyan-950/80 shadow-[0_0_28px_rgba(34,211,238,0.24)]'
+                                : 'border-amber-300/45 bg-amber-950/75 shadow-[0_0_24px_rgba(245,158,11,0.2)]'
+                                }`}>
+                                <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isPendingCanCupFollowUpChooser ? 'text-cyan-100/85' : 'text-amber-100/80'}`}>
+                                    {isPendingCanCupFollowUpChooser ? 'Pass it on' : 'Pending response'}
+                                </p>
+                                <p className={`mt-1 text-sm font-semibold ${isPendingCanCupFollowUpChooser ? 'text-cyan-50' : 'text-amber-50'}`}>
+                                    {pendingCanCupFollowUpPrompt}
+                                </p>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -939,7 +1086,7 @@ export function ArenaCircle({
                                 <div className="mt-2 flex items-center justify-between text-xs">
                                     <span className="rounded-full border border-blue-400/40 bg-blue-950/50 px-2 py-0.5 text-blue-200">
                                         {gameMode === 'can-cup'
-                                            ? `Cost ${pendingChallenge.card.manaCost ?? 0} sip${(pendingChallenge.card.manaCost ?? 0) === 1 ? '' : 's'}`
+                                            ? `Cost ${pendingChallenge.card.sipCost ?? pendingChallenge.card.manaCost ?? 0} sip${(pendingChallenge.card.sipCost ?? pendingChallenge.card.manaCost ?? 0) === 1 ? '' : 's'}`
                                             : `Mana ${pendingChallenge.card.manaCost ?? 0}`}
                                     </span>
                                     <span className={gameMode === 'can-cup' ? 'text-cyan-50/80' : 'text-purple-100/80'}>
@@ -990,8 +1137,13 @@ export function ArenaCircle({
                                     player={player}
                                     isCurrentTurn={player.id === currentTurn}
                                     isTargetable={Boolean(
-                                        selectedCard?.requiresTarget &&
-                                        (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
+                                        isPendingCanCupFollowUpChooser
+                                            ? player.id !== currentPlayer.id && !isUntargetablePlayer(player)
+                                            : (
+                                                selectedCard?.requiresTarget &&
+                                                !isUntargetablePlayer(player) &&
+                                                (selectedCard.effect.type === 'manaRefill' || player.id !== currentPlayer.id)
+                                            )
                                     )}
                                     isDrunk={gameMode === 'can-cup' ? false : projectedIntake >= drunkThreshold * 0.8}
                                     drunkThreshold={drunkThreshold}
@@ -999,7 +1151,9 @@ export function ArenaCircle({
                                     drunkSeconds={getProjectedDrunkSeconds(player)}
                                     drunkTimeLimitSeconds={drunkTimeLimitSeconds}
                                     maxMana={maxMana}
-                                    onSelect={selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined}
+                                    onSelect={isPendingCanCupFollowUpChooser
+                                        ? () => onTargetSelect(player.id)
+                                        : (selectedCard && !isChallengeCard(selectedCard) ? () => onTargetSelect(player.id) : undefined)}
                                     gameMode={gameMode}
                                     canCupSipsPerCan={settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN}
                                     pendingCanCupSip={pendingCanCupSips?.[player.id]}
@@ -1041,7 +1195,7 @@ export function ArenaCircle({
                 </motion.div>
             </div>
 
-            {!lastAction && !pendingChallenge && (
+            {!lastAction && !pendingChallenge && !pendingCanCupFollowUp && (
                 <motion.div
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
                     initial={{ opacity: 0 }}

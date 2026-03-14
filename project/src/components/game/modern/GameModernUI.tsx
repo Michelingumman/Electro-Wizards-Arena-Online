@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Party, PendingCanCupSipResolution, Player, isAfterskiMode } from '../../../types/game';
+import { Card, Party, PendingCanCupFollowUp, PendingCanCupSipResolution, Player, isAfterskiMode } from '../../../types/game';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { LogOut, Play, Hash, Wine } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -33,6 +33,7 @@ interface GameModernUIProps {
     onDrink: () => Promise<void>;
     onOpenPendingChallenge: () => void;
     pendingCanCupSipForCurrentPlayer?: PendingCanCupSipResolution | null;
+    pendingCanCupFollowUp?: PendingCanCupFollowUp | null;
     onResolvePendingCanCupSips?: () => Promise<void>;
     onSetReactionChallengeReady?: () => Promise<void>;
     onPressReactionChallenge?: (reactionTimeMs: number) => Promise<void>;
@@ -61,6 +62,7 @@ export function GameModernUI({
     onDrink,
     onOpenPendingChallenge,
     pendingCanCupSipForCurrentPlayer,
+    pendingCanCupFollowUp,
     onResolvePendingCanCupSips,
     onSetReactionChallengeReady,
     onPressReactionChallenge,
@@ -118,13 +120,13 @@ export function GameModernUI({
         ? (() => {
             const drinkSips = pendingCanCupSipForCurrentPlayer.beerSipsToConsume;
             const detailParts: string[] = [];
+            const legacyDeflectCovered = Math.max(
+                0,
+                Math.round(((pendingCanCupSipForCurrentPlayer as PendingCanCupSipResolution & { deflectSipsToConsume?: number }).deflectSipsToConsume ?? 0))
+            );
 
-            if (pendingCanCupSipForCurrentPlayer.deflectSipsToConsume > 0) {
-                const count = pendingCanCupSipForCurrentPlayer.deflectSipsToConsume;
-                detailParts.push(`armor covered ${count} sip${count === 1 ? '' : 's'}`);
-            }
-            if (pendingCanCupSipForCurrentPlayer.waterSipsToConsume > 0) {
-                const count = pendingCanCupSipForCurrentPlayer.waterSipsToConsume;
+            if ((pendingCanCupSipForCurrentPlayer.waterSipsToConsume + legacyDeflectCovered) > 0) {
+                const count = pendingCanCupSipForCurrentPlayer.waterSipsToConsume + legacyDeflectCovered;
                 detailParts.push(`water covered ${count} sip${count === 1 ? '' : 's'}`);
             }
 
@@ -210,7 +212,7 @@ export function GameModernUI({
                         />
                         {isCanCup && (
                             <p className="mt-3 text-xs text-cyan-200/80">
-                                Can Cup tracks your active can in real-time and awards empty can trophies.
+                                Can Cup tracks your active can in real-time. Each empty can also reduces incoming targeted sips by 1, down to a minimum of 1.
                             </p>
                         )}
                     </div>
@@ -255,6 +257,7 @@ export function GameModernUI({
                                     lastAction={party.lastAction}
                                     players={party.players}
                                     gameMode={gameMode}
+                                    pendingCanCupFollowUp={pendingCanCupFollowUp}
                                 />
                             </div>
                         </div>
@@ -290,6 +293,7 @@ export function GameModernUI({
                                 onTargetSelect={onTargetSelect}
                                 settings={party.settings}
                                 pendingChallenge={pendingChallenge}
+                                pendingCanCupFollowUp={pendingCanCupFollowUp}
                                 pendingCanCupSips={party.pendingCanCupSips}
                                 canResolvePendingChallenge={canResolvePendingChallenge}
                                 onChallengeCardClick={onOpenPendingChallenge}
@@ -309,7 +313,7 @@ export function GameModernUI({
                             cards={currentPlayer.cards}
                             onPlayCard={onPlayCard}
                             onCancelSelection={() => setSelectedCard(null)}
-                            disabled={!isCurrentTurn || Boolean(pendingChallenge) || Boolean(pendingCanCupSipForCurrentPlayer)}
+                            disabled={!isCurrentTurn || Boolean(pendingChallenge) || Boolean(pendingCanCupSipForCurrentPlayer) || Boolean(pendingCanCupFollowUp)}
                             currentMana={currentPlayer.mana}
                             selectedCard={selectedCard}
                             gameMode={gameMode}
@@ -336,6 +340,7 @@ export function GameModernUI({
                     {party.status === 'playing' && !isCanCup && (
                         <button
                             onClick={onDrink}
+                            disabled={Boolean(pendingCanCupFollowUp)}
                             className={drinkButtonClass}
                             style={{ bottom: 'calc(124px + env(safe-area-inset-bottom))' }}
                         >
@@ -347,7 +352,8 @@ export function GameModernUI({
                     {party.status === 'playing' && isCanCup && pendingCanCupSipForCurrentPlayer && onResolvePendingCanCupSips && (
                         <button
                             onClick={onResolvePendingCanCupSips}
-                            className="fixed left-1/2 z-[70] -translate-x-1/2 rounded-xl border border-amber-300/45 bg-amber-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(245,158,11,0.35)] transition-all hover:bg-amber-500 active:scale-95 max-w-[calc(100vw-40px)] truncate"
+                            disabled={Boolean(pendingCanCupFollowUp)}
+                            className="fixed left-1/2 z-[70] -translate-x-1/2 rounded-xl border border-amber-300/45 bg-amber-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(245,158,11,0.35)] transition-all hover:bg-amber-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 max-w-[calc(100vw-40px)] truncate"
                             style={{ bottom: 'calc(168px + env(safe-area-inset-bottom))' }}
                         >
                             {pendingSipButtonLabel}

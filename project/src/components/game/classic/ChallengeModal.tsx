@@ -137,7 +137,7 @@ export function ChallengeModal({
         case 'canCupWater':
           return `+${effect.value} Water Sip${effect.value === 1 ? '' : 's'}`;
         case 'canCupDeflect':
-          return `Deflect ${effect.value} forced sip${effect.value === 1 ? '' : 's'}`;
+          return `+${effect.value} Water Sip${effect.value === 1 ? '' : 's'}`;
         case 'canCupTopUp':
           return `Top up ${effect.value} sip${effect.value === 1 ? '' : 's'}`;
         case 'null':

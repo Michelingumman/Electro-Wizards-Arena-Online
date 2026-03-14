@@ -122,10 +122,10 @@ function getRandomWord() {
  * Helper function to determine a random rarity based on weights.
  */
 const CAN_CUP_RARITY_WEIGHTS: Record<CardRarity, number> = {
-  [CardRarity.COMMON]: 0.5,
-  [CardRarity.RARE]: 0.3,
-  [CardRarity.EPIC]: 0.15,
-  [CardRarity.LEGENDARY]: 0.05,
+  [CardRarity.COMMON]: 0.35,
+  [CardRarity.RARE]: 0.35,
+  [CardRarity.EPIC]: 0.20,
+  [CardRarity.LEGENDARY]: 0.10,
 };
 
 function getCardPoolForMode(gameMode: GameMode): CardBase[] {

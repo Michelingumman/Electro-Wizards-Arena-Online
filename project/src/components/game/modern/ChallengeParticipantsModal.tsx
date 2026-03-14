@@ -18,10 +18,17 @@ export function ChallengeParticipantsModal({
     onConfirm,
     onCancel,
 }: ChallengeParticipantsModalProps) {
-    const isSingleTargetChallenge = card.name === 'Tungvrickaren';
+    const usesOwnerTargetSetup = card.challengeParticipantMode === 'owner-target';
+    const selectablePlayers = useMemo(
+        () => players.filter((player) =>
+            player.id === currentPlayerId ||
+            !player.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0)
+        ),
+        [currentPlayerId, players]
+    );
 
-    // For single target challenges, default Duelist 1 to the current turn player
-    const [duelistOneId, setDuelistOneId] = useState(() => isSingleTargetChallenge ? currentPlayerId : '');
+    // Owner-target challenges always lock the caster as Duelist 1.
+    const [duelistOneId, setDuelistOneId] = useState(() => usesOwnerTargetSetup ? currentPlayerId : '');
     const [duelistTwoId, setDuelistTwoId] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -88,12 +95,12 @@ export function ChallengeParticipantsModal({
 
                     <div className="space-y-3 px-4 py-4">
                         <p className="text-xs text-gray-300">
-                            {isSingleTargetChallenge
+                            {usesOwnerTargetSetup
                                 ? 'Choose a target for this challenge.'
                                 : 'Choose both duelists before publishing this challenge to the arena.'}
                         </p>
 
-                        {!isSingleTargetChallenge && (
+                        {!usesOwnerTargetSetup && (
                             <label className="block">
                                 <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Duelist 1</span>
                                 <select
@@ -102,7 +109,7 @@ export function ChallengeParticipantsModal({
                                     className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
                                 >
                                     <option value="">Select player...</option>
-                                    {players.map((player) => (
+                                    {selectablePlayers.map((player) => (
                                         <option key={player.id} value={player.id}>
                                             {player.name}
                                         </option>
@@ -113,7 +120,7 @@ export function ChallengeParticipantsModal({
 
                         <label className="block">
                             <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">
-                                {isSingleTargetChallenge ? 'Välj offer (Target)' : 'Duelist 2'}
+                                {usesOwnerTargetSetup ? 'Välj offer (Target)' : 'Duelist 2'}
                             </span>
                             <select
                                 value={duelistTwoId}
@@ -121,7 +128,7 @@ export function ChallengeParticipantsModal({
                                 className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
                             >
                                 <option value="">Select player...</option>
-                                {players.map((player) => (
+                                {selectablePlayers.map((player) => (
                                     <option key={player.id} value={player.id} disabled={player.id === duelistOneId}>
                                         {player.name}
                                     </option>
