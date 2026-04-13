@@ -8,6 +8,7 @@ import {
   GameMode,
   Party,
   PendingCanCupFollowUp,
+  PendingCanCupReplacementChoice,
   PendingCanCupSipResolution,
   Player,
   isAfterskiMode,
@@ -33,7 +34,7 @@ import {
 } from '../utils/canCupMechanics';
 import {
   isCanCupReactionChallengeCard,
-  isCanCupBottomRaceChallengeCard,
+  isCanCupRandomOpponentChallengeCard,
   isCanCupNoSetupChallengeCard
 } from '../utils/canCupChallengeHelpers';
 import { CAN_CUP_CATEGORIES, CAN_CUP_TONGUE_TWISTERS } from '../config/cards/pools/canCup';
@@ -290,6 +291,28 @@ export function useGameActions(partyId: string) {
 
   const sanitizeCardForFirestore = (card: Card): Card =>
     JSON.parse(JSON.stringify(card)) as Card;
+  const drawCanCupRewardChoices = (count: number): Card[] => {
+    const desiredCount = Math.max(1, Math.round(count));
+    const choices: Card[] = [];
+    const seen = new Set<string>();
+
+    while (choices.length < desiredCount) {
+      let candidate = drawNewCard('can-cup');
+      let key = `${candidate.name}|${candidate.description}|${candidate.rarity}`;
+      let attempts = 0;
+
+      while (seen.has(key) && attempts < 6) {
+        candidate = drawNewCard('can-cup');
+        key = `${candidate.name}|${candidate.description}|${candidate.rarity}`;
+        attempts += 1;
+      }
+
+      choices.push(candidate);
+      seen.add(key);
+    }
+
+    return choices;
+  };
   const hasUntargetableEffect = (player?: Pick<Player, 'effects'> | null): boolean =>
     Boolean(player?.effects?.some((effect) => effect.type === 'untargetable' && effect.duration > 0));
   const addOrRefreshUntargetableEffect = (player: Player, duration: number, stackId = 'untargetable') => {
@@ -337,6 +360,11 @@ export function useGameActions(partyId: string) {
       throw new Error('Resolve the pending pass-along target first');
     }
   };
+  const assertNoPendingCanCupReplacementChoice = (party: Party) => {
+    if (getGameMode(party) === 'can-cup' && party.pendingCanCupReplacementChoice) {
+      throw new Error('Resolve the pending replacement card choice first');
+    }
+  };
 
   const applyCanCupCardEffect = ({
     card,
@@ -360,6 +388,7 @@ export function useGameActions(partyId: string) {
     let nextPendingCanCupSips = normalizePendingCanCupSips(pendingCanCupSips);
     let resolvedTargetId = target.id;
     let replacementCardForPlayedCard: Card | null = null;
+    let skipDefaultPlayedCardReplacement = false;
     let pendingCanCupFollowUp: Pick<
       PendingCanCupFollowUp,
       'responderId' |
@@ -439,6 +468,16 @@ export function useGameActions(partyId: string) {
             }
           }
         });
+        break;
+      }
+      case 'canCupWaterOrSip': {
+        if (target.id === playerId) {
+          addWaterSips(player, Math.max(0, Math.round(card.effect.value)), sipsPerCan);
+          affectedPlayerIds.add(player.id);
+          nextPendingCanCupSips = recalculatePendingCanCupSips(nextPendingCanCupSips, updatedPlayers, sipsPerCan);
+        } else {
+          targetSipCommand += queueTargetedSips(target.id, 2);
+        }
         break;
       }
       case 'canCupWater': {
@@ -674,6 +713,12 @@ export function useGameActions(partyId: string) {
         });
         break;
       }
+      case 'canCupRedrawHand': {
+        player.cards = player.cards.map(() => drawNewCard('can-cup'));
+        skipDefaultPlayedCardReplacement = true;
+        affectedPlayerIds.add(player.id);
+        break;
+      }
       default:
         throw new Error(`Unsupported Can Cup effect type: ${card.effect.type}`);
     }
@@ -685,6 +730,7 @@ export function useGameActions(partyId: string) {
       pendingCanCupSips: nextPendingCanCupSips,
       pendingCanCupFollowUp,
       replacementCardForPlayedCard,
+      skipDefaultPlayedCardReplacement,
     };
   };
 
@@ -699,6 +745,7 @@ export function useGameActions(partyId: string) {
         const party = partyDoc.data() as Party;
 
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
+        assertNoPendingCanCupReplacementChoice(party);
 
         const updatedPlayers = party.players.map(clonePlayerForSimulation);
         updatedPlayers.forEach(decrementUntargetableEffects);
@@ -738,6 +785,7 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
         if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
         assertNoPendingCanCupFollowUp(party);
+        assertNoPendingCanCupReplacementChoice(party);
         if (!isChallengeCard(card)) throw new Error('This card is not a challenge card');
 
         const updatedPlayers = [...party.players];
@@ -746,7 +794,7 @@ export function useGameActions(partyId: string) {
         const effectiveCard = card;
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         let nextPendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
-        const isRandomOpponentChallenge = gameMode === 'can-cup' && isCanCupBottomRaceChallengeCard(effectiveCard);
+        const isRandomOpponentChallenge = gameMode === 'can-cup' && isCanCupRandomOpponentChallengeCard(effectiveCard);
         const usesOwnerTargetSetup = gameMode === 'can-cup' && effectiveCard.challengeParticipantMode === 'owner-target';
         const requiresParticipantSetup = !(
           gameMode === 'can-cup' &&
@@ -1125,6 +1173,7 @@ export function useGameActions(partyId: string) {
         if (party.currentTurn !== playerId) throw new Error('Not player\'s turn');
         if (party.pendingChallenge) throw new Error('Resolve the active challenge first');
         assertNoPendingCanCupFollowUp(party);
+        assertNoPendingCanCupReplacementChoice(party);
 
         const updatedPlayers = [...party.players];
         const beforeStats = snapshotPlayerStats(updatedPlayers);
@@ -1157,7 +1206,9 @@ export function useGameActions(partyId: string) {
             pendingCanCupSips: normalizedPendingCanCupSips,
           });
 
-          player.cards[cardIndex] = canCupResult.replacementCardForPlayedCard ?? drawNewCard(gameMode);
+          if (!canCupResult.skipDefaultPlayedCardReplacement) {
+            player.cards[cardIndex] = canCupResult.replacementCardForPlayedCard ?? drawNewCard(gameMode);
+          }
           const actionTargetId = canCupResult.resolvedTargetId ?? targetId;
           const actionPayload = buildLastActionPayload({
             beforeStats,
@@ -1784,6 +1835,7 @@ export function useGameActions(partyId: string) {
     }
 
     const partyRef = doc(db, 'parties', partyId);
+    let shouldEndTurnAfterResolution = true;
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -1797,6 +1849,7 @@ export function useGameActions(partyId: string) {
           throw new Error('Not player\'s turn');
         }
         assertNoPendingCanCupFollowUp(party);
+        assertNoPendingCanCupReplacementChoice(party);
         if (party.pendingChallenge && party.pendingChallenge.playerId !== playerId) {
           throw new Error('Only the challenge owner can resolve this challenge');
         }
@@ -1993,7 +2046,26 @@ export function useGameActions(partyId: string) {
           throw new Error('Card not found in player\'s hand');
         }
 
-        player.cards[cardIndex] = drawNewCard(gameMode);
+        let pendingCanCupReplacementChoice: PendingCanCupReplacementChoice | null = null;
+        const rewardChoiceCount = Math.max(0, Math.round(resolvedChallengeCard.challengeRewardDrawChoices ?? 0));
+        const shouldOfferReplacementChoice =
+          gameMode === 'can-cup' &&
+          rewardChoiceCount > 0 &&
+          winner.id === playerId;
+
+        if (shouldOfferReplacementChoice) {
+          pendingCanCupReplacementChoice = {
+            playerId,
+            cardSlotIndex: cardIndex,
+            sourceCardId: resolvedChallengeCard.id,
+            sourceCardName: resolvedChallengeCard.name,
+            options: drawCanCupRewardChoices(rewardChoiceCount).map(sanitizeCardForFirestore),
+            createdAt: Date.now(),
+          };
+          shouldEndTurnAfterResolution = false;
+        } else {
+          player.cards[cardIndex] = drawNewCard(gameMode);
+        }
 
         if (gameMode !== 'can-cup') {
           const drunkThreshold = party.settings?.drunkThreshold ?? GAME_CONFIG.DRUNK_THRESHOLD;
@@ -2031,6 +2103,9 @@ export function useGameActions(partyId: string) {
         if (party.pendingChallenge) {
           updatePayload.pendingChallenge = null;
         }
+        if (pendingCanCupReplacementChoice) {
+          updatePayload.pendingCanCupReplacementChoice = pendingCanCupReplacementChoice;
+        }
 
         transaction.update(partyRef, {
           ...updatePayload,
@@ -2040,11 +2115,74 @@ export function useGameActions(partyId: string) {
       });
 
       // End turn and decay mana intake
-      await endTurn(playerId);
+      if (shouldEndTurnAfterResolution) {
+        await endTurn(playerId);
+      }
 
       return true;
     } catch (error) {
       console.error('Error resolving challenge:', error);
+      throw error;
+    }
+  }, [partyId, endTurn]);
+
+  const resolveCanCupReplacementChoice = useCallback(async (playerId: string, chosenCardId: string) => {
+    const partyRef = doc(db, 'parties', partyId);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const partyDoc = await transaction.get(partyRef);
+        if (!partyDoc.exists()) throw new Error('Party not found');
+        const party = partyDoc.data() as Party;
+
+        if (getGameMode(party) !== 'can-cup') {
+          throw new Error('Replacement choice is only available in Can Cup');
+        }
+        if (party.currentTurn !== playerId) {
+          throw new Error('Not player\'s turn');
+        }
+
+        const pendingReplacementChoice = party.pendingCanCupReplacementChoice;
+        if (!pendingReplacementChoice) {
+          throw new Error('No pending replacement choice');
+        }
+        if (pendingReplacementChoice.playerId !== playerId) {
+          throw new Error('Only the acting player can choose a replacement card');
+        }
+
+        const chosenCard = pendingReplacementChoice.options.find((option) => option.id === chosenCardId);
+        if (!chosenCard) {
+          throw new Error('Chosen replacement card was not found');
+        }
+
+        const updatedPlayers = party.players.map((entry) => ({
+          ...clonePlayerForSimulation(entry),
+          cards: [...entry.cards],
+        }));
+        const player = updatedPlayers.find((entry) => entry.id === playerId);
+        if (!player) {
+          throw new Error('Player not found');
+        }
+
+        if (
+          pendingReplacementChoice.cardSlotIndex < 0 ||
+          pendingReplacementChoice.cardSlotIndex >= player.cards.length
+        ) {
+          throw new Error('Replacement slot is invalid');
+        }
+
+        player.cards[pendingReplacementChoice.cardSlotIndex] = sanitizeCardForFirestore(chosenCard);
+
+        transaction.update(partyRef, {
+          players: updatedPlayers,
+          pendingCanCupReplacementChoice: null,
+        });
+      });
+
+      await endTurn(playerId);
+      return true;
+    } catch (error) {
+      console.error('Error resolving Can Cup replacement choice:', error);
       throw error;
     }
   }, [partyId, endTurn]);
@@ -2166,6 +2304,7 @@ export function useGameActions(partyId: string) {
         const party = partyDoc.data() as Party;
         if (getGameMode(party) !== 'can-cup') return;
         assertNoPendingCanCupFollowUp(party);
+        assertNoPendingCanCupReplacementChoice(party);
 
         const pendingCanCupSips = normalizePendingCanCupSips(party.pendingCanCupSips);
         const resolution = pendingCanCupSips[playerId];
@@ -2218,6 +2357,7 @@ export function useGameActions(partyId: string) {
         const gameMode = getGameMode(party);
         const canCupSipsPerCan = getCanCupSipsPerCan(party);
         assertNoPendingCanCupFollowUp(party);
+        assertNoPendingCanCupReplacementChoice(party);
 
         const beforeStats = snapshotPlayerStats(party.players);
 
@@ -2311,6 +2451,7 @@ export function useGameActions(partyId: string) {
     pressReactionChallenge,
     dismissReactionChallengeResults,
     resolveChallengeCard,
+    resolveCanCupReplacementChoice,
     resolveCanCupFollowUpTarget,
     resolveCanCupSips,
     drinkMana,

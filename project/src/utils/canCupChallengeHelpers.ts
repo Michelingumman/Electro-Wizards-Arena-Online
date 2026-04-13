@@ -1,7 +1,7 @@
 import { Card } from '../types/game';
 
 type ReactionCardLike = Pick<Card, 'name' | 'description'>;
-type CanCupChallengeLike = Pick<Card, 'id' | 'name' | 'description' | 'effect' | 'requiresTarget'>;
+type CanCupChallengeLike = Pick<Card, 'id' | 'name' | 'description' | 'effect' | 'requiresTarget' | 'challengeParticipantMode'>;
 
 const REACTION_NAME_PATTERN = /hur\s*full\s*e\s*du/i;
 const REACTION_DESC_PATTERN = /(snabbast hand|reaction|fastest)/i;
@@ -42,6 +42,12 @@ export function isCanCupBottomRaceChallengeCard(card?: CanCupChallengeLike | nul
   );
 }
 
+export function isCanCupRandomOpponentChallengeCard(card?: CanCupChallengeLike | null): boolean {
+  if (!card) return false;
+  if (card.challengeParticipantMode === 'owner-random-opponent') return true;
+  return isCanCupBottomRaceChallengeCard(card);
+}
+
 export function isCanCupNoSetupChallengeCard(card?: CanCupChallengeLike | null): boolean {
-  return isCanCupCircleChallengeCard(card) || isCanCupBottomRaceChallengeCard(card);
+  return isCanCupCircleChallengeCard(card) || isCanCupRandomOpponentChallengeCard(card);
 }

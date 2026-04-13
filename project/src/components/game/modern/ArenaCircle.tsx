@@ -590,6 +590,13 @@ export function ArenaCircle({
             ? `You got hit. Pick someone else to take ${pendingCanCupFollowUp.sipCount} sip${pendingCanCupFollowUp.sipCount === 1 ? '' : 's'}.`
             : `Waiting for ${pendingCanCupFollowUpResponderName} to pass on ${pendingCanCupFollowUp.sipCount} sip${pendingCanCupFollowUp.sipCount === 1 ? '' : 's'}.`
         : '';
+    const isCurrentPlayerSelfTargetable = Boolean(
+        selectedCard?.requiresTarget &&
+        selectedCard.canTargetSelf &&
+        !isChallengeCard(selectedCard) &&
+        !pendingChallenge &&
+        !isPendingCanCupFollowUpChooser
+    );
     const isReactionChallengeCard = isCanCupReactionChallengeCardUtil(pendingChallenge?.card);
     const reactionState = pendingChallenge?.reactionGame;
     const reactionDuelistIds = [pendingChallenge?.duelistOneId, pendingChallenge?.duelistTwoId].filter(Boolean) as string[];
@@ -1179,13 +1186,14 @@ export function ArenaCircle({
                     <ModernPlayerAvatar
                         player={currentPlayer}
                         isCurrentTurn={isCurrentTurn}
-                        isTargetable={false}
+                        isTargetable={isCurrentPlayerSelfTargetable}
                         isDrunk={gameMode === 'can-cup' ? false : getProjectedIntake(currentPlayer) >= drunkThreshold * 0.8}
                         drunkThreshold={drunkThreshold}
                         projectedManaIntake={getProjectedIntake(currentPlayer)}
                         drunkSeconds={getProjectedDrunkSeconds(currentPlayer)}
                         drunkTimeLimitSeconds={drunkTimeLimitSeconds}
                         maxMana={maxMana}
+                        onSelect={isCurrentPlayerSelfTargetable ? () => onTargetSelect(currentPlayer.id) : undefined}
                         isYou
                         gameMode={gameMode}
                         canCupSipsPerCan={settings?.canCupSipsPerCan ?? GAME_CONFIG.CAN_CUP_SIPS_PER_CAN}

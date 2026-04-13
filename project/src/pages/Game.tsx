@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
-import { Card, Party, PendingCanCupFollowUp, PendingCanCupSipResolution, isAfterskiMode } from '../types/game';
+import { Card, Party, PendingCanCupFollowUp, PendingCanCupReplacementChoice, PendingCanCupSipResolution, isAfterskiMode } from '../types/game';
 import { useGameActions } from '../hooks/useGameActions';
 import { useGameState } from '../hooks/useGameState';
 import { usePartyActions } from '../hooks/usePartyActions';
@@ -28,6 +28,7 @@ export function Game() {
     dismissReactionChallengeResults,
     drinkMana,
     resolveChallengeCard,
+    resolveCanCupReplacementChoice,
     resolveCanCupFollowUpTarget,
     resolveCanCupSips,
     godModeSwapCard,
@@ -169,8 +170,12 @@ export function Game() {
   const pendingCanCupFollowUpForCurrentPlayer: PendingCanCupFollowUp | null = currentPlayer && party?.pendingCanCupFollowUp?.responderId === currentPlayer.id
     ? party.pendingCanCupFollowUp
     : null;
+  const pendingCanCupReplacementChoiceForCurrentPlayer: PendingCanCupReplacementChoice | null = currentPlayer && party?.pendingCanCupReplacementChoice?.playerId === currentPlayer.id
+    ? party.pendingCanCupReplacementChoice
+    : null;
   const hasPendingCanCupSipForCurrentPlayer = Boolean(pendingCanCupSipForCurrentPlayer);
   const hasPendingCanCupFollowUp = Boolean(party?.pendingCanCupFollowUp);
+  const hasPendingCanCupReplacementChoice = Boolean(party?.pendingCanCupReplacementChoice);
   const hasValidPlayer = party?.players.some((player) => validPlayers.includes(player.name.toLowerCase())) ?? false;
   const canStart = Boolean(
     party?.status === 'waiting' &&
@@ -209,6 +214,7 @@ export function Game() {
     if (!currentPlayer || !isCurrentTurn) return;
     if (party?.pendingChallenge) return;
     if (hasPendingCanCupFollowUp) return;
+    if (hasPendingCanCupReplacementChoice) return;
     if (hasPendingCanCupSipForCurrentPlayer) return;
 
     const isDrunk = currentPlayer.isDrunk;
@@ -260,7 +266,9 @@ export function Game() {
     if (!targetPlayer) return;
 
     const isUntargetable = isUntargetablePlayer(targetPlayer);
-    if (isUntargetable) return;
+    const allowsSelfTarget = Boolean(selectedCard?.canTargetSelf && currentPlayer?.id === targetId);
+    if (isUntargetable && !allowsSelfTarget) return;
+    if (hasPendingCanCupReplacementChoice) return;
 
     if (pendingCanCupFollowUpForCurrentPlayer) {
       if (targetId === currentPlayer?.id) return;
@@ -296,6 +304,7 @@ export function Game() {
     const challengeCard = party?.pendingChallenge?.card || selectedCard;
     if (!currentPlayer || !challengeCard || !isCurrentTurn) return;
     if (hasPendingCanCupFollowUp) return;
+    if (hasPendingCanCupReplacementChoice) return;
     if (hasPendingCanCupSipForCurrentPlayer) return;
 
     let finalWinnerId = winnerId;
@@ -319,6 +328,7 @@ export function Game() {
 
   const handleChallengeSetupConfirm = async (duelistOneId: string, duelistTwoId: string) => {
     if (!currentPlayer || !challengeSetupCard) return;
+    if (hasPendingCanCupReplacementChoice) return;
 
     try {
       await startChallengeCard(currentPlayer.id, challengeSetupCard, duelistOneId, duelistTwoId);
@@ -336,6 +346,7 @@ export function Game() {
   const handleOpenPendingChallenge = () => {
     if (!party?.pendingChallenge || !currentPlayer) return;
     if (hasPendingCanCupFollowUp) return;
+    if (hasPendingCanCupReplacementChoice) return;
     if (party.pendingChallenge.playerId !== currentPlayer.id) return;
     if (isCanCupReactionChallengeCard(party.pendingChallenge.card)) return;
     setSelectedCard(party.pendingChallenge.card);
@@ -343,6 +354,7 @@ export function Game() {
 
   const handleSetReactionChallengeReady = async () => {
     if (!currentPlayer) return;
+    if (hasPendingCanCupReplacementChoice) return;
     try {
       await setReactionChallengeReady(currentPlayer.id);
     } catch (error) {
@@ -352,6 +364,7 @@ export function Game() {
 
   const handlePressReactionChallenge = async (reactionTimeMs: number) => {
     if (!currentPlayer) return;
+    if (hasPendingCanCupReplacementChoice) return;
     try {
       await pressReactionChallenge(currentPlayer.id, reactionTimeMs);
     } catch (error) {
@@ -361,6 +374,7 @@ export function Game() {
 
   const handleDismissReactionChallengeResults = async () => {
     if (!currentPlayer) return;
+    if (hasPendingCanCupReplacementChoice) return;
     try {
       await dismissReactionChallengeResults(currentPlayer.id);
     } catch (error) {
@@ -371,6 +385,7 @@ export function Game() {
   const handleDrink = async () => {
     if (!currentPlayer) return;
     if (hasPendingCanCupFollowUp) return;
+    if (hasPendingCanCupReplacementChoice) return;
     try {
       await drinkMana(currentPlayer.id);
     } catch (error) {
@@ -381,10 +396,20 @@ export function Game() {
   const handleResolvePendingCanCupSips = async () => {
     if (!currentPlayer || !pendingCanCupSipForCurrentPlayer) return;
     if (hasPendingCanCupFollowUp) return;
+    if (hasPendingCanCupReplacementChoice) return;
     try {
       await resolveCanCupSips(currentPlayer.id);
     } catch (error) {
       console.error('Error resolving pending Can Cup sips:', error);
+    }
+  };
+
+  const handleResolveCanCupReplacementChoice = async (chosenCardId: string) => {
+    if (!currentPlayer || !pendingCanCupReplacementChoiceForCurrentPlayer) return;
+    try {
+      await resolveCanCupReplacementChoice(currentPlayer.id, chosenCardId);
+    } catch (error) {
+      console.error('Error resolving Can Cup replacement choice:', error);
     }
   };
 
@@ -463,6 +488,8 @@ export function Game() {
     setSelectedCard,
     onGodModeSwapCard: godModeSwapCard,
     pendingCanCupFollowUp: party?.pendingCanCupFollowUp ?? null,
+    pendingCanCupReplacementChoice: party?.pendingCanCupReplacementChoice ?? null,
+    onResolveCanCupReplacementChoice: handleResolveCanCupReplacementChoice,
   };
 
   return (

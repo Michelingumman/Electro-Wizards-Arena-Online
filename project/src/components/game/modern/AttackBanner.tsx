@@ -39,6 +39,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
             case 'canCupSip': return 'tvingade klunkar pa';
             case 'canCupAoESip': return 'skalade med';
             case 'canCupWater': return 'tog vattenpaus';
+            case 'canCupWaterOrSip': return 'spelade nodvatten mot';
             case 'canCupBathroomBreak': return 'tog en toapaus med';
             case 'canCupDeflect': return 'tog vattenpaus';
             case 'canCupTopUp': return 'fyllde pa med';
@@ -53,6 +54,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
             case 'canCupRussianRoulette': return 'snurrade flaskan pa';
             case 'canCupLegendaryHeist': return 'kapade legendary fran';
             case 'canCupPenaltyDrink': return 'skalade med';
+            case 'canCupRedrawHand': return 'bytte ut hela handen med';
             case 'canCupTaxSober': return 'straffade the sober one';
             default: return 'spelade';
         }
@@ -79,8 +81,10 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
             case 'canCupRussianRoulette':
             case 'canCupPenaltyDrink':
             case 'canCupTaxSober':
+            case 'canCupRedrawHand':
                 return <Wine className={clsx(cls, 'text-cyan-300')} />;
             case 'canCupWater':
+            case 'canCupWaterOrSip':
             case 'canCupBathroomBreak':
             case 'canCupDeflect':
             case 'canCupTopUp':
@@ -113,6 +117,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
             case 'canCupDoubleTrouble':
             case 'canCupBottenUpp':
             case 'canCupWater':
+            case 'canCupWaterOrSip':
             case 'canCupBathroomBreak':
             case 'canCupDeflect':
             case 'canCupTopUp':
@@ -126,6 +131,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
             case 'canCupHolyAlliance':
             case 'canCupLegendaryHeist':
             case 'canCupTaxSober':
+            case 'canCupRedrawHand':
                 return 'border-cyan-500/30 bg-cyan-950/35';
             default:
                 return defaultTone;
@@ -157,7 +163,7 @@ export function AttackBanner({ lastAction, players, gameMode = 'afterski', pendi
         targetText = target?.name || 'target';
     } else if (['drunkestTimer', 'leastDrunkForceDrink'].includes(primaryAction.cardType) && affectedOthers.length === 1) {
         targetText = players.find((player) => player.id === affectedOthers[0])?.name || 'maalet';
-    } else if (primaryAction.targetId && isSelf && ['forceDrink', 'canCupWater', 'canCupTopUp'].includes(primaryAction.cardType)) {
+    } else if (primaryAction.targetId && isSelf && ['forceDrink', 'canCupWater', 'canCupWaterOrSip', 'canCupTopUp', 'canCupRedrawHand'].includes(primaryAction.cardType)) {
         targetText = '';
     } else if (primaryAction.cardType === 'challenge') {
         targetText = 'challenge table';

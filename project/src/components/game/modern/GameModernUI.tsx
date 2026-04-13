@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Party, PendingCanCupFollowUp, PendingCanCupSipResolution, Player, isAfterskiMode } from '../../../types/game';
+import { Card, Party, PendingCanCupFollowUp, PendingCanCupReplacementChoice, PendingCanCupSipResolution, Player, isAfterskiMode } from '../../../types/game';
 import { GAME_CONFIG } from '../../../config/gameConfig';
 import { LogOut, Play, Hash, Wine } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,6 +13,7 @@ import { AttackBanner } from './AttackBanner';
 import { ChallengeParticipantsModal } from './ChallengeParticipantsModal';
 import { GodModeCardPicker } from './GodModeCardPicker';
 import { CanCupEndScreen } from './CanCupEndScreen';
+import { CanCupReplacementChoiceModal } from './CanCupReplacementChoiceModal';
 import { CardBase } from '../../../types/cards';
 import { isCanCupReactionChallengeCard } from '../../../utils/canCupChallengeHelpers';
 import { isChallengeCard } from '../../../utils/challengeCard';
@@ -34,10 +35,12 @@ interface GameModernUIProps {
     onOpenPendingChallenge: () => void;
     pendingCanCupSipForCurrentPlayer?: PendingCanCupSipResolution | null;
     pendingCanCupFollowUp?: PendingCanCupFollowUp | null;
+    pendingCanCupReplacementChoice?: PendingCanCupReplacementChoice | null;
     onResolvePendingCanCupSips?: () => Promise<void>;
     onSetReactionChallengeReady?: () => Promise<void>;
     onPressReactionChallenge?: (reactionTimeMs: number) => Promise<void>;
     onDismissReactionChallengeResults?: () => Promise<void>;
+    onResolveCanCupReplacementChoice?: (cardId: string) => Promise<void>;
     challengeSetupCard: Card | null;
     onChallengeSetupConfirm: (duelistOneId: string, duelistTwoId: string) => Promise<void>;
     onChallengeSetupCancel: () => void;
@@ -63,10 +66,12 @@ export function GameModernUI({
     onOpenPendingChallenge,
     pendingCanCupSipForCurrentPlayer,
     pendingCanCupFollowUp,
+    pendingCanCupReplacementChoice,
     onResolvePendingCanCupSips,
     onSetReactionChallengeReady,
     onPressReactionChallenge,
     onDismissReactionChallengeResults,
+    onResolveCanCupReplacementChoice,
     challengeSetupCard,
     onChallengeSetupConfirm,
     onChallengeSetupCancel,
@@ -92,6 +97,11 @@ export function GameModernUI({
     const canResolvePendingChallenge = Boolean(
         pendingChallenge &&
         pendingChallenge.playerId === currentPlayer.id &&
+        party.status === 'playing'
+    );
+    const canResolvePendingReplacementChoice = Boolean(
+        pendingCanCupReplacementChoice &&
+        pendingCanCupReplacementChoice.playerId === currentPlayer.id &&
         party.status === 'playing'
     );
     const rootClass = isCanCup
@@ -313,7 +323,7 @@ export function GameModernUI({
                             cards={currentPlayer.cards}
                             onPlayCard={onPlayCard}
                             onCancelSelection={() => setSelectedCard(null)}
-                            disabled={!isCurrentTurn || Boolean(pendingChallenge) || Boolean(pendingCanCupSipForCurrentPlayer) || Boolean(pendingCanCupFollowUp)}
+                            disabled={!isCurrentTurn || Boolean(pendingChallenge) || Boolean(pendingCanCupSipForCurrentPlayer) || Boolean(pendingCanCupFollowUp) || Boolean(pendingCanCupReplacementChoice)}
                             currentMana={currentPlayer.mana}
                             selectedCard={selectedCard}
                             gameMode={gameMode}
@@ -340,7 +350,7 @@ export function GameModernUI({
                     {party.status === 'playing' && !isCanCup && (
                         <button
                             onClick={onDrink}
-                            disabled={Boolean(pendingCanCupFollowUp)}
+                            disabled={Boolean(pendingCanCupFollowUp) || Boolean(pendingCanCupReplacementChoice)}
                             className={drinkButtonClass}
                             style={{ bottom: 'calc(124px + env(safe-area-inset-bottom))' }}
                         >
@@ -352,7 +362,7 @@ export function GameModernUI({
                     {party.status === 'playing' && isCanCup && pendingCanCupSipForCurrentPlayer && onResolvePendingCanCupSips && (
                         <button
                             onClick={onResolvePendingCanCupSips}
-                            disabled={Boolean(pendingCanCupFollowUp)}
+                            disabled={Boolean(pendingCanCupFollowUp) || Boolean(pendingCanCupReplacementChoice)}
                             className="fixed left-1/2 z-[70] -translate-x-1/2 rounded-xl border border-amber-300/45 bg-amber-600/90 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(245,158,11,0.35)] transition-all hover:bg-amber-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 max-w-[calc(100vw-40px)] truncate"
                             style={{ bottom: 'calc(168px + env(safe-area-inset-bottom))' }}
                         >
@@ -374,6 +384,13 @@ export function GameModernUI({
             )}
 
             {/* ─── Challenge Modal ─── */}
+            {canResolvePendingReplacementChoice && pendingCanCupReplacementChoice && onResolveCanCupReplacementChoice && (
+                <CanCupReplacementChoiceModal
+                    choice={pendingCanCupReplacementChoice}
+                    onChoose={onResolveCanCupReplacementChoice}
+                />
+            )}
+
             {selectedCard && !isCanCupReactionChallengeCard(selectedCard) && (
                 party.pendingChallenge?.card.id === selectedCard.id || isChallengeCard(selectedCard)
             ) && (

@@ -100,8 +100,10 @@ export function ModernCardHand({
             case 'canCupRockBottom':
             case 'canCupRussianRoulette':
             case 'canCupPenaltyDrink':
+            case 'canCupRedrawHand':
                 return <Flame className={cls} />;
             case 'canCupWater':
+            case 'canCupWaterOrSip':
             case 'canCupDeflect':
             case 'canCupBathroomBreak':
             case 'canCupTopUp':

@@ -57,6 +57,7 @@ export function usePartyActions() {
       leaderId: player.id,
       pendingChallenge: null,
       pendingCanCupFollowUp: null,
+      pendingCanCupReplacementChoice: null,
       settings: {
         maxMana: GAME_CONFIG.MAX_MANA,
         manaDrinkAmount: GAME_CONFIG.MANA_DRINK_AMOUNT,

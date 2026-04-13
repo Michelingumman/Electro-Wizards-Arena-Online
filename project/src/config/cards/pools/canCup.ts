@@ -315,7 +315,7 @@ export const CAN_CUP_CARDS: CardBase[] = [
   {
     id: 'cc-flamingo',
     name: 'Flamingon',
-    description: 'Alla andra spelare står på ett ben. Första som trillar tar 5 klunkar.',
+    description: 'Alla andra spelare står på ett ben och blundar. Första som trillar tar 5 klunkar.',
     manaCost: 2,
     sipCost: 2,
     rarity: CardRarity.EPIC,

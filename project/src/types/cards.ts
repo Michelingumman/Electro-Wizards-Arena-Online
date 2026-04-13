@@ -71,6 +71,7 @@ export type EffectType =
   'canCupSip' |
   'canCupAoESip' |
   'canCupWater' |
+  'canCupWaterOrSip' |
   'canCupDeflect' |
   'canCupBathroomBreak' |
   'canCupTopUp' |
@@ -88,6 +89,7 @@ export type EffectType =
   'canCupRussianRoulette' |
   'canCupLegendaryHeist' |
   'canCupPenaltyDrink' |
+  'canCupRedrawHand' |
   'null'; // For effects that don't do anything
 
 export interface Challenge {
@@ -115,12 +117,14 @@ export interface CardBase {
   type: string;
   effect: CardEffect;
   requiresTarget: boolean;
+  canTargetSelf?: boolean;
   isChallenge?: boolean;
   color?: string;
   isLegendary?: boolean;
   flavorText?: string;
-  challengeParticipantMode?: 'manual' | 'owner-target';
+  challengeParticipantMode?: 'manual' | 'owner-target' | 'owner-random-opponent';
   challengeOutcomeRule?: 'standard' | 'owner-safe';
+  challengeRewardDrawChoices?: number;
 }
 
 export interface CardStats {

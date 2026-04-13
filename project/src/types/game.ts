@@ -111,6 +111,15 @@ export interface PendingCanCupFollowUp {
   createdAt: number;
 }
 
+export interface PendingCanCupReplacementChoice {
+  playerId: string;
+  cardSlotIndex: number;
+  sourceCardId: string;
+  sourceCardName: string;
+  options: Card[];
+  createdAt: number;
+}
+
 export interface Party {
   id: string;
   code: string;
@@ -125,6 +134,7 @@ export interface Party {
   pendingChallenge?: PendingChallenge | null;
   pendingCanCupSips?: Record<string, PendingCanCupSipResolution> | null;
   pendingCanCupFollowUp?: PendingCanCupFollowUp | null;
+  pendingCanCupReplacementChoice?: PendingCanCupReplacementChoice | null;
   previousState?: {
     players: Player[];
     currentTurn: string;
